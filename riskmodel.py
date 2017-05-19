@@ -3,13 +3,14 @@
 # */
 # Translated to python by Davoud Taghawi-Nejad
 import expectedvaluemc
-from generalizedpareto import GeneralizedPareto
-from generalizedexponential import GeneralizedExponential
+#from generalizedpareto import GeneralizedPareto
+#from generalizedexponential import GeneralizedExponential
+import scipy.stats
 
 class RiskModel:
     def __init__(self,
-                 riskDistribution=GeneralizedPareto(10., 10.*3., 1./3.),
-                 riskPeriod=GeneralizedExponential(33.33)):
+                 riskDistribution=scipy.stats.genpareto(10., 10.*3., 1./3.),
+                 riskPeriod=scipy.stats.expon(33.33)):
         """
           setting default distributions:
              Power Law with x_min = 10.
@@ -27,7 +28,7 @@ class RiskModel:
 
     def getPPF(self, tailSize):
         """alias of getDistributionPPF """
-        return self.getDistributionPPF(tailSize);
+        return self.riskDistribution.ppf(tailSize);		#TODO: correct syntax?
 
     # def getPeriodPPF(self, tailSize):
     #     """ allows to compute expected value (.5)"""

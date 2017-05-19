@@ -22,7 +22,7 @@ def populateArray(dist, sampleSize, min, max, defaultVal):
         rvs = []
         while len(rvs) < sampleSize:
                 # HELP IntStream.range(0, sampleSize - rvs.size()).forEach($ -> rvs.add(dist.random(randomE)));
-            rvs = dist.random(sampleSize - len(rvs)) # inefficient
+            rvs = dist.rvs(sampleSize - len(rvs)) # inefficient
                 # If the distribution has boundaries without default
                 # value to fall back to, delete rvs outside the
                 # boundaries, new ones will be drawn in the next iteration.
@@ -31,7 +31,7 @@ def populateArray(dist, sampleSize, min, max, defaultVal):
             if max is not None:
                 rvs = filter(lambda rv: rv > max, rvs)
     else:
-        rvs = dist.random(sampleSize)
+        rvs = dist.rvs(sampleSize)
         if min is not None:
             rvs = [rv if rv >= min else defaultVal for rv in rvs] # SHOULD THAT NOT BE 0?
         if max is not None:
