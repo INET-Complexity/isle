@@ -13,6 +13,7 @@ Translated to python by Davoud Taghawi-Nejad
 """
 def getEV(dist, sampleSize=1000, min=None, max=None, defaultVal=None):
     rvs = populateArray(dist, sampleSize, min, max, defaultVal);
+    print("*******EVMC", sum(rvs), sampleSize, len(rvs))
     return sum(rvs) / len(rvs)
 
 def populateArray(dist, sampleSize, min, max, defaultVal):
@@ -36,7 +37,8 @@ def populateArray(dist, sampleSize, min, max, defaultVal):
             rvs = [rv if rv >= min else defaultVal for rv in rvs] # SHOULD THAT NOT BE 0?
         if max is not None:
             rvs = [rv if rv <= max else defaultVal for rv in rvs]
-
+    print("*******EVMC - PA", dist.dist.name, rvs[0])
+    
     return rvs
 
 

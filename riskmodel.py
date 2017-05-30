@@ -9,8 +9,8 @@ import scipy.stats
 
 class RiskModel:
     def __init__(self,
-                 riskDistribution=scipy.stats.genpareto(10., 10.*3., 1./3.),
-                 riskPeriod=scipy.stats.expon(33.33)):
+                 riskDistribution=scipy.stats.pareto(2., 0., 10.),
+                 riskPeriod=scipy.stats.expon(0, 100./3.)):
         """
           setting default distributions:
              Power Law with x_min = 10.
@@ -48,5 +48,6 @@ class RiskModel:
         periodExpectedValue = expectedvaluemc.getEV(self.riskPeriod, 1000, None, None, None);
 
         expectedLoss = distributionExpectedValue * (1./periodExpectedValue) * runtime - deductible;
+        print("**RM", expectedLoss, expectedReturn, expectedLoss * (1. + expectedReturn))
         return expectedLoss * (1. + expectedReturn);
 

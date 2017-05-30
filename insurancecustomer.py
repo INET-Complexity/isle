@@ -33,8 +33,10 @@ class InsuranceCustomer(abce.Agent):
     def subscribe_coverage(self):
         messages = self.get_messages('insurancequotes')
         if len(messages) > 0:
+            print("ICC quote")
             cc = min(messages, key=lambda x: x.content)
             if cc.content < self.possession('money'):
+                print("... should accept")
                 risk = self.risks[-1]
                 new_contract = InsuranceContract({'policyholder': self.name,
                                                   'insurer':  (cc.sender_group, cc.sender_id)},
@@ -44,6 +46,8 @@ class InsuranceCustomer(abce.Agent):
                                                  deductible=0.0)
                 self.message(cc.sender_group, cc.sender_id, 'addcontract', new_contract.__dict__)
                 self.contracts.append(new_contract)
+            else:
+                print("not accepted, money: {0:8f}, content {1:8f}".format(self.possession('money'), cc.content))
 
     def filobl(self):
         for contract in self.contracts:

@@ -38,7 +38,7 @@ class Contract:
 
     def fulfill_obligation(self, me, von, to, delivery):
         """ over delivery is handled quietly """
-        for good, amount in delivery.iteritems():
+        for good, amount in delivery.items():
             try:
                 me.destroy(good, amount)
                 me.give(self.contract_partners[to][0], self.contract_partners[to][1], good, amount)

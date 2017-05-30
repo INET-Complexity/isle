@@ -11,12 +11,12 @@ import scipy.stats
 
 class InsurableRisk:
     def __init__(self,
-                 value=scipy.stats.genpareto(10., 10.*3., 1./3.).rvs(),
+                 value=scipy.stats.pareto(2., 0., 10.),
                  runtime=100,
-                 eventDist=scipy.stats.expon(33.33),
-                 eventSizeDist=scipy.stats.genpareto(10., 10.*3., 1./3.),
+                 eventDist=scipy.stats.expon(0, 100./3.),
+                 eventSizeDist=scipy.stats.pareto(2., 0., 10.),
                  seed=None):
-        self.value = value
+        self.value = value.rvs()
         #print(self.value)
         #pdb.set_trace()
         self.eventDist = eventDist

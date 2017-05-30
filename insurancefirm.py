@@ -20,6 +20,7 @@ class InsuranceFirm(abce.Agent):
 
     def quote(self):
         for request in self.get_messages('request_insurancequote'):
+            print("IF quote")
             self.message(request.sender_group, request.sender_id, 'insurancequotes', self.acceptInsuranceContract(request.content))
 
     def acceptInsuranceContract(self, request):

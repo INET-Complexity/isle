@@ -15,6 +15,7 @@ class InsuranceContract(Contract):
         self.obliations['policyholder'] = {'money': premium}
         self.excess = excess;
         self.deductible = deductible;
+        print("contract", premium)
 
     def execute(self, claim):
         covered_claim = min(claim, self.excess)
