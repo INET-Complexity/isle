@@ -10,6 +10,7 @@ from insurancecustomer import InsuranceCustomer
 from abce import Simulation, gui
 from collections import defaultdict
 
+import math
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
@@ -37,7 +38,12 @@ def main(simulation_parameters):
         for round in simulation.next_round():
             new_events = insurancecustomers.do('randomAddRisk')
             for event_time, risk in new_events:
-                events[event_time].append(risk)
+                if event_time is not None:
+                    event_time = math.ceil(event_time)
+                    events[event_time].append(risk)
+                    assert isinstance(event_time, int)
+                    assert risk is not None
+                    #raise SystemExit
             for risk in events[round]:
                 risk.explode()
             insurancefirms.do('quote')

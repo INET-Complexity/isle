@@ -31,6 +31,8 @@ class InsurableRisk:
     def getSizeOfEvent(self):
         return self.eventSizeDist.rvs()
 
-    def explode(self, damage):
+    def explode(self):
+        self.set_damage(self.getSizeOfEvent())
+        
+    def set_damage(self, damage):
         self.damage = damage
-

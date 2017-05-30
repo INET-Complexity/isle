@@ -13,6 +13,7 @@ class InsuranceCustomer(abce.Agent):
         self.create('money', simulation_parameters['start_cash_customer'])
         self.contracts = []
         self.risks = []
+        self.insurance_contract_dict = {}
 
     def randomAddRisk(self):
         if random.random() > .9:
@@ -33,10 +34,8 @@ class InsuranceCustomer(abce.Agent):
     def subscribe_coverage(self):
         messages = self.get_messages('insurancequotes')
         if len(messages) > 0:
-            print("ICC quote")
             cc = min(messages, key=lambda x: x.content)
             if cc.content < self.possession('money'):
-                print("... should accept")
                 risk = self.risks[-1]
                 new_contract = InsuranceContract({'policyholder': self.name,
                                                   'insurer':  (cc.sender_group, cc.sender_id)},
@@ -46,8 +45,9 @@ class InsuranceCustomer(abce.Agent):
                                                  deductible=0.0)
                 self.message(cc.sender_group, cc.sender_id, 'addcontract', new_contract.__dict__)
                 self.contracts.append(new_contract)
-            else:
-                print("not accepted, money: {0:8f}, content {1:8f}".format(self.possession('money'), cc.content))
+                self.insurance_contract_dict[risk] = new_contract
+            #else:
+            #    print("not accepted, money: {0:8f}, content {1:8f}".format(self.possession('money'), cc.content))
 
     def filobl(self):
         for contract in self.contracts:
@@ -64,5 +64,6 @@ class InsuranceCustomer(abce.Agent):
     def check_risk(self):
         for risk in self.risks:
             if risk.damage > 0:
-                insurance_contact = self.insurance_contacts[risk]
+                insurance_contact = self.insurance_contract_dict[risk]
                 insurance_contact.execute(risk.damage)
+                risk.set_damage(0)

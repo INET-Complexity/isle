@@ -20,7 +20,6 @@ class InsuranceFirm(abce.Agent):
 
     def quote(self):
         for request in self.get_messages('request_insurancequote'):
-            print("IF quote")
             self.message(request.sender_group, request.sender_id, 'insurancequotes', self.acceptInsuranceContract(request.content))
 
     def acceptInsuranceContract(self, request):
@@ -31,14 +30,20 @@ class InsuranceFirm(abce.Agent):
             self.contracts.append(InsuranceContract.generated(contract.content))
 
     def filobl(self):
+        insurance_payouts = 0 
         for contract in self.contracts:
-            self.log('insurancepayouts', contract.get_obligation('insurer','money'))
-
-            if contract.get_obligation('insurer', 'money') > 0:
+            
+            current_payout = contract.get_obligation('insurer', 'money')
+            
+            if current_payout > 0:
                 contract.fulfill_obligation(self,
                                             von='insurer',
                                             to='policyholder',
-                                            delivery={'money': contract.get_obligation('insurer','money')})
+                                            delivery={'money': current_payout})
+                insurance_payouts += current_payout
+                print("BOOKED", current_payout)
+        
+        self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
 
