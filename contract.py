@@ -6,9 +6,12 @@ from collections import defaultdict
 
 
 class Contract:
-    def __init__(self, contract_partners):
+    def __init__(self, contract_partners, endtime = None):
         self.contract_partners = contract_partners
         self.obliations = {}
+        self.endtime = endtime
+        self.valid = True 
+
 
     @staticmethod
     def generated(contract_dict):
@@ -45,3 +48,12 @@ class Contract:
                 self.obliations[von][good] = max(0, self.obliations[von][good] - amount)
             except NotEnoughGoods:
                 raise
+
+    def terminate(self):
+        self.valid = False
+        
+    def is_valid(self):
+        return self.valid
+        
+    def get_endtime(self):
+        return self.endtime

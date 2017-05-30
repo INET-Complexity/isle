@@ -47,3 +47,13 @@ class InsuranceFirm(abce.Agent):
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
 
+    def mature_contracts(self):
+        #for contract in self.contracts:
+        #    print(type(contract), contract)
+        #    #contract.is_valid()
+        
+        #[contract.terminate() for contract in self.contracts if (contract.end_time < self.round)]
+        #self.contracts = [contract for contract in self.contracts if (contract.end_time >= self.round)]
+        
+        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)]
+        self.contracts = [contract for contract in self.contracts if (contract.is_valid())]

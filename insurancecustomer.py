@@ -39,10 +39,11 @@ class InsuranceCustomer(abce.Agent):
                 risk = self.risks[-1]
                 new_contract = InsuranceContract({'policyholder': self.name,
                                                   'insurer':  (cc.sender_group, cc.sender_id)},
-                                                 runtime=risk.runtime,
+                                                 endtime=risk.runtime + self.round,
                                                  premium=cc.content,
                                                  excess=risk.value,
                                                  deductible=0.0)
+                #print(type(new_contract), new_contract)
                 self.message(cc.sender_group, cc.sender_id, 'addcontract', new_contract.__dict__)
                 self.contracts.append(new_contract)
                 self.insurance_contract_dict[risk] = new_contract
@@ -67,3 +68,15 @@ class InsuranceCustomer(abce.Agent):
                 insurance_contact = self.insurance_contract_dict[risk]
                 insurance_contact.execute(risk.damage)
                 risk.set_damage(0)
+
+    def mature_contracts(self):
+        #for contract in self.contracts:
+        #    print(type(contract), contract)
+        #    #contract.is_valid()
+        #    
+        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)]
+        self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
+
+        #for contract in self.contracts:
+        #    if time > contract.get_endtime():
+        #        contract.terminate()

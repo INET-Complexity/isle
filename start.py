@@ -46,6 +46,7 @@ def main(simulation_parameters):
                     #raise SystemExit
             for risk in events[round]:
                 risk.explode()
+            (insurancefirms + insurancecustomers).do('mature_contracts')
             insurancefirms.do('quote')
             insurancecustomers.do('subscribe_coverage')
             insurancefirms.do('add_contract')
