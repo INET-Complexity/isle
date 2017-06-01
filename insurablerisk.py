@@ -9,8 +9,9 @@
 import scipy.stats
 #import pdb
 
+#TODO: deal with runtime/endtime and remove risk from the owner's portfolio
 class InsurableRisk:
-    def __init__(self,
+    def __init__(self, time, 
                  value=scipy.stats.pareto(2., 0., 10.),
                  runtime=100,
                  eventDist=scipy.stats.expon(0, 100./3.),
@@ -23,6 +24,8 @@ class InsurableRisk:
         self.eventSizeDist = eventSizeDist
         self.damage = 0
         self.runtime = runtime
+        self.endtime = runtime + time
+        #self.coverage = False
         assert seed is None
 
     def getTimeToNextEvent(self):
@@ -31,8 +34,19 @@ class InsurableRisk:
     def getSizeOfEvent(self):
         return self.eventSizeDist.rvs()
 
-    def explode(self):
+    def explode(self, time):
         self.set_damage(self.getSizeOfEvent())
+        return self.schedule_next_event(time)
+    
+    def schedule_next_event(self, time):
+        explode_time = self.getTimeToNextEvent() + time
+        if explode_time <= self.endtime:
+            return explode_time, self
+        else:
+            return None, None
         
     def set_damage(self, damage):
         self.damage = damage
+    
+    #def set_coverage(self):
+    #    self.coverage = True

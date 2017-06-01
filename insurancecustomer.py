@@ -17,10 +17,13 @@ class InsuranceCustomer(abce.Agent):
 
     def randomAddRisk(self):
         if random.random() > .9:
-            risk = InsurableRisk();
-            self.risks.append(risk);
+            risk = InsurableRisk(self.round)
+            self.risks.append(risk)
             self.requestInsuranceCoverage(risk)
-            return risk.getTimeToNextEvent() + self.round, risk
+            #risk.set_coverage()	#risk does not need this information
+            retv =  risk.schedule_next_event(self.round)
+            print(retv)
+            return retv
         else:
             return None, None
 

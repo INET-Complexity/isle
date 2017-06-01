@@ -37,15 +37,16 @@ def main(simulation_parameters):
 
         for round in simulation.next_round():
             new_events = insurancecustomers.do('randomAddRisk')
+            for risk in events[round]:
+                new_events += [risk.explode(round)]
+            print (new_events)
             for event_time, risk in new_events:
                 if event_time is not None:
                     event_time = math.ceil(event_time)
                     events[event_time].append(risk)
                     assert isinstance(event_time, int)
                     assert risk is not None
-                    #raise SystemExit
-            for risk in events[round]:
-                risk.explode()
+                    assert event_time >= round
             (insurancefirms + insurancecustomers).do('mature_contracts')
             insurancefirms.do('quote')
             insurancecustomers.do('subscribe_coverage')
