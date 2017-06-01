@@ -22,7 +22,7 @@ class InsuranceCustomer(abce.Agent):
             self.requestInsuranceCoverage(risk)
             #risk.set_coverage()	#risk does not need this information
             retv =  risk.schedule_next_event(self.round)
-            print(retv)
+            #print(retv)
             return retv
         else:
             return None, None
@@ -74,7 +74,7 @@ class InsuranceCustomer(abce.Agent):
             if risk.damage > 0:
                 insurance_contact = self.insurance_contract_dict[risk]
                 insurance_contact.execute(risk.damage)
-                print(" risk ", risk)
+                #print(" risk ", risk)
                 risk.set_damage(0)
 
     def mature_contracts(self):

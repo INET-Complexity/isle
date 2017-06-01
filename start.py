@@ -15,8 +15,8 @@ import math
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
-                         'numberOfInsurers': 1, #5,
-                         'numberOfRiskholders': 1, #100,
+                         'numberOfInsurers': 5,
+                         'numberOfRiskholders': 100,
                          'start_cash_insurer': 100000.0,
                          'start_cash_customer': 100000.0}
 
@@ -38,11 +38,10 @@ def main(simulation_parameters):
 
 
         for round in simulation.next_round():
-            allagents.do('printmoney')
+            #allagents.do('printmoney')
             new_events = insurancecustomers.do('randomAddRisk')
             for risk in events[round]:
                 new_events += [risk.explode(round)]
-            print (new_events)
             for event_time, risk in new_events:
                 if event_time is not None:
                     event_time = math.ceil(event_time)
