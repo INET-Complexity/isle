@@ -11,6 +11,7 @@ from abce import Simulation, gui
 from collections import defaultdict
 
 import math
+#import pdb
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
@@ -31,13 +32,13 @@ def main(simulation_parameters):
                        parameters=simulation_parameters)
 
         allagents = insurancefirms + insurancecustomers
+        #pdb.set_trace()
 
         events = defaultdict(list)
 
 
         for round in simulation.next_round():
-            for agent in (insurancefirms + insurancecustomers)
-                print("DEBUG **START ", agent.posession('money'))
+            allagents.do('printmoney')
             new_events = insurancecustomers.do('randomAddRisk')
             for risk in events[round]:
                 new_events += [risk.explode(round)]
