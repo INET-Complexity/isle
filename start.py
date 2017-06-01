@@ -38,11 +38,9 @@ def main(simulation_parameters):
 
 
         for round in simulation.next_round():
-            allagents.do('printmoney')
             new_events = insurancecustomers.do('randomAddRisk')
             for risk in events[round]:
                 new_events += [risk.explode(round)]
-            print (new_events)
             for event_time, risk in new_events:
                 if event_time is not None:
                     event_time = math.ceil(event_time)

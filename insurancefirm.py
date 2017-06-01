@@ -41,7 +41,7 @@ class InsuranceFirm(abce.Agent):
                                             to='policyholder',
                                             delivery={'money': current_payout})
                 insurance_payouts += current_payout
-                print("BOOKED", current_payout)
+                #print("DEBUG: Booked claim payout ", current_payout)
         
         self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))
