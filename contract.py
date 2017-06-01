@@ -8,7 +8,7 @@ from collections import defaultdict
 class Contract:
     def __init__(self, contract_partners, endtime = None):
         self.contract_partners = contract_partners
-        self.obliations = {}
+        self.obligations = {}
         self.endtime = endtime
         self.valid = True 
 
@@ -22,30 +22,30 @@ class Contract:
 
     def get_obligations(self, side):
         try:
-            return self.obliations[side]
+            return self.obligations[side]
         except KeyError:
             return {}
 
     def get_obligation(self, side, good):
         try:
-            return self.obliations[side][good]
+            return self.obligations[side][good]
         except KeyError:
             return 0.0
 
     def add_obligation(self, side, good, amount):
-        self.obliations[side][good] += amount
+        self.obligations[side][good] += amount
 
     def substract_obligation(self, side, good, amount):
         """ no negative obligations, quietly """
-        self.obliations[side][good] = min(0, self.obliations[side][good] - amount)
+        self.obligations[side][good] = min(0, self.obligations[side][good] - amount)
 
     def fulfill_obligation(self, me, von, to, delivery):
         """ over delivery is handled quietly """
         for good, amount in delivery.items():
             try:
-                me.destroy(good, amount)
+                #me.destroy(good, amount)
                 me.give(self.contract_partners[to][0], self.contract_partners[to][1], good, amount)
-                self.obliations[von][good] = max(0, self.obliations[von][good] - amount)
+                self.obligations[von][good] = max(0, self.obligations[von][good] - amount)
             except NotEnoughGoods:
                 raise
 

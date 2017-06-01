@@ -57,10 +57,14 @@ class InsuranceCustomer(abce.Agent):
         for contract in self.contracts:
             self.log('obligations', contract.get_obligation('policyholder','money'))
             if contract.get_obligations('policyholder')['money'] > 0:
+                #print("DEBUG", contract.obligations)
                 contract.fulfill_obligation(self,
                                             von='policyholder',
                                             to='insurer',
                                             delivery={'money': contract.get_obligations('policyholder')['money']})
+        
+        #print("DEBUG", self.possession('money'))
+        
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
 
@@ -70,6 +74,7 @@ class InsuranceCustomer(abce.Agent):
             if risk.damage > 0:
                 insurance_contact = self.insurance_contract_dict[risk]
                 insurance_contact.execute(risk.damage)
+                print(" risk ", risk)
                 risk.set_damage(0)
 
     def mature_contracts(self):
@@ -83,3 +88,6 @@ class InsuranceCustomer(abce.Agent):
         #for contract in self.contracts:
         #    if time > contract.get_endtime():
         #        contract.terminate()
+
+    def printmoney(self):
+        print("DEBUG **IC ", self.possession('money'))

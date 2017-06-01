@@ -11,11 +11,12 @@ from abce import Simulation, gui
 from collections import defaultdict
 
 import math
+#import pdb
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
-                         'numberOfInsurers': 5,
-                         'numberOfRiskholders': 100,
+                         'numberOfInsurers': 1, #5,
+                         'numberOfRiskholders': 1, #100,
                          'start_cash_insurer': 100000.0,
                          'start_cash_customer': 100000.0}
 
@@ -31,11 +32,13 @@ def main(simulation_parameters):
                        parameters=simulation_parameters)
 
         allagents = insurancefirms + insurancecustomers
+        #pdb.set_trace()
 
         events = defaultdict(list)
 
 
         for round in simulation.next_round():
+            allagents.do('printmoney')
             new_events = insurancecustomers.do('randomAddRisk')
             for risk in events[round]:
                 new_events += [risk.explode(round)]

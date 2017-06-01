@@ -48,6 +48,6 @@ class RiskModel:
         periodExpectedValue = expectedvaluemc.getEV(self.riskPeriod, 1000, None, None, None);
 
         expectedLoss = distributionExpectedValue * (1./periodExpectedValue) * runtime - deductible;
-        #print("**RM", expectedLoss, expectedReturn, expectedLoss * (1. + expectedReturn))
+        print("DEBUG  **RM", distributionExpectedValue, periodExpectedValue, expectedLoss, expectedReturn, expectedLoss * (1. + expectedReturn))
         return expectedLoss * (1. + expectedReturn);
 

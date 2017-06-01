@@ -12,14 +12,14 @@ class InsuranceContract(Contract):
         assert isinstance(contract_partner, dict)
         self.policyholder = contract_partner['policyholder']
         self.insurer = contract_partner['insurer']
-        self.obliations['policyholder'] = {'money': premium}
-        self.obliations['insurer'] = {'money': 0}
+        self.obligations['policyholder'] = {'money': premium}
+        self.obligations['insurer'] = {'money': 0}
         self.excess = excess
         self.deductible = deductible
         #self.endtime = endtime			#is in superclass
 
     def execute(self, claim):
         covered_claim = min(claim, self.excess)
-        self.obliations['insurer']['money'] += max(0, covered_claim - self.deductible)
-        print("Claim: {0:f} from insurance firm {1:d}".format(covered_claim - self.deductible, self.insurer[1]))
+        self.obligations['insurer']['money'] += max(0, covered_claim - self.deductible)
+        print("DEBUG Claim: {0:f} from insurance firm {1:d}".format(covered_claim - self.deductible, self.insurer[1]), end="")
         

@@ -57,3 +57,6 @@ class InsuranceFirm(abce.Agent):
         
         [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)]
         self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
+
+    def printmoney(self):
+        print("DEBUG **IF ", self.possession('money'))
