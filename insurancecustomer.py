@@ -70,6 +70,7 @@ class InsuranceCustomer(abce.Agent):
             if risk.damage > 0:
                 insurance_contact = self.insurance_contract_dict[risk]
                 insurance_contact.execute(risk.damage)
+                print(" risk ", risk)
                 risk.set_damage(0)
 
     def mature_contracts(self):

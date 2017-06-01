@@ -17,7 +17,7 @@ class InsurableRisk:
                  eventDist=scipy.stats.expon(0, 100./3.),
                  eventSizeDist=scipy.stats.pareto(2., 0., 10.),
                  seed=None):
-        self.value = value.rvs()
+        self.value = value.rvs() #not used in the case of damage calculation with eventDist and eventSizeDist
         #print(self.value)
         #pdb.set_trace()
         self.eventDist = eventDist

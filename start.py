@@ -14,8 +14,8 @@ import math
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
-                         'numberOfInsurers': 5,
-                         'numberOfRiskholders': 100,
+                         'numberOfInsurers': 1, #5,
+                         'numberOfRiskholders': 1, #100,
                          'start_cash_insurer': 100000.0,
                          'start_cash_customer': 100000.0}
 
@@ -36,6 +36,8 @@ def main(simulation_parameters):
 
 
         for round in simulation.next_round():
+            for agent in (insurancefirms + insurancecustomers)
+                print("DEBUG **START ", agent.posession('money'))
             new_events = insurancecustomers.do('randomAddRisk')
             for risk in events[round]:
                 new_events += [risk.explode(round)]
