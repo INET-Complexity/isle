@@ -4,7 +4,8 @@ Translated to python by Davoud Taghawi-Nejad
 """
 import abce
 import random
-from insurablerisk import InsurableRisk
+#from insurablerisk import InsurableRisk
+from categorizedinsurablerisk import CategorizedInsurableRisk
 from insurancecontract import InsuranceContract
 
 class InsuranceCustomer(abce.Agent):
@@ -14,6 +15,10 @@ class InsuranceCustomer(abce.Agent):
         self.contracts = []
         self.risks = []
         self.insurance_contract_dict = {}
+
+    def startAddRisk(self, number, max_runtime, risk_category_list):
+        for i in range(number):
+            self.risks.append(CategorizedInsurableRisk(self.round, max_runtime, risk_category_list))
 
     def randomAddRisk(self):
         if random.random() > .9:

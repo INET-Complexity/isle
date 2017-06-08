@@ -24,9 +24,9 @@ class CategorizedInsurableRisk(InsurableRisk):
         while (len(self.eventSchedule) > i and self.eventSchedule[i] < time):
             i += 1
         if len(self.eventSchedule) > i:
-            return self.eventSchedule[i] - time
+            return self.eventSchedule[i] - time, self
         else:
-            return None		# TODO: Will this cause type errors somewhere?
+            return None, None		# TODO: Will this cause type errors somewhere?
 
     def populateEventSchedule(self, time, max_runtime):
         ievents = []
@@ -36,10 +36,10 @@ class CategorizedInsurableRisk(InsurableRisk):
                 ievents.append(time)
         i_events_include = scipy.stats.bernoulli(1-self.time_correlation_weight).rvs(len(ievents))
         g_events_include = scipy.stats.bernoulli(self.time_correlation_weight).rvs(len(self.category.eventTimeList))
-        for i in range(len(i_events_include):
+        for i in range(len(i_events_include)):
             if i_events_include[i]:
                 events.append(ievents[i])
-        for i in range(len(g_events_include):
+        for i in range(len(g_events_include)):
             if g_events_include[i]:
                 events.append(self.category.eventTimeList[i])
         events.sort()
