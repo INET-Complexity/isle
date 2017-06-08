@@ -17,18 +17,20 @@ class InsurableRisk:
                  eventDist=scipy.stats.expon(0, 100./3.),
                  eventSizeDist=scipy.stats.pareto(2., 0., 10.),
                  seed=None):
-        self.value = value.rvs() #not used in the case of damage calculation with eventDist and eventSizeDist
-        #print(self.value)
-        #pdb.set_trace()
+        if value is not None:
+            self.value = value.rvs() #not used in the case of damage calculation with eventDist and eventSizeDist
+            #print(self.value)
+            #pdb.set_trace()
         self.eventDist = eventDist
         self.eventSizeDist = eventSizeDist
         self.damage = 0
-        self.runtime = runtime
-        self.endtime = runtime + time
+        if runtime is not None:
+            self.runtime = runtime
+            self.endtime = runtime + time
         #self.coverage = False
         assert seed is None
 
-    def getTimeToNextEvent(self):
+    def getTimeToNextEvent(self, time = None):
         return self.eventDist.rvs()
 
     def getSizeOfEvent(self):
