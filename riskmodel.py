@@ -37,7 +37,7 @@ class RiskModel:
     # def getDistributionInverseCDF(self, x):
     #     return 1. - self.riskDistribution.cumulative(x);
 
-    def evaluate(self, runtime, excess, deductible, expectedReturn=.15):
+    def evaluate(self, risk, runtime, excess, deductible, expectedReturn=.15):
         """ Returns x% (e.g., 15%) over the expected loss which is computed
         using Monte Carlo Simulations of risk distribution (excess respected)
         and risk period /riskPeriod.mean * riskDistribution.mean * runtime -
@@ -49,5 +49,5 @@ class RiskModel:
 
         expectedLoss = distributionExpectedValue * (1./periodExpectedValue) * runtime - deductible;
         #print("DEBUG  **RM", distributionExpectedValue, periodExpectedValue, expectedLoss, expectedReturn, expectedLoss * (1. + expectedReturn))
-        return expectedLoss * (1. + expectedReturn);
+        return [expectedLoss * (1. + expectedReturn), runtime, excess, deductible, risk];
 

@@ -1,5 +1,6 @@
 
 import scipy.stats
+import random
 
 from insurablerisk import InsurableRisk
 from riskcategory import RiskCategory
@@ -7,7 +8,7 @@ import auxfunctions
 
 class CategorizedInsurableRisk(InsurableRisk):
     def __init__(self, time, max_runtime, risk_category_list, category=None, time_correlation_weight=.5, ):
-        super(B, self).__init__(None, None, None, scipy.stats.expon(0, 100./3.), scipy.stats.pareto(2., 0., 10.))
+        super(CategorizedInsurableRisk, self).__init__(None, None, None, scipy.stats.expon(0, 100./3.), scipy.stats.pareto(2., 0., 10.))
         if category is not None:
             if isinstance(category, int):
                 self.category = risk_category_list[category]

@@ -24,10 +24,10 @@ class InsurableRisk:
         self.eventDist = eventDist
         self.eventSizeDist = eventSizeDist
         self.damage = 0
+        self.covered = False
         if runtime is not None:
             self.runtime = runtime
             self.endtime = runtime + time
-        #self.coverage = False
         assert seed is None
 
     def getTimeToNextEvent(self, time = None):
@@ -50,5 +50,12 @@ class InsurableRisk:
     def set_damage(self, damage):
         self.damage = damage
     
-    #def set_coverage(self):
-    #    self.coverage = True
+    def set_coverage(self, state):
+        '''Method to set the insured/non-insured state of the risk
+           arguments: 
+            state: type bool - indicates whether the risk is currently insured'''
+        self.covered = state
+
+    def get_coverage(self):
+        '''Method to get the insured/non-insured state of the risk'''
+        return self.covered

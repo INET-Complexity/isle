@@ -7,18 +7,23 @@ Translated to python by Davoud Taghawi-Nejad
 from __future__ import division
 from insurancefirm import InsuranceFirm
 from insurancecustomer import InsuranceCustomer
+from riskcategory import RiskCategory
 from abce import Simulation, gui
 from collections import defaultdict
 
 import math
-#import pdb
+import pdb
 
 simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 200,
-                         'numberOfInsurers': 1, #5,
-                         'numberOfRiskholders': 1, #100,
+                         'numberOfInsurers': 5,
+                         'numberOfRiskholders': 100,
                          'start_cash_insurer': 100000.0,
-                         'start_cash_customer': 100000.0}
+                         'start_cash_customer': 100000.0,
+                         'defaultContractRuntime': 10,
+                         'defaultContractExcess': 100,
+                         'numberOfRiskCategories': 5#,
+                         }
 
 #@gui(simulation_parameters)
 def main(simulation_parameters):
@@ -30,15 +35,24 @@ def main(simulation_parameters):
         insurancecustomers = simulation.build_agents(InsuranceCustomer, 'insurancecustomer',
                        number=simulation_parameters['numberOfRiskholders'],
                        parameters=simulation_parameters)
-
         allagents = insurancefirms + insurancecustomers
+        ic_objects = insurancecustomers.do('get_object')
+        #print(type(insurancecustomers))
         #pdb.set_trace()
-
+        
+        riskcategories = [RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in range(simulation_parameters['numberOfRiskCategories'])]
+        
         events = defaultdict(list)
-
+        new_events = []
 
         for round in simulation.next_round():
-            new_events = insurancecustomers.do('randomAddRisk')
+            
+            #new_events = insurancecustomers.do('randomAddRisk')
+            if round == 0:
+                #insurancecustomers.do('startAddRisk')
+                #workaround
+                [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories) for ic in ic_objects]
+            
             for risk in events[round]:
                 new_events += [risk.explode(round)]
             for event_time, risk in new_events:
@@ -49,6 +63,7 @@ def main(simulation_parameters):
                     assert risk is not None
                     assert event_time >= round
             (insurancefirms + insurancecustomers).do('mature_contracts')
+            insurancecustomers.do('randomAddCoverage')
             insurancefirms.do('quote')
             insurancecustomers.do('subscribe_coverage')
             insurancefirms.do('add_contract')

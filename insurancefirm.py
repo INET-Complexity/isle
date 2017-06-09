@@ -23,7 +23,7 @@ class InsuranceFirm(abce.Agent):
             self.message(request.sender_group, request.sender_id, 'insurancequotes', self.acceptInsuranceContract(request.content))
 
     def acceptInsuranceContract(self, request):
-        return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
+        return self.riskmodel.evaluate(request['risk'], request['runtime'], request['excess'] , request['deductible'])
 
     def add_contract(self):
         for contract in self.get_messages('addcontract'):

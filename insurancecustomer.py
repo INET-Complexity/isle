@@ -8,6 +8,8 @@ import random
 from categorizedinsurablerisk import CategorizedInsurableRisk
 from insurancecontract import InsuranceContract
 
+import pdb
+
 class InsuranceCustomer(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         self.num_insurers = simulation_parameters['numberOfInsurers']
@@ -15,6 +17,11 @@ class InsuranceCustomer(abce.Agent):
         self.contracts = []
         self.risks = []
         self.insurance_contract_dict = {}
+        self.default_contract_runtime = simulation_parameters['defaultContractRuntime']
+        self.default_contract_excess = simulation_parameters['defaultContractExcess']
+    
+    def get_object(self):
+        return self
 
     def startAddRisk(self, number, max_runtime, risk_category_list):
         for i in range(number):
@@ -32,25 +39,39 @@ class InsuranceCustomer(abce.Agent):
         else:
             return None, None
 
-    def requestInsuranceCoverage(self, risk):
+    def randomAddCoverage(self):
+        random.shuffle(self.risks)
+        for risk in self.risks:
+            if not risk.get_coverage() and random.random() > .8:
+                self.requestInsuranceCoverage(risk, self.default_contract_runtime, self.default_contract_excess)
+
+    def requestInsuranceCoverage(self, risk, runtime = None, excess = None):
+        if runtime is None:
+            assert risk.runtime is not None
+            runtime = risk.runtime
+        if excess is None:
+            assert risk.value is not None
+            runtime = risk.value
         for i in range(self.num_insurers):
             self.message('insurancefirm', i, 'request_insurancequote', {'risk': risk,
-                                                                         'runtime': risk.runtime,
-                                                                         'excess': risk.value,
+                                                                         'runtime': runtime,
+                                                                         'excess': excess,
                                                                          'deductible': 0.0})
 
     def subscribe_coverage(self):
         messages = self.get_messages('insurancequotes')
         if len(messages) > 0:
             cc = min(messages, key=lambda x: x.content)
-            if cc.content < self.possession('money'):
-                risk = self.risks[-1]
+            if cc.content[0] < self.possession('money'):
+                #risk = self.risks[-1]
+                risk = cc.content[4]
                 new_contract = InsuranceContract({'policyholder': self.name,
                                                   'insurer':  (cc.sender_group, cc.sender_id)},
-                                                 endtime=risk.runtime + self.round,
-                                                 premium=cc.content,
-                                                 excess=risk.value,
-                                                 deductible=0.0)
+                                                 endtime=cc.content[1] + self.round,
+                                                 risk=risk,
+                                                 premium=cc.content[0],
+                                                 excess=cc.content[2],
+                                                 deductible=cc.content[3])
                 #print(type(new_contract), new_contract)
                 self.message(cc.sender_group, cc.sender_id, 'addcontract', new_contract.__dict__)
                 self.contracts.append(new_contract)
