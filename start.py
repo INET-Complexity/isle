@@ -12,6 +12,7 @@ from abce import Simulation, gui
 from collections import defaultdict
 
 import math
+import scipy
 import pdb
 
 simulation_parameters = {'name': 'name',
@@ -43,25 +44,30 @@ def main(simulation_parameters):
         riskcategories = [RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in range(simulation_parameters['numberOfRiskCategories'])]
         
         events = defaultdict(list)
-        new_events = []
-
+        
         for round in simulation.next_round():
             
             #new_events = insurancecustomers.do('randomAddRisk')
-            if round == 0:
-                #insurancecustomers.do('startAddRisk')
-                #workaround
-                [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories) for ic in ic_objects]
+            new_events = []
             
+            if round == 0:
+                #workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
+                new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories) for ic in ic_objects]
+                new_events = [event for agent_events in new_events for event in agent_events]
+                #pdb.set_trace()
             for risk in events[round]:
-                new_events += [risk.explode(round)]
+                new_events += [risk.explode(round)]		#TODO: does this work with multiprocessing?
             for event_time, risk in new_events:
                 if event_time is not None:
                     event_time = math.ceil(event_time)
                     events[event_time].append(risk)
                     assert isinstance(event_time, int)
                     assert risk is not None
-                    assert event_time >= round
+                    try:
+                        assert event_time >= round
+                    except:
+                        pdb.set_trace()
+            insurancecustomers.do('get_mean_coverage')
             (insurancefirms + insurancecustomers).do('mature_contracts')
             insurancecustomers.do('randomAddCoverage')
             insurancefirms.do('quote')
@@ -69,6 +75,7 @@ def main(simulation_parameters):
             insurancefirms.do('add_contract')
             allagents.do('filobl')
             insurancecustomers.do('check_risk')
+            print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
         simulation.graphs()
 

@@ -8,7 +8,7 @@ from __future__ import division
 import abce
 from riskmodel import RiskModel
 from insurancecontract import InsuranceContract
-
+import pdb
 
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
@@ -24,12 +24,25 @@ class InsuranceFirm(abce.Agent):
 
     def acceptInsuranceContract(self, request):
         return self.riskmodel.evaluate(request['risk'], request['runtime'], request['excess'] , request['deductible'])
+        #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
 
     def add_contract(self):
+        #revenue_sum = 0
         for contract in self.get_messages('addcontract'):
             self.contracts.append(InsuranceContract.generated(contract.content))
+            ##try:
+            ##    print("DEBUG IF {0:d} money in: {1:f}".format(self.id,contract.content["premium"]))
+            ##except:
+            ##    pdb.set_trace()
+            #revenue_sum += contract.content["premium"]
+        #try:
+        #    print("DEBUG IF {0:d} money in: {1:f}".format(self.id, revenue_sum))
+        #except:
+        #    pdb.set_trace()
+        
 
     def filobl(self):
+        print("DEBUG IF {0:d} money: {1:f}".format(self.id,self.possession('money')))
         insurance_payouts = 0 
         for contract in self.contracts:
             
@@ -41,7 +54,7 @@ class InsuranceFirm(abce.Agent):
                                             to='policyholder',
                                             delivery={'money': current_payout})
                 insurance_payouts += current_payout
-                #print("DEBUG: Booked claim payout ", current_payout)
+                print("DEBUG: Booked claim payout ", current_payout)
         
         self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))
@@ -51,11 +64,11 @@ class InsuranceFirm(abce.Agent):
         #for contract in self.contracts:
         #    print(type(contract), contract)
         #    #contract.is_valid()
+        #self.contracts = [contract for contract in self.contracts if (contract.get_endtime() < self.round)]
         
-        #[contract.terminate() for contract in self.contracts if (contract.end_time < self.round)]
-        #self.contracts = [contract for contract in self.contracts if (contract.end_time >= self.round)]
-        
-        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)]
+        # TODO: does this work with multiprocessing?
+        #       -> should work, but it may be good to check that firm and customer agree on contract ending time
+        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)] 
         self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
 
     def printmoney(self):

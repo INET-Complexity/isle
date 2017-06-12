@@ -7,6 +7,7 @@
 #from generalizedexponential import GeneralizedExponential
 #from scipy.stats import genpareto
 import scipy.stats
+import uuid
 #import pdb
 
 #TODO: deal with runtime/endtime and remove risk from the owner's portfolio
@@ -25,6 +26,7 @@ class InsurableRisk:
         self.eventSizeDist = eventSizeDist
         self.damage = 0
         self.covered = False
+        self.uuid = str(uuid.uuid4())
         if runtime is not None:
             self.runtime = runtime
             self.endtime = runtime + time
@@ -38,6 +40,7 @@ class InsurableRisk:
 
     def explode(self, time):
         self.set_damage(self.getSizeOfEvent())
+        #print("DEBUG explode: {0:f}".format(self.damage))
         return self.schedule_next_event(time)
     
     def schedule_next_event(self, time):

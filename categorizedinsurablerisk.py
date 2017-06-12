@@ -18,19 +18,20 @@ class CategorizedInsurableRisk(InsurableRisk):
             self.category = random.choice(risk_category_list)
         assert auxfunctions.compare_rv_objects(self.eventDist, self.category.eventDist)
         self.time_correlation_weight = time_correlation_weight
-        self.eventSchedule = self.populateEventSchedule
+        self.eventSchedule = self.populateEventSchedule(time, max_runtime)
     
-    def getTimeToNextEvent(self, time):
+    def schedule_next_event(self, time):
         i = 0
         while (len(self.eventSchedule) > i and self.eventSchedule[i] < time):
             i += 1
         if len(self.eventSchedule) > i:
-            return self.eventSchedule[i] - time, self
+            return self.eventSchedule[i], self
         else:
             return None, None		# TODO: Will this cause type errors somewhere?
 
     def populateEventSchedule(self, time, max_runtime):
         ievents = []
+        events = []
         while (time < max_runtime):
             time += self.eventDist.rvs()
             if time < max_runtime:
