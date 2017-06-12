@@ -3,13 +3,6 @@
 * Created by Torsten Heinrich
 */
 Translated to python by Davoud Taghawi-Nejad
-
->>> from from generalizedExponential import GeneralizedExponential
->>> getEV(GeneralizedExponential(33.33), None, None, None, None)
->>> getEV(GeneralizedExponential(33.33), 10, None, None, None)
->>> getEV(GeneralizedExponential(33.33), 10, None, 40., 40.)
->>> getEV(GeneralizedExponential(33.33), 10, None, 40., None)
->>> getEV(GeneralizedExponential(33.33), 10, 4., None, 4.)
 """
 def getEV(dist, sampleSize=1000, min=None, max=None, defaultVal=None):
     rvs = populateArray(dist, sampleSize, min, max, defaultVal);

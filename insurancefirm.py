@@ -9,11 +9,12 @@ import abce
 from riskmodel import RiskModel
 from insurancecontract import InsuranceContract
 import pdb
+import scipy.stats
 
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         # your agent initialization goes here, not in __init__
-        self.riskmodel = RiskModel()
+        self.riskmodel = RiskModel(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
         self.create('money', simulation_parameters['start_cash_insurer'])
         self.contracts = []
 

@@ -2,7 +2,7 @@
 import scipy.stats
 
 class RiskCategory():
-    def __init__(self, time, max_runtime, eventDist=scipy.stats.expon(0, 100./3.)):
+    def __init__(self, time, max_runtime, eventDist=scipy.stats.expon(0, 100./1.)):
         self.eventDist = eventDist
         self.eventTimeList = self.populateEventList(time, max_runtime)
     
