@@ -23,7 +23,8 @@ simulation_parameters = {'name': 'name',
                          'start_cash_customer': 100000.0,
                          'defaultContractRuntime': 10,
                          'defaultContractExcess': 100,
-                         'numberOfRiskCategories': 5#,
+                         'numberOfRiskCategories': 5,
+                         'numberOfRiskCategoryDimensions': 1#,
                          }
 
 #@gui(simulation_parameters)
@@ -41,7 +42,9 @@ def main(simulation_parameters):
         #print(type(insurancecustomers))
         #pdb.set_trace()
         
-        riskcategories = [RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in range(simulation_parameters['numberOfRiskCategories'])]
+        riskcategories = []
+        for i in range(simulation_parameters['numberOfRiskCategoryDimensions']):
+            riskcategories.append([RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in range(simulation_parameters['numberOfRiskCategories'])])
         
         events = defaultdict(list)
         
