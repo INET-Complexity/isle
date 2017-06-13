@@ -61,10 +61,12 @@ class InsuranceCustomer(abce.Agent):
             assert risk.value is not None
             runtime = risk.value
         for i in range(self.num_insurers):
-            self.message('insurancefirm', i, 'request_insurancequote', {'risk': risk.uuid,
+            self.message('insurancefirm', i, 'request_insurancequote', { 'risk': risk.uuid,
+                                                                         'riskcat': risk.category_id,
                                                                          'runtime': runtime,
                                                                          'excess': excess,
-                                                                         'deductible': 0.0})
+                                                                         'deductible': 0.0,
+                                                                         'time_correlation_weight': risk.time_correlation_weight})
 
     def subscribe_coverage(self):
         messages = self.get_messages('insurancequotes')
@@ -81,6 +83,7 @@ class InsuranceCustomer(abce.Agent):
                                                       'insurer':  (cc.sender_group, cc.sender_id)},
                                                      endtime=cc.content[1] + self.round,
                                                      risk=riskuuid,
+                                                     riskcat=risk.category_id,
                                                      premium=cc.content[0],
                                                      excess=cc.content[2],
                                                      deductible=cc.content[3])

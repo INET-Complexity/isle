@@ -4,11 +4,11 @@
 Translated by Davoud Taghawi-Nejad
 """
 from contract import Contract
-
+import pdb
 
 class InsuranceContract(Contract):
     #def __init__(self, contract_partner, endtime, premium, excess, deductible=0.0):
-    def __init__(self, contract_partner, endtime, risk, premium, excess, deductible=0.0):
+    def __init__(self, contract_partner, endtime, risk, riskcat, premium, excess, deductible=0.0):
         Contract.__init__(self, contract_partner, endtime)
         assert isinstance(contract_partner, dict)
         self.policyholder = contract_partner['policyholder']
@@ -18,6 +18,8 @@ class InsuranceContract(Contract):
         self.excess = excess
         self.deductible = deductible
         self.insured_risk = risk
+        self. risk_category = riskcat
+        #pdb.set_trace()
         self.terminated = False
         self.premium = premium
         #self.endtime = endtime			#is in superclass

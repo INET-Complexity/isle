@@ -10,6 +10,7 @@ class CategorizedInsurableRisk(InsurableRisk):
     def __init__(self, time, max_runtime, risk_category_list, category=None, time_correlation_weight=.5, ):
         super(CategorizedInsurableRisk, self).__init__(None, None, None, scipy.stats.expon(0, 100./1.), scipy.stats.pareto(2., 0., 10.))
         self.category = []
+        self.category_id = []
         for i in range(len(risk_category_list)):
             current_rcl = risk_category_list[i]
             current_category = None if (category is None) else category[i]
@@ -18,13 +19,17 @@ class CategorizedInsurableRisk(InsurableRisk):
             #else:
             #    current_category = None
             self.category.append(None)
+            self.category_id.append(None)
             if current_category is not None:
                 if isinstance(current_category, int):
                     self.category[i] = current_rcl[current_category]
+                    self.category_id[i] = current_category
                 else:
                     self.category[i] = current_category
+                    self.category_id[i] = risk_category_list.index(current_category)
             else:
-                self.category[i] = random.choice(current_rcl)
+                self.category_id[i] = random.choice(range(len(current_rcl)-1))
+                self.category[i] = current_rcl[self.category_id[i]]
             assert auxfunctions.compare_rv_objects(self.eventDist, self.category[i].eventDist)
         self.time_correlation_weight = time_correlation_weight
         self.eventSchedule = self.populateEventSchedule(time, max_runtime)

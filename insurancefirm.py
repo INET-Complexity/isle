@@ -6,7 +6,8 @@ Translated to python by Davoud Taghawi-Nejad
 
 from __future__ import division
 import abce
-from riskmodel import RiskModel
+#from riskmodel import RiskModel
+from riskmodel_grouped import RiskModelGrouped
 from insurancecontract import InsuranceContract
 import pdb
 import scipy.stats
@@ -14,23 +15,33 @@ import scipy.stats
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         # your agent initialization goes here, not in __init__
-        self.riskmodel = RiskModel(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
+        self.riskmodel = RiskModelGrouped(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
         self.create('money', simulation_parameters['start_cash_insurer'])
         self.contracts = []
+        self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
+                                          for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
 
+    def set_oblivious(risk_cat_dim):
+        self.underwritten_by_cat[risk_cat_dim] = None
 
     def quote(self):
         for request in self.get_messages('request_insurancequote'):
-            self.message(request.sender_group, request.sender_id, 'insurancequotes', self.acceptInsuranceContract(request.content))
+            quote = self.acceptInsuranceContract(request.content)
+            if quote is not None:
+                self.message(request.sender_group, request.sender_id, 'insurancequotes', quote)
 
     def acceptInsuranceContract(self, request):
-        return self.riskmodel.evaluate(request['risk'], request['runtime'], request['excess'] , request['deductible'])
+        return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, self.possession('money'))
         #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
 
     def add_contract(self):
         #revenue_sum = 0
         for contract in self.get_messages('addcontract'):
             self.contracts.append(InsuranceContract.generated(contract.content))
+            for i in range(len(self.underwritten_by_cat)):
+                if self.underwritten_by_cat[i] is not None:
+                    risk_cat_current_contract = self.contracts[-1].risk_category[i]
+                    self.underwritten_by_cat[i][risk_cat_current_contract] += 1
             ##try:
             ##    print("DEBUG IF {0:d} money in: {1:f}".format(self.id,contract.content["premium"]))
             ##except:
@@ -69,7 +80,12 @@ class InsuranceFirm(abce.Agent):
         
         # TODO: does this work with multiprocessing?
         #       -> should work, but it may be good to check that firm and customer agree on contract ending time
-        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)] 
+        for contract in self.contracts: 
+            if (contract.get_endtime() < self.round):
+                contract.terminate() 
+                for i in range(len(self.underwritten_by_cat)):
+                    if self.underwritten_by_cat[i] is not None:
+                        self.underwritten_by_cat[i][contract.risk_category[i]] -= 1
         self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
 
     def printmoney(self):

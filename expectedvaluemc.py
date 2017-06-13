@@ -4,9 +4,17 @@
 */
 Translated to python by Davoud Taghawi-Nejad
 """
-def getEV(dist, sampleSize=1000, min=None, max=None, defaultVal=None):
+def getEV(dist, sampleSize=1000, min=None, max=None, defaultVal=None, var_tail_probability = None):
     rvs = populateArray(dist, sampleSize, min, max, defaultVal);
-    return sum(rvs) / len(rvs)
+    mean = sum(rvs) / len(rvs)
+    if var_tail_probability is None:
+        return mean
+    else:
+        assert 0 <= var_tail_probability <= 1
+        rvs.sort()
+        #var = rvs[int(round(var_tail_probability * len(rvs)))]	    # this would be the next highest sample value beyond the VaR probability
+        var = rvs[int(round(var_tail_probability * len(rvs))) - 1 ]	# this would be the next lowest sample value below the VaR probability
+        return mean, var
 
 def populateArray(dist, sampleSize, min, max, defaultVal):
     """ Create new instance of RandomEngine with new seed, otherwise
