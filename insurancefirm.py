@@ -21,6 +21,8 @@ class InsuranceFirm(abce.Agent):
         self.contracts = []
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
                                           for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
+        self.alive = True
+        self.defaulted_numeric = 0.	# This is 0 if self.alive is True, 1 otherwise. We need this to make logging of the number of defaulted firms possible. Once simulation-level logging is implemented, this variable will become unnecessary.
 
     def set_oblivious(risk_cat_dim):
         self.underwritten_by_cat[risk_cat_dim] = None
@@ -32,8 +34,11 @@ class InsuranceFirm(abce.Agent):
                 self.message(request.sender_group, request.sender_id, 'insurancequotes', quote)
 
     def acceptInsuranceContract(self, request):
-        return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, self.possession('money'))
-        #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
+        if self.alive:
+            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, self.possession('money'), time=self.round)
+            #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
+        else:
+            return None
 
     def add_contract(self):
         #revenue_sum = 0
@@ -62,16 +67,29 @@ class InsuranceFirm(abce.Agent):
             current_payout = contract.get_obligation('insurer', 'money')
             
             if current_payout > 0:
-                contract.fulfill_obligation(self,
+                try:
+                    contract.fulfill_obligation(self,
                                             von='insurer',
                                             to='policyholder',
                                             delivery={'money': current_payout})
-                insurance_payouts += current_payout
+                    insurance_payouts += current_payout
+                except abce.NotEnoughGoods:
+                    self.bankrupt()
                 #print("DEBUG: Booked claim payout ", current_payout)
         
         self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
+        self.log('defaulted', int(self.defaulted_numeric))	""" TODO: this data does not produce aggregated statistics 
+                                                                     -> but logging works fine (csv file has correct data)
+                                                                     -> it seems unrelated to data type (float or int) or how it is created"""
+
+    def bankrupt(self):
+        self.alive = False
+        self.defaulted_numeric = 1.
+    
+    def is_bankrupt(self):		#not used
+        return not self.alive
 
     def mature_contracts(self):
         #for contract in self.contracts:

@@ -78,6 +78,7 @@ def main(simulation_parameters):
             insurancefirms.do('add_contract')
             allagents.do('filobl')
             insurancecustomers.do('check_risk')
+            print(sum(list(insurancefirms.do('is_bankrupt'))))
             #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
         simulation.graphs()

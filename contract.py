@@ -47,7 +47,9 @@ class Contract:
                 me.give(self.contract_partners[to][0], self.contract_partners[to][1], good, amount)
                 self.obligations[von][good] = max(0, self.obligations[von][good] - amount)
             except NotEnoughGoods:
+                ## cause agent to default
                 raise
+                #pass
 
     def terminate(self):
         self.valid = False

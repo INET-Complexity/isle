@@ -100,10 +100,16 @@ class InsuranceCustomer(abce.Agent):
             self.log('obligations', contract.get_obligation('policyholder','money'))
             if contract.get_obligations('policyholder')['money'] > 0:
                 #print("DEBUG", contract.obligations)
-                contract.fulfill_obligation(self,
+                try:
+                    contract.fulfill_obligation(self,
                                             von='policyholder',
                                             to='insurer',
                                             delivery={'money': contract.get_obligations('policyholder')['money']})
+                except:
+                    #print("NotEnoughGoods raised: ", self.possession('money'))
+                    #pdb.set_trace()
+                    # TODO: this allows customers who cannot pay to keep the contracts nevertheless; may or may not be realistic but should be a relatively rare event
+                    pass
         
         #print("DEBUG", self.possession('money'))
         
@@ -121,6 +127,10 @@ class InsuranceCustomer(abce.Agent):
                 #insurance_contract = self.insurance_contract_dict[risk]
                 if insurance_contract is not None:
                     insurance_contract.execute(risk.damage)
+                try:
+                    self.destroy('money', risk.damage)
+                except abce.NotEnoughGoods:
+                    pass
                 #print(" risk ", risk)
                 risk.set_damage(0)
                 # TODO: reduce insurancecustomer's money to reflect damage paid
