@@ -16,11 +16,11 @@ import scipy
 import pdb
 
 simulation_parameters = {'name': 'name',
-                         'scheduledEndTime': 200,
+                         'scheduledEndTime': 100,
                          'numberOfInsurers': 5,
-                         'numberOfRiskholders': 100,
-                         'start_cash_insurer': 100000.0,
-                         'start_cash_customer': 100000.0,
+                         'numberOfRiskholders': 1000,
+                         'start_cash_insurer': 1000.0,
+                         'start_cash_customer': 100.0,
                          'defaultContractRuntime': 10,
                          'defaultContractExcess': 100,
                          'numberOfRiskCategories': 5,
@@ -78,7 +78,7 @@ def main(simulation_parameters):
             insurancefirms.do('add_contract')
             allagents.do('filobl')
             insurancecustomers.do('check_risk')
-            print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
+            #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
         simulation.graphs()
 

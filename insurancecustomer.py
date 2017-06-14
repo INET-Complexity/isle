@@ -48,9 +48,9 @@ class InsuranceCustomer(abce.Agent):
     def randomAddCoverage(self):
         random.shuffle(self.risks)
         for risk in self.risks:
-            if self.id==0: print("DEBUG IC randomaddcoverage: ", risk.get_coverage(), risk.uuid)
+            #if self.id==0: print("DEBUG IC randomaddcoverage: ", risk.get_coverage(), risk.uuid)
             if not risk.get_coverage() and random.random() < .8:
-                if self.id==0: print("DEBUG IC randomaddcoverage: Coverage requested")
+                #if self.id==0: print("DEBUG IC randomaddcoverage: Coverage requested")
                 self.requestInsuranceCoverage(risk, self.default_contract_runtime, self.default_contract_excess)
 
     def requestInsuranceCoverage(self, risk, runtime = None, excess = None):

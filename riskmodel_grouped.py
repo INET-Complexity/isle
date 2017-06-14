@@ -55,7 +55,7 @@ class RiskModelGrouped:
             if riskcateg_underwritten[i] is not None:
                 #pdb.set_trace()
                 underwritten = riskcateg_underwritten[i][riskcateg[i]] + 1
-                if (VaR * (1./periodExpectedValue) * runtime - deductible) * underwritten > liquidity:
+                if (VaR * (1./periodExpectedValue) * runtime - deductible) * underwritten * 1./group_correlation  > liquidity:
                     print("DEBUG riskmodel: Unacceptable risk detected; refusing to underwrite.")
                     return None
                 # TODO: should exposure to multiple risk groups also be considered?
@@ -63,9 +63,6 @@ class RiskModelGrouped:
                     of several risk group events in temporal proximity (i.e. the VaR is computed for total damage 
                     from one hurricane, not for that from all hurricanes over a period)"""
                 
-        distributionExpectedValue = expectedvaluemc.getEV(self.riskDistribution, 1000, None, None, excess)
-        periodExpectedValue = expectedvaluemc.getEV(self.riskPeriod, 1000, None, None, None)
-
         expectedLoss = distributionExpectedValue * (1./periodExpectedValue) * runtime - deductible
         #print("DEBUG  **RM", distributionExpectedValue, periodExpectedValue, expectedLoss, expectedReturn, expectedLoss * (1. + expectedReturn))
         return [expectedLoss * (1. + expectedReturn), runtime, excess, deductible, risk]

@@ -7,7 +7,8 @@ Translated to python by Davoud Taghawi-Nejad
 from __future__ import division
 import abce
 #from riskmodel import RiskModel
-from riskmodel_grouped import RiskModelGrouped
+#from riskmodel_grouped import RiskModelGrouped
+from riskmodel_grouped_iterationstatic import RiskModelGroupedS
 from insurancecontract import InsuranceContract
 import pdb
 import scipy.stats
@@ -15,7 +16,7 @@ import scipy.stats
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         # your agent initialization goes here, not in __init__
-        self.riskmodel = RiskModelGrouped(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
+        self.riskmodel = RiskModelGroupedS(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
         self.create('money', simulation_parameters['start_cash_insurer'])
         self.contracts = []
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
@@ -54,7 +55,7 @@ class InsuranceFirm(abce.Agent):
         
 
     def filobl(self):
-        print("DEBUG IF {0:d} money: {1:f}".format(self.id,self.possession('money')))
+        #print("DEBUG IF {0:d} money: {1:f}".format(self.id,self.possession('money')))
         insurance_payouts = 0 
         for contract in self.contracts:
             
@@ -66,7 +67,7 @@ class InsuranceFirm(abce.Agent):
                                             to='policyholder',
                                             delivery={'money': current_payout})
                 insurance_payouts += current_payout
-                print("DEBUG: Booked claim payout ", current_payout)
+                #print("DEBUG: Booked claim payout ", current_payout)
         
         self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))

@@ -27,7 +27,7 @@ class InsuranceContract(Contract):
     def execute(self, claim):
         covered_claim = min(claim, self.excess)
         self.obligations['insurer']['money'] += max(0, covered_claim - self.deductible)
-        print("DEBUG Claim: {0:f} from insurance firm {1:d}".format(covered_claim - self.deductible, self.insurer[1]), end="")
+        #print("DEBUG Claim: {0:f} from insurance firm {1:d}".format(covered_claim - self.deductible, self.insurer[1]), end="")
     
     def terminate(self):
         
