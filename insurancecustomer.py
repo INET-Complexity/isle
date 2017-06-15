@@ -20,6 +20,7 @@ class InsuranceCustomer(abce.Agent):
         self.risk_dict = {}
         self.default_contract_runtime = simulation_parameters['defaultContractRuntime']
         self.default_contract_excess = simulation_parameters['defaultContractExcess']
+        self.time_correlation_weight = simulation_parameters['shareOfCorrelatedRisk']
     
     def get_object(self):
         return self
@@ -27,7 +28,7 @@ class InsuranceCustomer(abce.Agent):
     def startAddRisk(self, number, max_runtime, risk_category_list):
         events = []
         for i in range(number):
-            risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list)
+            risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, time_correlation_weight=self.time_correlation_weight)
             self.risks.append(risk)
             events.append(risk.schedule_next_event(self.round))
             self.risk_dict[risk.uuid] = risk

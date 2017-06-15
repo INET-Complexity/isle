@@ -11,6 +11,9 @@ from riskcategory import RiskCategory
 from abce import Simulation, gui
 from collections import defaultdict
 
+#import os
+import sys
+import yaml
 import math
 import scipy
 import pdb
@@ -24,9 +27,21 @@ simulation_parameters = {'name': 'name',
                          'defaultContractRuntime': 10,
                          'defaultContractExcess': 100,
                          'numberOfRiskCategories': 5,
+                         'shareOfCorrelatedRisk': 0.5,
                          'numberOfRiskCategoryDimensions': 1,
                          'series': 'testing'#,
                          }
+
+direct_output_suppressed = False
+if len(sys.argv) > 1: #exists parameters.yml 
+    yamlfilename = sys.argv[1]
+    yamlfile = open(yamlfilename, "r")
+    spconf = yaml.load(yamlfile)
+    simulation_parameters = spconf['simulation_parameters']
+    if len(sys.argv) > 2:
+        if int(sys.argv[2]) == 1:
+            direct_output_suppressed = True
+            print("Graphical output will be suppressed")
 
 #@gui(simulation_parameters)
 def main(simulation_parameters):
@@ -82,7 +97,8 @@ def main(simulation_parameters):
             #print(sum(list(insurancefirms.do('is_bankrupt'))))
             #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
-        simulation.graphs()
+        if not direct_output_suppressed:
+            simulation.graphs()
 
 if __name__ == '__main__':
     main(simulation_parameters)
