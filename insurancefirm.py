@@ -80,9 +80,10 @@ class InsuranceFirm(abce.Agent):
         self.log('insurancepayouts', insurance_payouts)
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
-        self.log('defaulted', int(self.defaulted_numeric))	""" TODO: this data does not produce aggregated statistics 
-                                                                     -> but logging works fine (csv file has correct data)
-                                                                     -> it seems unrelated to data type (float or int) or how it is created"""
+        self.log('defaulted', int(self.defaulted_numeric))	
+        """ TODO: this data does not produce aggregated statistics 
+               -> but logging works fine (csv file has correct data)
+               -> it seems unrelated to data type (float or int) or how it is created"""
 
     def bankrupt(self):
         self.alive = False
