@@ -24,7 +24,10 @@ class InsuranceFirm(abce.Agent):
         self.alive = True
         self.defaulted_numeric = 0.	# This is 0 if self.alive is True, 1 otherwise. We need this to make logging of the number of defaulted firms possible. Once simulation-level logging is implemented, this variable will become unnecessary.
 
-    def set_oblivious(risk_cat_dim):
+    def get_object(self):
+        return self
+
+    def set_oblivious(self, risk_cat_dim):
         self.underwritten_by_cat[risk_cat_dim] = None
 
     def quote(self):

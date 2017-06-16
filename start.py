@@ -28,7 +28,8 @@ simulation_parameters = {'name': 'name',
                          'defaultContractExcess': 100,
                          'numberOfRiskCategories': 5,
                          'shareOfCorrelatedRisk': 0.5,
-                         'numberOfRiskCategoryDimensions': 1,
+                         'numberOfRiskCategoryDimensions': 2,
+                         'riskObliviousSetting': 2,
                          'series': 'testing'#,
                          }
 
@@ -54,9 +55,8 @@ def main(simulation_parameters):
                        number=simulation_parameters['numberOfRiskholders'],
                        parameters=simulation_parameters)
         allagents = insurancefirms + insurancecustomers
-        ic_objects = insurancecustomers.do('get_object')
-        #print(type(insurancecustomers))
-        #pdb.set_trace()
+        ic_objects = list(insurancecustomers.do('get_object'))
+        if_objects = list(insurancefirms.do('get_object'))
         
         riskcategories = []
         for i in range(simulation_parameters['numberOfRiskCategoryDimensions']):
@@ -73,6 +73,24 @@ def main(simulation_parameters):
                 #workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
                 new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories) for ic in ic_objects]
                 new_events = [event for agent_events in new_events for event in agent_events]
+                try:
+                    roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:
+                                                                                        #     if 0: all firms aware of all categories 
+                                                                                        #     if 1: all firms unaware of first category, 
+                                                                                        #     if 2: half the firms unaware of first category, the other half of the second category
+                    #print("DEBUG start read roSetting: Success")
+                    if roSetting == 1:
+                        [ifirm.set_oblivious(0) for ifirm in if_objects]
+                    elif roSetting == 2:
+                        assert simulation_parameters['numberOfRiskCategoryDimensions'] > 1
+                        noi = simulation_parameters['numberOfInsurers']
+                        middle = int(noi/2.)                                            #round does not work as round is redefined as int
+                        [ifirm.set_oblivious(0) for ifirm in if_objects[:middle]]
+                        [ifirm.set_oblivious(1) for ifirm in if_objects[middle:]]
+                except: 
+                    #print("DEBUG start read roSetting unsuccessful")
+                    #pdb.set_trace()
+                    pass
                 #pdb.set_trace()
             for risk in events[round]:
                 new_events += [risk.explode(round)]		#TODO: does this work with multiprocessing?
