@@ -21,14 +21,23 @@ class InsuranceCustomer(abce.Agent):
         self.default_contract_runtime = simulation_parameters['defaultContractRuntime']
         self.default_contract_excess = simulation_parameters['defaultContractExcess']
         self.time_correlation_weight = simulation_parameters['shareOfCorrelatedRisk']
+        self.obligations_current_round = 0.
+        
     
     def get_object(self):
         return self
 
-    def startAddRisk(self, number, max_runtime, risk_category_list):
+    def startAddRisk(self, number, max_runtime, risk_category_list, eventDist = None, eventSizeDist = None):
         events = []
         for i in range(number):
-            risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, time_correlation_weight=self.time_correlation_weight)
+            if (eventDist is not None) and (eventSizeDist is not None):
+                risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, eventDist=eventDist, \
+                                     eventSizeDist=eventSizeDist, time_correlation_weight=self.time_correlation_weight)
+            else:
+                if (eventDist is not None) or (eventSizeDist is not None):
+                    print("Warning: received only one of (damage size distribution) and (event time separation distribution) for insurable risk. Both are needed to characterize risk. Defaulting to assigning defaults for both.")
+                risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, \
+                                                 time_correlation_weight=self.time_correlation_weight)
             self.risks.append(risk)
             events.append(risk.schedule_next_event(self.round))
             self.risk_dict[risk.uuid] = risk
@@ -97,15 +106,17 @@ class InsuranceCustomer(abce.Agent):
             #    print("not accepted, money: {0:8f}, content {1:8f}".format(self.possession('money'), cc.content))
 
     def filobl(self):
+        self.obligations_current_round = 0
         for contract in self.contracts:
-            self.log('obligations', contract.get_obligation('policyholder','money'))
             if contract.get_obligations('policyholder')['money'] > 0:
+                payment_current_obligation = contract.get_obligations('policyholder')['money']
+                self.obligations_current_round += payment_current_obligation
                 #print("DEBUG", contract.obligations)
                 try:
                     contract.fulfill_obligation(self,
                                             von='policyholder',
                                             to='insurer',
-                                            delivery={'money': contract.get_obligations('policyholder')['money']})
+                                            delivery={'money': payment_current_obligation})
                 except:
                     #print("NotEnoughGoods raised: ", self.possession('money'))
                     #pdb.set_trace()
@@ -114,9 +125,10 @@ class InsuranceCustomer(abce.Agent):
         
         #print("DEBUG", self.possession('money'))
         
+    def logging(self):
+        self.log('obligations', self.obligations_current_round)
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
-
 
     def check_risk(self):
         #print("DEBUG check_risk: ", end="")

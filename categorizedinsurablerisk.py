@@ -7,8 +7,15 @@ from riskcategory import RiskCategory
 import auxfunctions
 
 class CategorizedInsurableRisk(InsurableRisk):
-    def __init__(self, time, max_runtime, risk_category_list, category=None, time_correlation_weight=.5, ):
-        super(CategorizedInsurableRisk, self).__init__(None, None, None, scipy.stats.expon(0, 100./1.), scipy.stats.pareto(2., 0., 10.))
+    def __init__(self, 
+                 time, 
+                 max_runtime, 
+                 risk_category_list, 
+                 category=None, 
+                 time_correlation_weight=.5, 
+                 eventDist = scipy.stats.expon(0, 100./1.), 
+                 eventSizeDist = scipy.stats.pareto(2., 0., 10.)):
+        super(CategorizedInsurableRisk, self).__init__(None, None, None, eventDist, eventSizeDist)
         self.category = []
         self.category_id = []
         for i in range(len(risk_category_list)):
@@ -43,6 +50,7 @@ class CategorizedInsurableRisk(InsurableRisk):
         else:
             return None, None		# TODO: Will this cause type errors somewhere?
 
+    @profile
     def populateEventSchedule(self, time, max_runtime):
         ievents = []
         events = []
@@ -54,7 +62,8 @@ class CategorizedInsurableRisk(InsurableRisk):
         g_events_include = []
         cat_share =  1. / len(self.category)
         for catd in range(len(self.category)):
-            g_events_include.append(scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList)))
+            func = scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList))
+            g_events_include.append(func)
         for i in range(len(i_events_include)):
             if i_events_include[i]:
                 events.append(ievents[i])

@@ -10,12 +10,15 @@ from insurancecustomer import InsuranceCustomer
 from riskcategory import RiskCategory
 from abce import Simulation, gui
 from collections import defaultdict
+#from 
+
 
 #import os
 import sys
 import yaml
 import math
 import scipy
+import scipy.stats
 import pdb
 
 simulation_parameters = {'name': 'name',
@@ -70,8 +73,11 @@ def main(simulation_parameters):
             new_events = []
             
             if round == 0:
+                eventDist = None#scipy.stats.expon(0, 100./1.)
+                eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
                 #workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
-                new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories) for ic in ic_objects]
+                new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], \
+                                                        riskcategories, eventDist, eventSizeDist) for ic in ic_objects]
                 new_events = [event for agent_events in new_events for event in agent_events]
                 try:
                     roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:
@@ -112,11 +118,13 @@ def main(simulation_parameters):
             insurancefirms.do('add_contract')
             allagents.do('filobl')
             insurancecustomers.do('check_risk')
+            #(insurancefirms + insurancecustomers).do('logging')
+            (insurancefirms).do('logging')
             #print(sum(list(insurancefirms.do('is_bankrupt'))))
             #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
-        if not direct_output_suppressed:
-            simulation.graphs()
+        #if not direct_output_suppressed:
+        #    simulation.graphs()
 
 if __name__ == '__main__':
     main(simulation_parameters)

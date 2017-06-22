@@ -23,6 +23,7 @@ class InsuranceFirm(abce.Agent):
                                           for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
         self.alive = True
         self.defaulted_numeric = 0.	# This is 0 if self.alive is True, 1 otherwise. We need this to make logging of the number of defaulted firms possible. Once simulation-level logging is implemented, this variable will become unnecessary.
+        self.insurance_payouts = 0.
 
     def get_object(self):
         return self
@@ -64,7 +65,7 @@ class InsuranceFirm(abce.Agent):
 
     def filobl(self):
         #print("DEBUG IF {0:d} money: {1:f}".format(self.id,self.possession('money')))
-        insurance_payouts = 0 
+        self.insurance_payouts = 0 
         for contract in self.contracts:
             
             current_payout = contract.get_obligation('insurer', 'money')
@@ -75,16 +76,17 @@ class InsuranceFirm(abce.Agent):
                                             von='insurer',
                                             to='policyholder',
                                             delivery={'money': current_payout})
-                    insurance_payouts += current_payout
+                    self.insurance_payouts += current_payout
                 except abce.NotEnoughGoods:
                     self.bankrupt()
                 #print("DEBUG: Booked claim payout ", current_payout)
         
-        self.log('insurancepayouts', insurance_payouts)
+    def logging(self):
+        self.log('insurancepayouts', self.insurance_payouts)
         self.log('money', self.possession('money'))
         self.log('num_contracts', len(self.contracts))
         self.log('defaulted', int(self.defaulted_numeric))	
-        """ TODO: this data does not produce aggregated statistics 
+        """ TODO: this data does not produce aggregated statistics in the graphical representation 
                -> but logging works fine (csv file has correct data)
                -> it seems unrelated to data type (float or int) or how it is created"""
 
