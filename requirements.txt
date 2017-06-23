@@ -1,0 +1,2 @@
+scipy>=0.19.1
+git+https://github.com/ABC-E/abce
