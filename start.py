@@ -73,11 +73,15 @@ def main(simulation_parameters):
             new_events = []
             
             if round == 0:
-                eventDist = None#scipy.stats.expon(0, 100./1.)
-                eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
+                #eventDist = None#scipy.stats.expon(0, 100./1.)
+                #eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
+                eventDist = scipy.stats.expon(0, 100./1.)
+                eventSizeDist = scipy.stats.pareto(2., 0., 10.)
+                bernoulliDistCategory = scipy.stats.bernoulli(simulation_parameters['shareOfCorrelatedRisk']*1./simulation_parameters['numberOfRiskCategoryDimensions'])
+                bernoulliDistIndividual = scipy.stats.bernoulli(1-simulation_parameters['shareOfCorrelatedRisk'])
                 #workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
                 new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], \
-                                                        riskcategories, eventDist, eventSizeDist) for ic in ic_objects]
+                                                        riskcategories, eventDist, eventSizeDist, bernoulliDistIndividual=bernoulliDistIndividual, bernoulliDistCategory=bernoulliDistCategory) for ic in ic_objects]
                 new_events = [event for agent_events in new_events for event in agent_events]
                 try:
                     roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:

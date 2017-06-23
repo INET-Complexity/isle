@@ -22,20 +22,21 @@ class InsuranceCustomer(abce.Agent):
         self.default_contract_excess = simulation_parameters['defaultContractExcess']
         self.time_correlation_weight = simulation_parameters['shareOfCorrelatedRisk']
         self.obligations_current_round = 0.
-        
     
     def get_object(self):
         return self
 
-    def startAddRisk(self, number, max_runtime, risk_category_list, eventDist = None, eventSizeDist = None):
+    def startAddRisk(self, number, max_runtime, risk_category_list, eventDist = None, eventSizeDist = None, \
+                    bernoulliDistCategory = None, bernoulliDistIndividual = None):
         events = []
         for i in range(number):
             if (eventDist is not None) and (eventSizeDist is not None):
                 risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, eventDist=eventDist, \
-                                     eventSizeDist=eventSizeDist, time_correlation_weight=self.time_correlation_weight)
+                                     eventSizeDist=eventSizeDist, time_correlation_weight=self.time_correlation_weight, \
+                                     bernoulliDistIndividual=bernoulliDistIndividual, bernoulliDistCategory=bernoulliDistCategory)
             else:
                 if (eventDist is not None) or (eventSizeDist is not None):
-                    print("Warning: received only one of (damage size distribution) and (event time separation distribution) for insurable risk. Both are needed to characterize risk. Defaulting to assigning defaults for both.")
+                    print("Warning: received only one of four frozen rv distributions for insurable risk. All are needed to characterize risk. Defaulting to assigning defaults for all.")
                 risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, \
                                                  time_correlation_weight=self.time_correlation_weight)
             self.risks.append(risk)

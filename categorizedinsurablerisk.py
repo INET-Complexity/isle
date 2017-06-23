@@ -5,6 +5,7 @@ import random
 from insurablerisk import InsurableRisk
 from riskcategory import RiskCategory
 import auxfunctions
+import pdb
 
 class CategorizedInsurableRisk(InsurableRisk):
     def __init__(self, 
@@ -14,7 +15,9 @@ class CategorizedInsurableRisk(InsurableRisk):
                  category=None, 
                  time_correlation_weight=.5, 
                  eventDist = scipy.stats.expon(0, 100./1.), 
-                 eventSizeDist = scipy.stats.pareto(2., 0., 10.)):
+                 eventSizeDist = scipy.stats.pareto(2., 0., 10.),
+                 bernoulliDistCategory = None,
+                 bernoulliDistIndividual = None):
         super(CategorizedInsurableRisk, self).__init__(None, None, None, eventDist, eventSizeDist)
         self.category = []
         self.category_id = []
@@ -39,6 +42,8 @@ class CategorizedInsurableRisk(InsurableRisk):
                 self.category[i] = current_rcl[self.category_id[i]]
             assert auxfunctions.compare_rv_objects(self.eventDist, self.category[i].eventDist)
         self.time_correlation_weight = time_correlation_weight
+        self.bernoulliDistCategory = bernoulliDistCategory
+        self.bernoulliDistIndividual = bernoulliDistIndividual
         self.eventSchedule = self.populateEventSchedule(time, max_runtime)
     
     def schedule_next_event(self, time):
@@ -50,7 +55,7 @@ class CategorizedInsurableRisk(InsurableRisk):
         else:
             return None, None		# TODO: Will this cause type errors somewhere?
 
-    @profile
+    #@profile
     def populateEventSchedule(self, time, max_runtime):
         ievents = []
         events = []
@@ -58,12 +63,19 @@ class CategorizedInsurableRisk(InsurableRisk):
             time += self.eventDist.rvs()
             if time < max_runtime:
                 ievents.append(time)
-        i_events_include = scipy.stats.bernoulli(1-self.time_correlation_weight).rvs(len(ievents))
+        #pdb.set_trace()
+        if self.bernoulliDistIndividual is None:
+            i_events_include = scipy.stats.bernoulli(1-self.time_correlation_weight).rvs(len(ievents))
+        else:
+            i_events_include = self.bernoulliDistIndividual.rvs(len(ievents))
         g_events_include = []
         cat_share =  1. / len(self.category)
         for catd in range(len(self.category)):
-            func = scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList))
-            g_events_include.append(func)
+            if self.bernoulliDistCategory is None:
+                bernoulli_rv = scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList))
+            else:
+                bernoulli_rv = self.bernoulliDistCategory.rvs(len(self.category[catd].eventTimeList))
+            g_events_include.append(bernoulli_rv)
         for i in range(len(i_events_include)):
             if i_events_include[i]:
                 events.append(ievents[i])
