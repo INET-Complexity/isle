@@ -38,7 +38,7 @@ class CategorizedInsurableRisk(InsurableRisk):
                     self.category[i] = current_category
                     self.category_id[i] = risk_category_list.index(current_category)
             else:
-                self.category_id[i] = random.choice(range(len(current_rcl)-1))
+                self.category_id[i] = random.choice(range(len(current_rcl)))
                 self.category[i] = current_rcl[self.category_id[i]]
             assert auxfunctions.compare_rv_objects(self.eventDist, self.category[i].eventDist)
         self.time_correlation_weight = time_correlation_weight

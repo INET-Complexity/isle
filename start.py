@@ -29,7 +29,7 @@ simulation_parameters = {'name': 'name',
                          'start_cash_customer': 10000.0,
                          'defaultContractRuntime': 10,
                          'defaultContractExcess': 100,
-                         'numberOfRiskCategories': 5,
+                         'numberOfRiskCategories': 2,
                          'shareOfCorrelatedRisk': 0.5,
                          'numberOfRiskCategoryDimensions': 2,
                          'riskObliviousSetting': 2,
@@ -127,8 +127,8 @@ def main(simulation_parameters):
             #print(sum(list(insurancefirms.do('is_bankrupt'))))
             #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
 
-        #if not direct_output_suppressed:
-        #    simulation.graphs()
+        if not direct_output_suppressed:
+            simulation.graphs()
 
 if __name__ == '__main__':
     main(simulation_parameters)

@@ -8,7 +8,8 @@ from __future__ import division
 import abce
 #from riskmodel import RiskModel
 #from riskmodel_grouped import RiskModelGrouped
-from riskmodel_grouped_iterationstatic import RiskModelGroupedS
+#from riskmodel_grouped_iterationstatic import RiskModelGroupedS
+from riskmodel_grouped_deterministic import RiskModelGroupedDeterministic
 from insurancecontract import InsuranceContract
 import pdb
 import scipy.stats
@@ -16,7 +17,7 @@ import scipy.stats
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         # your agent initialization goes here, not in __init__
-        self.riskmodel = RiskModelGroupedS(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
+        self.riskmodel = RiskModelGroupedDeterministic(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
         self.create('money', simulation_parameters['start_cash_insurer'])
         self.contracts = []
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
