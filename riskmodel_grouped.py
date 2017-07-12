@@ -11,14 +11,14 @@ import pdb
 class RiskModelGrouped:
     def __init__(self,
                  riskDistribution=scipy.stats.pareto(2., 0., 10.),
-                 riskPeriod=scipy.stats.expon(0, 100./1.)):
+                 riskPeriod=scipy.stats.expon(0, 100./3.)):
         """
           setting default distributions:
              Power Law with x_min = 10.
                             alpha = 3.
                         => PDF(x) = 200 * x^(-3)
-             Exponential with lambda = .01
-                        => PDF(x) = 0.01 * e^(-0.01*x)
+             Exponential with lambda = .03
+                        => PDF(x) = 0.03 * e^(-0.03*x)
         """
         self.riskDistribution = riskDistribution;
         self.riskPeriod = riskPeriod;

@@ -25,7 +25,7 @@ simulation_parameters = {'name': 'name',
                          'scheduledEndTime': 100,
                          'numberOfInsurers': 10,
                          'numberOfRiskholders': 1000,
-                         'start_cash_insurer': 1000.0,
+                         'start_cash_insurer': 3000.0,
                          'start_cash_customer': 10000.0,
                          'defaultContractRuntime': 10,
                          'defaultContractExcess': 100,
@@ -65,6 +65,10 @@ def main(simulation_parameters):
         for i in range(simulation_parameters['numberOfRiskCategoryDimensions']):
             riskcategories.append([RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in range(simulation_parameters['numberOfRiskCategories'])])
         
+        for rc in riskcategories:
+            for rc2 in rc:
+                print(rc2.eventTimeList)
+
         events = defaultdict(list)
         
         for round in simulation.next_round():
@@ -73,9 +77,9 @@ def main(simulation_parameters):
             new_events = []
             
             if round == 0:
-                #eventDist = None#scipy.stats.expon(0, 100./1.)
+                #eventDist = None#scipy.stats.expon(0, 100./3.)
                 #eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
-                eventDist = scipy.stats.expon(0, 100./1.)
+                eventDist = scipy.stats.expon(0, 100./3.)
                 eventSizeDist = scipy.stats.pareto(2., 0., 10.)
                 bernoulliDistCategory = scipy.stats.bernoulli(simulation_parameters['shareOfCorrelatedRisk']*1./simulation_parameters['numberOfRiskCategoryDimensions'])
                 bernoulliDistIndividual = scipy.stats.bernoulli(1-simulation_parameters['shareOfCorrelatedRisk'])
@@ -126,6 +130,10 @@ def main(simulation_parameters):
             (insurancefirms).do('logging')
             #print(sum(list(insurancefirms.do('is_bankrupt'))))
             #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
+        
+        for rc in riskcategories:
+            for rc2 in rc:
+                print(rc2.eventTimeList)
 
         if not direct_output_suppressed:
             simulation.graphs()

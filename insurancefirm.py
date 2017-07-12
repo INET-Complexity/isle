@@ -17,8 +17,9 @@ import scipy.stats
 class InsuranceFirm(abce.Agent):
     def init(self, simulation_parameters, agent_parameters):
         # your agent initialization goes here, not in __init__
-        self.riskmodel = RiskModelGroupedDeterministic(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./1.))
+        self.riskmodel = RiskModelGroupedDeterministic(riskDistribution=scipy.stats.pareto(2., 0., 10.), riskPeriod=scipy.stats.expon(0, 100./3.))
         self.create('money', simulation_parameters['start_cash_insurer'])
+        self.start_cash_insurer = simulation_parameters['start_cash_insurer']
         self.contracts = []
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
                                           for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
@@ -40,7 +41,8 @@ class InsuranceFirm(abce.Agent):
 
     def acceptInsuranceContract(self, request):
         if self.alive:
-            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, self.possession('money'), time=self.round)
+            liquidity = min(self.possession('money'), self.start_cash_insurer)
+            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, liquidity, time=self.round)
             #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
         else:
             return None
@@ -52,7 +54,8 @@ class InsuranceFirm(abce.Agent):
             for i in range(len(self.underwritten_by_cat)):
                 if self.underwritten_by_cat[i] is not None:
                     risk_cat_current_contract = self.contracts[-1].risk_category[i]
-                    self.underwritten_by_cat[i][risk_cat_current_contract] += 1
+                    if risk_cat_current_contract is not None:
+                        self.underwritten_by_cat[i][risk_cat_current_contract] += 1
             ##try:
             ##    print("DEBUG IF {0:d} money in: {1:f}".format(self.id,contract.content["premium"]))
             ##except:
@@ -110,9 +113,14 @@ class InsuranceFirm(abce.Agent):
             if (contract.get_endtime() < self.round):
                 contract.terminate() 
                 for i in range(len(self.underwritten_by_cat)):
-                    if self.underwritten_by_cat[i] is not None:
+                    if (self.underwritten_by_cat[i] is not None) and (contract.risk_category[i] is not None):
                         self.underwritten_by_cat[i][contract.risk_category[i]] -= 1
         self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
+        
+        #payout profits:
+        if self.possession('money') > self.start_cash_insurer:
+            self.destroy('money', self.possession('money') - self.start_cash_insurer)
+
 
     def printmoney(self):
         print("DEBUG **IF ", self.possession('money'))

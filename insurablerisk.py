@@ -15,7 +15,7 @@ class InsurableRisk:
     def __init__(self, time, 
                  value=scipy.stats.pareto(2., 0., 10.),
                  runtime=100,
-                 eventDist=scipy.stats.expon(0, 100./1.),
+                 eventDist=scipy.stats.expon(0, 100./3.),
                  eventSizeDist=scipy.stats.pareto(2., 0., 10.),
                  seed=None):
         if value is not None:
