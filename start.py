@@ -14,6 +14,7 @@ Created by Torsten Heinrich, Davoud Taghawi-Nejad.
 """
 
 # import general python modules
+from __future__ import division
 from collections import defaultdict
 #import os
 import sys
@@ -24,7 +25,6 @@ import scipy.stats
 import pdb
 
 # import ABCE modules
-from __future__ import division
 from abce import Simulation, gui
 
 # import ISLE modules

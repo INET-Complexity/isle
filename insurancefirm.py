@@ -5,11 +5,11 @@
 """
 
 # import general python modules
+from __future__ import division
 import pdb
 import scipy.stats
 
 # import ABCE modules
-from __future__ import division
 import abce
 
 # import ISLE modules: InsuranceContract and one of the RiskModel classes.
