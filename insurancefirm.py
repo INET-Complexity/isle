@@ -159,11 +159,10 @@ class InsuranceFirm(abce.Agent):
         # Rebuild agent's contracts list to only include non-terminated contracts.
         self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
 
-        # Remove excess liquidity. Not used (if False). TODO: Should be done with investments instead.
-        if False:
-            #payout profits:
-            if self.possession('money') > self.start_cash_insurer:
-                self.destroy('money', self.possession('money') - self.start_cash_insurer)
+        # Remove excess liquidity. TODO: Should be done with investments instead.
+        if self.possession('money') > self.start_cash_insurer:
+            self.create('longterm_investment', self.possession('money') - self.start_cash_insurer)
+            self.destroy('money', self.possession('money') - self.start_cash_insurer)
 
 
     def printmoney(self):
