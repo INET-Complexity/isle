@@ -119,29 +119,32 @@ class CategorizedInsurableRisk(InsurableRisk):
         else:
             i_events_include = self.bernoulliDistIndividual.rvs(len(ievents))
         
-        # Draw Bernoulli random variates for mixing
-        g_events_include = []
-        #cat_share =  1. / len(self.category)
-        cat_share =  1.
-        for catd in range(len(self.category)):
-            if self.category[catd] is not None:
-                if self.bernoulliDistCategory is None:
-                    bernoulli_rv = scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList))
-                else:
-                    bernoulli_rv = self.bernoulliDistCategory.rvs(len(self.category[catd].eventTimeList))
-                g_events_include.append(bernoulli_rv)
-            else:
-                g_events_include.append(None)      
+        #   -> this is done in riskcategory now!
+        ## Draw Bernoulli random variates for mixing
+        #g_events_include = []
+        ##cat_share =  1. / len(self.category)
+        #cat_share =  1.
+        #for catd in range(len(self.category)):
+        #    if self.category[catd] is not None:
+        #        if self.bernoulliDistCategory is None:
+        #            bernoulli_rv = scipy.stats.bernoulli(self.time_correlation_weight*cat_share).rvs(len(self.category[catd].eventTimeList))
+        #        else:
+        #            bernoulli_rv = self.bernoulliDistCategory.rvs(len(self.category[catd].eventTimeList))
+        #        g_events_include.append(bernoulli_rv)
+        #    else:
+        #        g_events_include.append(None)      
         
         # Mix distributions using Bernoulli random variated drawn above
         for i in range(len(i_events_include)):
             if i_events_include[i]:
                 events.append(ievents[i])
         for catd in range(len(self.category)):
-            if g_events_include[catd] is not None:
-                for i in range(len(g_events_include[catd])):
-                    if g_events_include[catd][i]:
-                        events.append(self.category[catd].eventTimeList[i])
+            if self.category[catd] is not None:
+                events += self.category[catd].eventTimeList
+            #if g_events_include[catd] is not None:
+            #    for i in range(len(g_events_include[catd])):
+            #        if g_events_include[catd][i]:
+            #            events.append(self.category[catd].eventTimeList[i])
         events.sort()
         
         # Return final event schedule
