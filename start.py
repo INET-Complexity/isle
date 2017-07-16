@@ -51,8 +51,19 @@ def main(simulation_parameters):
     # Workaround: collect pointers to agent objects, to be removed with future version of ABCE.
     ic_objects = list(insurancecustomers.do('get_object'))
     if_objects = list(insurancefirms.do('get_object'))
+
+    # 0. Before first iteration: prepare risk categories and event schedules for risk categories and individual risks
+    """0.1 Define globally identical time separation and damage size distributions as well as bernoulli 
+                                                          distributions for event schedule mixing"""
+    #eventDist = None#scipy.stats.expon(0, 100./3.)
+    #eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
+    eventDist = scipy.stats.expon(0, 100./3.)
+    eventSizeDist = scipy.stats.pareto(2., 0., 10.)
+    bernoulliDistCategory = scipy.stats.bernoulli(simulation_parameters['shareOfCorrelatedRisk'] \
+                                                   * 1./simulation_parameters['numberOfRiskCategoryDimensions'])
+    bernoulliDistIndividual = scipy.stats.bernoulli(1-simulation_parameters['shareOfCorrelatedRisk'])
     
-    # Create risk categories
+    # 0.2 Create risk categories
     riskcategories = []
     for i in range(simulation_parameters['numberOfRiskCategoryDimensions']):
         riskcategories.append([RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in \
@@ -63,55 +74,41 @@ def main(simulation_parameters):
         for rc2 in rc:
             print(rc2.eventTimeList)
 
-    # prepare list of events and event-times (dict)
+    # 0.3 Prepare event schedules for all risks for all agents, collect events
+    #Workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
+    new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories, eventDist, \
+                                              eventSizeDist, bernoulliDistIndividual=bernoulliDistIndividual, \
+                                              bernoulliDistCategory=bernoulliDistCategory) for ic in ic_objects]
+    
+    # 0.4 Flatten new_events list
+    new_events = [event for agent_events in new_events for event in agent_events]
+    
+    try:
+        # 0.5 Apply risk category awareness setting for insurance firms
+        roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:
+                                                                            #     if 0: all firms aware of all categories 
+                                                                            #     if 1: all firms unaware of first category, 
+                                                                            #     if 2: half the firms unaware of first category, the other half of the second category
+        if roSetting == 1:
+            [ifirm.set_oblivious(0) for ifirm in if_objects]
+        elif roSetting == 2:
+            assert simulation_parameters['numberOfRiskCategoryDimensions'] > 1
+            noi = simulation_parameters['numberOfInsurers']
+            middle = int(noi/2.)                               #round does not work as round is redefined as int
+            [ifirm.set_oblivious(0) for ifirm in if_objects[:middle]]
+            [ifirm.set_oblivious(1) for ifirm in if_objects[middle:]]
+    except: 
+        #pdb.set_trace()
+        pass
+
+    # 0.6 prepare list of events and event-times (dict)
     events = defaultdict(list)
     
     # Commence time iteration
     for round in simulation.next_round():
         
-        # Prepare new_events list
+        # Prepare new_events list -> No, was prepared before first iteration!
         #new_events = insurancecustomers.do('randomAddRisk')
-        new_events = []
-        
-        # 0. In the first round (before the first iteration): prepare event schedules for individual risks
-        if round == 0:
-            
-            """ Define globally identical time separation and damage size distributions as well as bernoulli 
-                                                                  distributions for event schedule mixing"""
-            #eventDist = None#scipy.stats.expon(0, 100./3.)
-            #eventSizeDist = None#scipy.stats.pareto(2., 0., 10.)
-            eventDist = scipy.stats.expon(0, 100./3.)
-            eventSizeDist = scipy.stats.pareto(2., 0., 10.)
-            bernoulliDistCategory = scipy.stats.bernoulli(simulation_parameters['shareOfCorrelatedRisk'] \
-                                                           * 1./simulation_parameters['numberOfRiskCategoryDimensions'])
-            bernoulliDistIndividual = scipy.stats.bernoulli(1-simulation_parameters['shareOfCorrelatedRisk'])
-            
-            # Prepare event schedules for all risks for all agents, collect events
-            #Workaround (for agent methods with arguments), will not work multi-threaded because of pointer/object reference space mismatch
-            new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories, eventDist, \
-                                                      eventSizeDist, bernoulliDistIndividual=bernoulliDistIndividual, \
-                                                      bernoulliDistCategory=bernoulliDistCategory) for ic in ic_objects]
-            
-            # Flatten new_events list
-            new_events = [event for agent_events in new_events for event in agent_events]
-            
-            try:
-                # Apply risk category awareness setting for insurance firms
-                roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:
-                                                                                    #     if 0: all firms aware of all categories 
-                                                                                    #     if 1: all firms unaware of first category, 
-                                                                                    #     if 2: half the firms unaware of first category, the other half of the second category
-                if roSetting == 1:
-                    [ifirm.set_oblivious(0) for ifirm in if_objects]
-                elif roSetting == 2:
-                    assert simulation_parameters['numberOfRiskCategoryDimensions'] > 1
-                    noi = simulation_parameters['numberOfInsurers']
-                    middle = int(noi/2.)                               #round does not work as round is redefined as int
-                    [ifirm.set_oblivious(0) for ifirm in if_objects[:middle]]
-                    [ifirm.set_oblivious(1) for ifirm in if_objects[middle:]]
-            except: 
-                #pdb.set_trace()
-                pass
         
         # 1. Apply all events scheduled for the current iteration (and collect next events, if any)
         for risk in events[round]:
@@ -151,6 +148,9 @@ def main(simulation_parameters):
         ## Some debugging output, to be removed in future version
         #print(sum(list(insurancefirms.do('is_bankrupt'))))
         #print("\nDEBUG start mean cover: ", scipy.mean(insurancecustomers.do('get_mean_coverage')))
+        
+        # Reset new_events list
+        new_events = []
     
     # Some debugging output, to be removed in future version
     for rc in riskcategories:
