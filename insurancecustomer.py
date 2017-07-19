@@ -33,7 +33,7 @@ class InsuranceCustomer(abce.Agent):
         self.time_correlation_weight = simulation_parameters['shareOfCorrelatedRisk']
         
         # Prepare variables for handling risks, contracts, obligations
-        self.contracts = []
+        self.i_contracts = []
         self.risks = []
         self.insurance_contract_dict = {}
         self.risk_dict = {}
@@ -179,7 +179,7 @@ class InsuranceCustomer(abce.Agent):
                     self.message(cc.sender_group, cc.sender_id, 'addcontract', new_contract.__dict__)
                     
                     # Record contract, set risk covered
-                    self.contracts.append(new_contract)
+                    self.i_contracts.append(new_contract)
                     self.insurance_contract_dict[risk] = new_contract
                     risk.set_coverage(True)
             #else:
@@ -190,7 +190,7 @@ class InsuranceCustomer(abce.Agent):
         
         # Reset payouts statistic
         self.obligations_current_round = 0
-        for contract in self.contracts:                                 # Loop over all contracts
+        for contract in self.i_contracts:                                 # Loop over all contracts
             if contract.get_obligations('policyholder')['money'] > 0:   # Test for obligations 
                 
                 # Collect due obligations for contract.
@@ -219,7 +219,7 @@ class InsuranceCustomer(abce.Agent):
         """Logging method. Causes ABCE to log some values at agent level. No arguments, returns None."""        
         self.log('obligations', self.obligations_current_round)
         self.log('money', self.possession('money'))
-        self.log('num_contracts', len(self.contracts))
+        self.log('num_contracts', len(self.i_contracts))
 
     def check_risk(self):
         #print("DEBUG check_risk: ", end="")
@@ -242,9 +242,9 @@ class InsuranceCustomer(abce.Agent):
     def mature_contracts(self):
         """Method to remove expired contracts. No arguments; returns None."""
         # Terminate expired contracts
-        [contract.terminate() for contract in self.contracts if (contract.get_endtime() < self.round)]
+        [contract.terminate() for contract in self.i_contracts if (contract.get_endtime() < self.round)]
         # Rebuild contracts list
-        self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
+        self.i_contracts = [contract for contract in self.i_contracts if (contract.is_valid())]
 
         # Rebuild insurance_contract_dict
         #self.insurance_contract_dict = {risk: self.insurance_contract_dict[risk] for risk in self.insurance_contract_dict if not self.insurance_contract_dict[risk].is_valid()}
