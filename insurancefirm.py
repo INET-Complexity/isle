@@ -37,7 +37,8 @@ class InsuranceFirm(abce.Agent):
                                     # number of defaulted firms possible. TODO: Switch to simulation-level logging.
         
         # Prepare variables for handling contracts and claim payouts
-        self.contracts = []
+        #self.contracts = []
+        self.i_contracts = [] #cannot be named contracts as this collides with upstream attribute
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
                                                 for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
         self.insurance_payouts = 0.
@@ -84,11 +85,11 @@ class InsuranceFirm(abce.Agent):
         #revenue_sum = 0
         for contract in self.get_messages('addcontract'):
             # Copy contract object.
-            self.contracts.append(InsuranceContract.generated(contract.content))
+            self.i_contracts.append(InsuranceContract.generated(contract.content))
             # Record underwritten risk by category.
             for i in range(len(self.underwritten_by_cat)):
                 if self.underwritten_by_cat[i] is not None:
-                    risk_cat_current_contract = self.contracts[-1].risk_category[i]
+                    risk_cat_current_contract = self.i_contracts[-1].risk_category[i]
                     if risk_cat_current_contract is not None:
                         self.underwritten_by_cat[i][risk_cat_current_contract] += 1
             #revenue_sum += contract.content["premium"]
@@ -105,7 +106,7 @@ class InsuranceFirm(abce.Agent):
         # Reset payouts statistic
         self.insurance_payouts = 0 
         
-        for contract in self.contracts:     # Loop over all contracts
+        for contract in self.i_contracts:     # Loop over all contracts
             # Collect due payments from contract.
             current_payout = contract.get_obligation('insurer', 'money')
             
@@ -127,7 +128,7 @@ class InsuranceFirm(abce.Agent):
         """Logging method. Causes ABCE to log some values at agent level. No arguments, returns None."""
         self.log('insurancepayouts', self.insurance_payouts)
         self.log('money', self.possession('money'))
-        self.log('num_contracts', len(self.contracts))
+        self.log('num_contracts', len(self.i_contracts))
         self.log('defaulted', int(self.defaulted_numeric))	
         """ TODO: some data series sometimes do not produce aggregated statistics in the graphical representation 
                -> but logging works fine (csv file has correct data)
@@ -148,7 +149,7 @@ class InsuranceFirm(abce.Agent):
         """Method to remove expired contracts. No arguments; returns None."""
         # TODO: does this work with multiprocessing?
         #       -> should work, but it may be good to check that firm and customer agree on contract ending time
-        for contract in self.contracts: # Loop through all contracts of this agent.
+        for contract in self.i_contracts: # Loop through all contracts of this agent.
             if (contract.get_endtime() < self.round):   # Test if expired.
                 # Terminate contract.
                 contract.terminate() 
@@ -157,7 +158,7 @@ class InsuranceFirm(abce.Agent):
                     if (self.underwritten_by_cat[i] is not None) and (contract.risk_category[i] is not None):
                         self.underwritten_by_cat[i][contract.risk_category[i]] -= 1
         # Rebuild agent's contracts list to only include non-terminated contracts.
-        self.contracts = [contract for contract in self.contracts if (contract.is_valid())]
+        self.i_contracts = [contract for contract in self.i_contracts if (contract.is_valid())]
 
         # Remove excess liquidity. TODO: Should be done with investments instead.
         if self.possession('money') > self.start_cash_insurer:

@@ -63,12 +63,12 @@ class InsuranceCustomer(abce.Agent):
             if (eventDist is not None) and (eventSizeDist is not None) and (bernoulliDistIndividual is not None) \
                                                                               and (bernoulliDistCategory is not None):
                 # Create risk supplying predefined distributions (computationally efficient but uniform)
-                risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, eventDist=eventDist, \
+                risk = CategorizedInsurableRisk(self.time, max_runtime, risk_category_list, eventDist=eventDist, \
                         eventSizeDist=eventSizeDist, time_correlation_weight=self.time_correlation_weight, \
                         bernoulliDistIndividual=bernoulliDistIndividual, bernoulliDistCategory=bernoulliDistCategory)
             else:
                 # Create risk using default distributions
-                risk = CategorizedInsurableRisk(self.round, max_runtime, risk_category_list, \
+                risk = CategorizedInsurableRisk(self.time, max_runtime, risk_category_list, \
                                                  time_correlation_weight=self.time_correlation_weight)
 
                 # Print warning if some but not all distributions have been supplied and were ignored

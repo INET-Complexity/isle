@@ -37,7 +37,7 @@ def main(simulation_parameters):
     """Main function. Accepts one positional argument (dict): parameter setting for the simulation"""
     
     # Create simulation, supply number of iterations, number of parallel threads to be used.
-    simulation = Simulation(rounds=simulation_parameters['scheduledEndTime'], processes=1)
+    simulation = Simulation(processes=1)
     
     # Create agent objects
     insurancefirms = simulation.build_agents(InsuranceFirm, 'insurancefirm',
@@ -47,6 +47,8 @@ def main(simulation_parameters):
                    number=simulation_parameters['numberOfRiskholders'],
                    parameters=simulation_parameters)
     allagents = insurancefirms + insurancecustomers
+    simulation.advance_round(0)
+
     
     # Workaround: collect pointers to agent objects, to be removed with future version of ABCE.
     ic_objects = list(insurancecustomers.do('get_object'))
@@ -79,6 +81,10 @@ def main(simulation_parameters):
     new_events = [ic.startAddRisk(15, simulation_parameters['scheduledEndTime'], riskcategories, eventDist, \
                                               eventSizeDist, bernoulliDistIndividual=bernoulliDistIndividual, \
                                               bernoulliDistCategory=bernoulliDistCategory) for ic in ic_objects]
+    #new_events = insurancecustomers.do("startAddRisk", 15, simulation_parameters['scheduledEndTime'], riskcategories, eventDist, \
+    #                                          eventSizeDist, bernoulliDistIndividual=bernoulliDistIndividual, \
+    #                                          bernoulliDistCategory=bernoulliDistCategory)
+    
     
     # 0.4 Flatten new_events list
     new_events = [event for agent_events in new_events for event in agent_events]
@@ -105,14 +111,15 @@ def main(simulation_parameters):
     events = defaultdict(list)
     
     # Commence time iteration
-    for round in simulation.next_round():
+    for time in range(simulation_parameters['scheduledEndTime']):
+        simulation.advance_round(time)
         
         # Prepare new_events list -> No, was prepared before first iteration!
         #new_events = insurancecustomers.do('randomAddRisk')
         
         # 1. Apply all events scheduled for the current iteration (and collect next events, if any)
-        for risk in events[round]:
-            new_events += [risk.explode(round)]		#TODO: does this work with multiprocessing?
+        for risk in events[time]:
+            new_events += [risk.explode(time)]		#TODO: does this work with multiprocessing?
         
         # (1.b) Sort any new events into events list      #TODO: does this cause events for period zero not to be handled? (There should be no events in period zero (time separation >=1)
         for event_time, risk in new_events:
@@ -122,7 +129,7 @@ def main(simulation_parameters):
                 assert isinstance(event_time, int)
                 assert risk is not None
                 try:
-                    assert event_time >= round
+                    assert event_time >= time
                 except:
                     pdb.set_trace()
 
