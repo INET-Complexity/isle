@@ -49,7 +49,7 @@ class RiskModelGroupedDeterministic:
            Positional arguments:
               tailSize (float >=0, <=1): quantile
            Returns value-at-risk."""
-        return self.riskDistribution.ppf(tailSize)
+        return self.riskDistribution.ppf(1-tailSize)
 
     #def evaluate(self, runtime, excess, deductible, expectedReturn=.15):
     def evaluate(self, risk, riskcateg, runtime, excess, deductible, time_correlation_weight, riskcateg_underwritten, \
@@ -74,7 +74,6 @@ class RiskModelGroupedDeterministic:
         
         # Since risks are identical, premium only needs to be computed once per iteration   #TODO: why not only once instead of in every iteration?
         if self.last_updated != time:
-            
             # This version does not use MC simulations but ppf's
             #distributionExpectedValue, VaR = expectedvaluemc.getEV(self.riskDistribution, 1000, None, None, excess, 0.02)
             #periodExpectedValue = expectedvaluemc.getEV(self.riskPeriod, 1000, None, None, None)
@@ -91,29 +90,35 @@ class RiskModelGroupedDeterministic:
             #print("DEBUG  **RM", distributionExpectedValue, periodExpectedValue, expectedLoss, expectedReturn, \
             #                                                                    expectedLoss * (1. + expectedReturn))
             self.price = expectedLoss * (1. + expectedReturn)
-            
+            print(expectedLoss, self.price)
             # Evaluate how many risks can be underwritten by category
             #group_correlation = time_correlation_weight * 1./len(riskcateg)
             group_correlation = time_correlation_weight
             self.acceptable_by_cat = []
             self.total_acceptable_by_cat = []
+            self.total_VaR_by_cat = []
             for i in range(len(riskcateg_underwritten)):
                 self.acceptable_by_cat.append([])
                 self.total_acceptable_by_cat.append([])
+                self.total_VaR_by_cat.append([])
                 if riskcateg_underwritten[i] is not None:
                     for j in range(len(riskcateg_underwritten[i])):
-                        acceptable = math.floor(liquidity * group_correlation * 1. / (VaR * (1./periodExpectedValue) \
-                                                                                                * runtime - deductible))
+                        #acceptable = math.floor(liquidity * group_correlation * 1. / (VaR * (1./periodExpectedValue) \
+                        #                                                                        * runtime - deductible))
+                        acceptable = math.floor(liquidity * 1./VaR)
                         self.acceptable_by_cat[i].append(acceptable - riskcateg_underwritten[i][j])
                         self.total_acceptable_by_cat[i].append(acceptable)
+                        self.total_VaR_by_cat[i].append(riskcateg_underwritten[i][j] * VaR)
                 else:
                     self.total_acceptable_by_cat[i] = None
                     self.acceptable_by_cat[i] = None
+                    self.total_VaR_by_cat[i] = None
                     
             # print some debugging output. Should be removed in future versions
-            print(self.acceptable_by_cat)
-            print(riskcateg_underwritten)
-            print(self.total_acceptable_by_cat)
+            print(self.acceptable_by_cat, end=" ")
+            print(riskcateg_underwritten, end=" ")
+            print(self.total_acceptable_by_cat, end=" ")
+            print(self.total_VaR_by_cat, end=" ")
             print("")
         
         # Determine if risks of the category presently considered can be underwritten, otherwise reject and return None

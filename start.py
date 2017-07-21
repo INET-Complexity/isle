@@ -68,8 +68,9 @@ def main(simulation_parameters):
     # 0.2 Create risk categories
     riskcategories = []
     for i in range(simulation_parameters['numberOfRiskCategoryDimensions']):
-        riskcategories.append([RiskCategory(0, simulation_parameters['scheduledEndTime']) for i in \
-                                                                range(simulation_parameters['numberOfRiskCategories'])])
+        riskcategories.append([RiskCategory(0, simulation_parameters['scheduledEndTime'], \
+                                        share_selection_bernoulli_dist = bernoulliDistCategory) \
+                                        for i in range(simulation_parameters['numberOfRiskCategories'])])
     
     # Some debugging output, to be removed in future version
     for rc in riskcategories:
@@ -180,8 +181,8 @@ if __name__ == '__main__':
                              'start_cash_customer': 10000.0,       # initial liquidity per insurance customer
                              'defaultContractRuntime': 10,         # default contract runtime
                              'defaultContractExcess': 100,         # default contract excess
-                             'numberOfRiskCategories': 2,          # number of risk categories
-                             'shareOfCorrelatedRisk': 0.5,         # default share of correlated risks
+                             'numberOfRiskCategories': 5,          # number of risk categories
+                             'shareOfCorrelatedRisk': 0.25,         # default share of correlated risks
                              'numberOfRiskCategoryDimensions': 2,  # number of risk category dimensions
                              'riskObliviousSetting': 2,            # setting of risk category visibility for risk models
                              'series': 'testing'#,                  # series of simulation run

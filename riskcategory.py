@@ -29,7 +29,7 @@ class RiskCategory():
                 if bernoulli_rv[i]:
                     reducedEventTimeList.append(self.eventTimeList[i])
             self.eventTimeList = reducedEventTimeList
-        print(self.eventTimeList)
+        #print(self.eventTimeList)
     
     def populateEventList(self, time, max_runtime):
         """Method to create event schedule by drawing event separation times from the eventDist until the scheduled 

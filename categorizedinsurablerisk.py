@@ -78,6 +78,9 @@ class CategorizedInsurableRisk(InsurableRisk):
         self.bernoulliDistCategory = bernoulliDistCategory
         self.bernoulliDistIndividual = bernoulliDistIndividual
         self.eventSchedule = self.populateEventSchedule(time, max_runtime)
+        #if random.uniform(0,1)>0.999:
+        #    print(self.category_id, end=" /// ")
+        #    print(self.eventSchedule, end=" /// ")
     
     def schedule_next_event(self, time):
         """Method for scheduling the next event from the event schedule if any. Positional argument:
