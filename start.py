@@ -182,7 +182,7 @@ if __name__ == '__main__':
                              'defaultContractRuntime': 10,         # default contract runtime
                              'defaultContractExcess': 100,         # default contract excess
                              'numberOfRiskCategories': 5,          # number of risk categories
-                             'shareOfCorrelatedRisk': 0.25,         # default share of correlated risks
+                             'shareOfCorrelatedRisk': 0.125,         # default share of correlated risks
                              'numberOfRiskCategoryDimensions': 2,  # number of risk category dimensions
                              'riskObliviousSetting': 2,            # setting of risk category visibility for risk models
                              'series': 'testing'#,                  # series of simulation run
