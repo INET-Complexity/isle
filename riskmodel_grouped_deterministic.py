@@ -53,7 +53,7 @@ class RiskModelGroupedDeterministic:
 
     #def evaluate(self, runtime, excess, deductible, expectedReturn=.15):
     def evaluate(self, risk, riskcateg, runtime, excess, deductible, time_correlation_weight, riskcateg_underwritten, \
-                                                                              liquidity, expectedReturn=.15, time=None):
+                                                liquidity, expectedReturn=.15, time=None, accuracy_by_category = None):
         """ Evaluates if exposure to risk category is too high compared to 
              current liquidity. If not ...
             Returns x% (e.g., 15%) over the expected loss which is computed
@@ -69,6 +69,10 @@ class RiskModelGroupedDeterministic:
             Optional arguments:
               expectedReturn (float >=0):                   price markup over expected losses 
               time (int):                                   current time
+              accuracy_by_category (list of list of float >=0, <=1):
+                                                            risk model accuracy by category. Underestimates event
+                                                               correcaltion by 1 minus this amount. The more inaccurate
+                                                               the more risks will be underwritten.
             Returns None or list (premium price, runtime, excess, deductible, risk)
         """
         
@@ -105,7 +109,11 @@ class RiskModelGroupedDeterministic:
                     for j in range(len(riskcateg_underwritten[i])):
                         #acceptable = math.floor(liquidity * group_correlation * 1. / (VaR * (1./periodExpectedValue) \
                         #                                                                        * runtime - deductible))
-                        acceptable = math.floor(liquidity * 1./VaR)
+                        if accuracy_by_category is not None:# and accuracy_by_category[i] is not None:
+                            accuracy = max(accuracy_by_category[i][j], 0.01)    # ensure accuracy != 0 to avoid div by 0 
+                        else:
+                            accuracy = 1.0
+                        acceptable = math.floor(liquidity * 1./VaR * 1./accuracy)
                         self.acceptable_by_cat[i].append(acceptable - riskcateg_underwritten[i][j])
                         self.total_acceptable_by_cat[i].append(acceptable)
                         self.total_VaR_by_cat[i].append(riskcateg_underwritten[i][j] * VaR)
@@ -115,6 +123,7 @@ class RiskModelGroupedDeterministic:
                     self.total_VaR_by_cat[i] = None
                     
             # print some debugging output. Should be removed in future versions
+            print(liquidity)
             print(self.acceptable_by_cat, end=" ")
             print(riskcateg_underwritten, end=" ")
             print(self.total_acceptable_by_cat, end=" ")

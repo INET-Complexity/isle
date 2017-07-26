@@ -92,18 +92,18 @@ def main(simulation_parameters):
     
     try:
         # 0.5 Apply risk category awareness setting for insurance firms
-        roSetting = simulation_parameters['riskObliviousSetting']           #parameter riskObliviousSetting:
+        hSetting = simulation_parameters['heterogeneitySetting']           #parameter riskObliviousSetting:
                                                                             #     if 0: all firms aware of all categories 
                                                                             #     if 1: all firms unaware of first category, 
                                                                             #     if 2: half the firms unaware of first category, the other half of the second category
-        if roSetting == 1:
-            [ifirm.set_oblivious(0) for ifirm in if_objects]
+        if hSetting == 1:
+            [ifirm.set_riskmodel_inaccuracy(0, simulation_parameters['riskmodelInaccuracy']) for ifirm in if_objects]
         elif roSetting == 2:
             assert simulation_parameters['numberOfRiskCategoryDimensions'] > 1
             noi = simulation_parameters['numberOfInsurers']
             middle = int(noi/2.)                               #round does not work as round is redefined as int
-            [ifirm.set_oblivious(0) for ifirm in if_objects[:middle]]
-            [ifirm.set_oblivious(1) for ifirm in if_objects[middle:]]
+            [ifirm.set_riskmodel_inaccuracy(0, simulation_parameters['riskmodelInaccuracy']) for ifirm in if_objects[:middle]]
+            [ifirm.set_riskmodel_inaccuracy(1, simulation_parameters['riskmodelInaccuracy']) for ifirm in if_objects[middle:]]
     except: 
         #pdb.set_trace()
         pass
@@ -173,19 +173,20 @@ def main(simulation_parameters):
 if __name__ == '__main__':
     
     # default parameters
-    simulation_parameters = {'name': 'name',                       # name of simulation run
-                             'scheduledEndTime': 100,              # number of iterations
-                             'numberOfInsurers': 10,               # number of insurers
-                             'numberOfRiskholders': 1000,          # number of insurance customers
-                             'start_cash_insurer': 3000.0,         # initial liquidity per insurer
-                             'start_cash_customer': 10000.0,       # initial liquidity per insurance customer
-                             'defaultContractRuntime': 10,         # default contract runtime
-                             'defaultContractExcess': 100,         # default contract excess
-                             'numberOfRiskCategories': 5,          # number of risk categories
-                             'shareOfCorrelatedRisk': 0.125,         # default share of correlated risks
+    simulation_parameters = {'name': 'name',                   # name of simulation run
+                             'scheduledEndTime': 100,           # number of iterations
+                             'numberOfInsurers': 10,           # number of insurers
+                             'numberOfRiskholders': 1000,      # number of insurance customers
+                             'start_cash_insurer': 10000.0,     # initial liquidity per insurer
+                             'start_cash_customer': 10000.0,   # initial liquidity per insurance customer
+                             'defaultContractRuntime': 10,     # default contract runtime
+                             'defaultContractExcess': 100,     # default contract excess
+                             'numberOfRiskCategories': 5,      # number of risk categories
+                             'shareOfCorrelatedRisk': 0.125,   # default share of correlated risks
                              'numberOfRiskCategoryDimensions': 2,  # number of risk category dimensions
-                             'riskObliviousSetting': 2,            # setting of risk category visibility for risk models
-                             'series': 'testing'#,                  # series of simulation run
+                             'heterogenitySetting': 2,         # setting of risk category visibility for risk models
+                             'riskmodelInaccuracy': 0.5,       # inaccuracy of risk models (in affected risk categories)
+                             'series': 'testing'#,             # series of simulation run
                              }
     
     # Read in arguments

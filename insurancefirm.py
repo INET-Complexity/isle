@@ -41,19 +41,23 @@ class InsuranceFirm(abce.Agent):
         self.i_contracts = [] #cannot be named contracts as this collides with upstream attribute
         self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
                                                 for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
+        self.accuracy_by_cat = [[1.0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
+                                                for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
         self.insurance_payouts = 0.
 
     #Workaround for collecting agent pointer. To be removed in future version.
     def get_object(self):
         return self
 
-    def set_oblivious(self, risk_cat_dim):
+    def set_riskmodel_inaccuracy(self, risk_cat_dim, inaccuracy):
         """Method to set (in)ability to consider specific risk categories in underwriting decisions. Positional argument:
              risk_cat_dim (int: 0, 1): which part (dimension) of risk categories to set invisible to insurer.
              Returns None.
              TODO: Shift this to the risk model instead of the insurer.
            """
-        self.underwritten_by_cat[risk_cat_dim] = None
+        #self.underwritten_by_cat[risk_cat_dim] = None
+        for i in range(len(self.accuracy_by_cat[risk_cat_dim])):
+            self.accuracy_by_cat[risk_cat_dim][i] = 1 - inaccuracy
 
     def quote(self):
         """Method to consider risks, create, and send offers. No arguments, returns None. Handles and sends messages."""
@@ -73,7 +77,9 @@ class InsuranceFirm(abce.Agent):
                                                                                     long-term investments explicitly."""
             liquidity = min(self.possession('money'), self.start_cash_insurer)
             # Call RiskModel.evaluate to determine premium and whether or not to underwrite
-            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'] , request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, liquidity, time=self.round)
+            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'], \
+                      request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, liquidity, \
+                                                          time=self.round, accuracy_by_category = self.accuracy_by_cat)
             #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
         else:
             return None
