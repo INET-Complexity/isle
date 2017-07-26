@@ -110,7 +110,7 @@ class RiskModelGroupedDeterministic:
                         #acceptable = math.floor(liquidity * group_correlation * 1. / (VaR * (1./periodExpectedValue) \
                         #                                                                        * runtime - deductible))
                         if accuracy_by_category is not None:# and accuracy_by_category[i] is not None:
-                            accuracy = max(accuracy_by_category[i][j], 0.01)    # ensure accuracy != 0 to avoid div by 0 
+                            accuracy = max(accuracy_by_category[i][j], 0.01)    # ensure accuracy != 0 to avoid div by 0
                         else:
                             accuracy = 1.0
                         acceptable = math.floor(liquidity * 1./VaR * 1./accuracy)
@@ -121,7 +121,7 @@ class RiskModelGroupedDeterministic:
                     self.total_acceptable_by_cat[i] = None
                     self.acceptable_by_cat[i] = None
                     self.total_VaR_by_cat[i] = None
-                    
+            
             # print some debugging output. Should be removed in future versions
             print(liquidity)
             print(self.acceptable_by_cat, end=" ")

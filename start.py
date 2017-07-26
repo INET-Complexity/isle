@@ -98,7 +98,7 @@ def main(simulation_parameters):
                                                                             #     if 2: half the firms unaware of first category, the other half of the second category
         if hSetting == 1:
             [ifirm.set_riskmodel_inaccuracy(0, simulation_parameters['riskmodelInaccuracy']) for ifirm in if_objects]
-        elif roSetting == 2:
+        elif hSetting == 2:
             assert simulation_parameters['numberOfRiskCategoryDimensions'] > 1
             noi = simulation_parameters['numberOfInsurers']
             middle = int(noi/2.)                               #round does not work as round is redefined as int
@@ -184,7 +184,7 @@ if __name__ == '__main__':
                              'numberOfRiskCategories': 5,      # number of risk categories
                              'shareOfCorrelatedRisk': 0.125,   # default share of correlated risks
                              'numberOfRiskCategoryDimensions': 2,  # number of risk category dimensions
-                             'heterogenitySetting': 2,         # setting of risk category visibility for risk models
+                             'heterogeneitySetting': 2,         # setting of risk category visibility for risk models
                              'riskmodelInaccuracy': 0.5,       # inaccuracy of risk models (in affected risk categories)
                              'series': 'testing'#,             # series of simulation run
                              }
