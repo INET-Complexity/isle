@@ -1,177 +1,148 @@
-"""
- InsuranceFirm agent class for ISLE.
- 
- Created by Torsten Heinrich, Davoud Taghawi-Nejad.
-"""
 
-# import general python modules
-from __future__ import division
-import pdb
+import numpy as np
 import scipy.stats
+from insurancecontract import InsuranceContract 
+import sys, pdb
 
-# import ABCE modules
-import abce
-
-# import ISLE modules: InsuranceContract and one of the RiskModel classes.
-from insurancecontract import InsuranceContract
-#from riskmodel import RiskModel
-#from riskmodel_grouped import RiskModelGrouped
-#from riskmodel_grouped_iterationstatic import RiskModelGroupedS
-from riskmodel_grouped_deterministic import RiskModelGroupedDeterministic
-
-# InsuranceFirm class
-class InsuranceFirm(abce.Agent):
-    def init(self, simulation_parameters, agent_parameters):
-        """Quasi-Constructor method (init, not __init--). Inherits from abce.Agent, requires 2 positional arguments 
-           (lists of (1) simulation parameters and (2) agent parameters) as specified in abce.Agent.
-           Returns None.
-           Creates insurance firm agent, records agent properties
-        """
-        # Record properties
-        self.riskmodel = RiskModelGroupedDeterministic(riskDistribution=scipy.stats.pareto(2., 0., 10.), \
-                                                                               riskPeriod=scipy.stats.expon(0, 100./3.))
-        self.create('money', simulation_parameters['start_cash_insurer'])
-        self.start_cash_insurer = simulation_parameters['start_cash_insurer']
-        self.alive = True
-        self.defaulted_numeric = 0.	# This is 0 if self.alive is True, 1 otherwise. We need this to make logging of the 
-                                    # number of defaulted firms possible. TODO: Switch to simulation-level logging.
+class InsuranceFirm():
+    def __init__(self, simulation, simulation_parameters, agent_parameters):
+        self.simulation = simulation
+        ##or: ABCE style:
+        #def init(self, simulation_parameters, agent_parameters):
+        ##note that ABCE-style cannot have a pointer to the simulation. It should deal with customers directly instead.
+        self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
+                  simulation_parameters["contract_runtime_halfspread"], simulation_parameters["mean_contract_runtime"] \
+                  + simulation_parameters["contract_runtime_halfspread"] + 1)
+        self.id = agent_parameters['id']
+        self.cash = agent_parameters['initial_cash']
+        self.riskmodel = agent_parameters['riskmodel']
+        self.premium = agent_parameters["norm_premium"]
+        self.profit_target = agent_parameters['profit_target']
+        self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
+        self.acceptance_threshold_friction = agent_parameters['acceptance_threshold_friction']  # 0.9 #1.0 to switch off
+        self.obligations = []
+        self.underwritten_contracts = []
+        #self.reinsurance_contracts = []
+        self.operational = True
         
-        # Prepare variables for handling contracts and claim payouts
-        #self.contracts = []
-        self.i_contracts = [] #cannot be named contracts as this collides with upstream attribute
-        self.underwritten_by_cat = [[0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
-                                                for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
-        self.accuracy_by_cat = [[1.0 for i in range(simulation_parameters['numberOfRiskCategories'])] \
-                                                for j in range(simulation_parameters['numberOfRiskCategoryDimensions'])]
-        self.insurance_payouts = 0.
-
-    #Workaround for collecting agent pointer. To be removed in future version.
-    def get_object(self):
-        return self
-
-    def set_riskmodel_inaccuracy(self, risk_cat_dim, inaccuracy):
-        """Method to set (in)ability to consider specific risk categories in underwriting decisions. Positional argument:
-             risk_cat_dim (int: 0, 1): which part (dimension) of risk categories to set invisible to insurer.
-             Returns None.
-             TODO: Shift this to the risk model instead of the insurer.
-           """
-        #self.underwritten_by_cat[risk_cat_dim] = None
-        for i in range(len(self.accuracy_by_cat[risk_cat_dim])):
-            self.accuracy_by_cat[risk_cat_dim][i] = 1 - inaccuracy
-
-    def quote(self):
-        """Method to consider risks, create, and send offers. No arguments, returns None. Handles and sends messages."""
-        for request in self.get_messages('request_insurancequote'):     # loop through all offer requests
-            quote = self.acceptInsuranceContract(request.content)       # get premium quote (if None, the risk cannot be 
-                                                                        #                                   underwritten)
-            if quote is not None:
-                self.message(request.sender_group, request.sender_id, 'insurancequotes', quote)
-
-    def acceptInsuranceContract(self, request):
-        """Method to consider underwriting a risk and obtain premium quote. Positional argument:
-             request (dict): request for insurance contract offer.
-           Returns premium quote (float or None).
-           """
-        if self.alive:  # Only return quotes if insurance firm is not bankrupted yet. TODO: Move this to quote function.
-            """Set consistent maximum liquidity holdings. TODO: Model this and the investment of the remainder in 
-                                                                                    long-term investments explicitly."""
-            liquidity = min(self.possession('money'), self.start_cash_insurer)
-            # Call RiskModel.evaluate to determine premium and whether or not to underwrite
-            return self.riskmodel.evaluate(request['risk'], request['riskcat'], request['runtime'], request['excess'], \
-                      request['deductible'],  request['time_correlation_weight'], self.underwritten_by_cat, liquidity, \
-                                                          time=self.round, accuracy_by_category = self.accuracy_by_cat)
-            #return self.riskmodel.evaluate(request['runtime'], request['excess'] , request['deductible'])
-        else:
-            return None
-
-    def add_contract(self):
-        """Method to record accepted contracts. No arguments, returns None.
-           The method copies insurance customer's contract object identically. This is because insurance customer and 
-           self may run in different processes."""
-        #revenue_sum = 0
-        for contract in self.get_messages('addcontract'):
-            # Copy contract object.
-            self.i_contracts.append(InsuranceContract.generated(contract.content))
-            # Record underwritten risk by category.
-            for i in range(len(self.underwritten_by_cat)):
-                if self.underwritten_by_cat[i] is not None:
-                    risk_cat_current_contract = self.i_contracts[-1].risk_category[i]
-                    if risk_cat_current_contract is not None:
-                        self.underwritten_by_cat[i][risk_cat_current_contract] += 1
-            #revenue_sum += contract.content["premium"]
-        #try:
-        #    print("DEBUG InsuranceFirm {0:d} money in: {1:f}".format(self.id, revenue_sum))
-        #except:
-        #    pdb.set_trace()
+    def iterate(self, time):
+        #"""realize income: not necessary"""
+        #pass
         
-
-    def filobl(self):
-        """Method to effect all due payments (reimbursements for claims in this case). No arguments; returns None."""
-        #print("DEBUG InsuranceFirm {0:d} money: {1:f}".format(self.id,self.possession('money')))
+        """realize due payments"""
+        self.effect_payments(time)
+        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
         
-        # Reset payouts statistic
-        self.insurance_payouts = 0 
-        
-        for contract in self.i_contracts:     # Loop over all contracts
-            # Collect due payments from contract.
-            current_payout = contract.get_obligation('insurer', 'money')
+        if self.operational:
+            # Only for ABCE:
+            #"""collect messages"""
+            #self.obligations += [obligation.content for obligation in self.get_messages('obligation')]
             
-            if current_payout > 0:
+            """mature contracts"""
+            maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
+            for contract in maturing:
+                self.underwritten_contracts.remove(contract)
+                contract.mature()
+            contracts_dissolved = len(maturing)
+            
+            """request risks to be considered for underwriting in the next period and collect those for this period"""
+            # Non-ABCE style
+            new_risks = self.simulation.solicit_insurance_requests(self.id, self.cash)
+            ## ABCE style
+            #self.message("insurancecustomer", 0, 'solicit_insurance_requests', {"number": self.posession("money")})
+            #new_risks = []
+            #for new_risks in self.get_messages('new_risks')
+            #    new_risks += new_risks.content
+            contracts_offered = len(new_risks)
+            try:
+                assert contracts_offered > 2 * contracts_dissolved
+            except:
+                print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(self.id, contracts_offered, 2*contracts_dissolved))
+            #print(self.id, " has ", len(self.underwritten_contracts), " & receives ", contracts_offered, " & lost ", contracts_dissolved)
+            
+            
+            """make underwriting decisions, category-wise"""
+            underwritten_risks = [{"excess": contract.excess, "category": contract.category, \
+                            "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
+                            "runtime": contract.runtime} for contract in self.underwritten_contracts]
+            expected_profit, acceptable_by_category = self.riskmodel.evaluate(underwritten_risks, self.cash)    
+            
+            #if expected_profit * 1./self.cash < self.profit_target:
+            #    self.acceptance_threshold = ((self.acceptance_threshold - .4) * 5. * self.acceptance_threshold_friction) / 5. + .4
+            #else:
+            #    self.acceptance_threshold = (1 - self.acceptance_threshold_friction * (1 - (self.acceptance_threshold - .4) * 5.)) / 5. + .4
+            
+            growth_limit = max(50, 2 * len(self.underwritten_contracts) + contracts_dissolved)
+            if sum(acceptable_by_category) > growth_limit:
+                acceptable_by_category = np.asarray(acceptable_by_category)
+                acceptable_by_category = acceptable_by_category * growth_limit / sum(acceptable_by_category)
+                acceptable_by_category = np.int64(np.round(acceptable_by_category))
+            
+            not_accepted_risks = []
+            for categ_id in range(len(acceptable_by_category)):
+                categ_risks = [risk for risk in new_risks if risk["category"] == categ_id]
+                new_risks = [risk for risk in new_risks if risk["category"] != categ_id]
+                categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
+                i = 0
+                #print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
                 try:
-                    # Effect payment
-                    contract.fulfill_obligation(self,
-                                            von='insurer',
-                                            to='policyholder',
-                                            delivery={'money': current_payout})
-                    # Record payment in payouts statistic.
-                    self.insurance_payouts += current_payout
-                except abce.NotEnoughGoods:
-                    # Enter bankruptcy if agent has insufficient liquidity to complete payment.
-                    self.bankrupt()
-                #print("DEBUG: Booked claim payout ", current_payout)
-        
-    def logging(self):
-        """Logging method. Causes ABCE to log some values at agent level. No arguments, returns None."""
-        self.log('insurancepayouts', self.insurance_payouts)
-        self.log('money', self.possession('money'))
-        self.log('num_contracts', len(self.i_contracts))
-        self.log('defaulted', int(self.defaulted_numeric))	
-        """ TODO: some data series sometimes do not produce aggregated statistics in the graphical representation 
-               -> but logging works fine (csv file has correct data)
-               -> it seems unrelated to data type (float or int) or how it is created"""
-
-    def bankrupt(self):
-        """Method to set agent bankrupt. This will cause the agent to not enter new contracts in the future. 
-           No arguments; returns None."""
-        self.alive = False
-        self.defaulted_numeric = 1.
+                    while(acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
+                        #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
+                        contract = InsuranceContract(self, categ_risks[i], time, self.premium, self.contract_runtime_dist.rvs())
+                        self.underwritten_contracts.append(contract)
+                        acceptable_by_category[categ_id] -= 1
+                        i += 1
+                except:
+                    print(sys.exc_info())
+                    pdb.set_trace()
+                not_accepted_risks += categ_risks[i:]
+                
+            #return unacceptables
+            #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
+            self.simulation.return_risks(not_accepted_risks)
     
-    def is_bankrupt(self):		#not used
-        """Getter method for bankruptcy status. No arguments.
-             Returns (boolean): whether the firm is bankrupt."""
-        return not self.alive
+            #not implemented
+            #"""adjust liquidity, borrow or invest"""
+            #pass
+        else:
+            pass
+            #Non-ABCE style not required
+            #self.simulation.return_risks(self.simulation.solicit_insurance_requests(0))
+            #ABCE style:
+            # ...requires collecting message with risks like above and sending the all back
+        
+    def enter_illiquidity(self):
+        self.enter_bankruptcy()
+    
+    def enter_bankruptcy(self):
+        self.operational = False
+    
+    def receive_obligation(self, amount, recipient, due_time):
+        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
+        self.obligations.append(obligation)
+    
+    def effect_payments(self, time):
+        due = [item for item in self.obligations if item["due_time"]<=time] 
+        self.obligations = [item for item in self.obligations if item["due_time"]>time]
+        sum_due = sum([item["amount"] for item in due])
+        if sum_due > self.cash:
+            self.obligations += due
+            self.enter_illiquidity()
+        else:
+            for obligation in due:
+                self.pay(obligation["amount"], obligation["recipient"])
 
-    def mature_contracts(self):
-        """Method to remove expired contracts. No arguments; returns None."""
-        # TODO: does this work with multiprocessing?
-        #       -> should work, but it may be good to check that firm and customer agree on contract ending time
-        for contract in self.i_contracts: # Loop through all contracts of this agent.
-            if (contract.get_endtime() < self.round):   # Test if expired.
-                # Terminate contract.
-                contract.terminate() 
-                # Remove contract from statistic of underwritten risks by category   
-                for i in range(len(self.underwritten_by_cat)):
-                    if (self.underwritten_by_cat[i] is not None) and (contract.risk_category[i] is not None):
-                        self.underwritten_by_cat[i][contract.risk_category[i]] -= 1
-        # Rebuild agent's contracts list to only include non-terminated contracts.
-        self.i_contracts = [contract for contract in self.i_contracts if (contract.is_valid())]
-
-        # Remove excess liquidity. TODO: Should be done with investments instead.
-        if self.possession('money') > self.start_cash_insurer:
-            self.create('longterm_investment', self.possession('money') - self.start_cash_insurer)
-            self.destroy('money', self.possession('money') - self.start_cash_insurer)
-
-
-    def printmoney(self):
-        """Method to print current liquidity holdings of this agent. No arguments; returns None."""
-        print("Agent (InsuranceFirm) has cash: ", self.possession('money'))
+    
+    def pay(self, amount, recipient):
+        ## ABCE style:
+        #self.give(self, recipient, "cash", amount)
+        # Non-ABCE style:
+        self.cash -= amount
+        recipient.receive(amount)
+                
+    def receive(self, amount):
+        ## Not necessary in ABCE style
+        #pass
+        # Non-ABCE style
+        """Method to accept cash payments."""
+        self.cash += amount
