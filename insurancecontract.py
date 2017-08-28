@@ -12,16 +12,16 @@ class InsuranceContract():
         self.expiration = runtime + time
         self.deductible = deductible
         self.excess = excess if excess != None else self.value
-        self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time + 1)
+        self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
         
     
     def explode(self, expire_immediately, time, uniform_value, damage_extent):
         #np.mean(np.random.beta(1, 1./mu -1, size=90000))
         #if np.random.uniform(0, 1) < self.risk_factor:
-        #if uniform_value < self.risk_factor:
-        if True:
+        if uniform_value < self.risk_factor:
+            #if True:
             claim = damage_extent * self.excess - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time + 1)
+            self.insurer.receive_obligation(claim, self.property_holder, time)
             if expire_immediately:
                 self.expiration = time
     

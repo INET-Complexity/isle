@@ -33,6 +33,8 @@ class InsuranceSimulation():
         self.risk_factor_lower_bound = simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_spread = simulation_parameters["risk_factor_upper_bound"] - simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_distribution = scipy.stats.uniform(loc=self.risk_factor_lower_bound, scale=self.risk_factor_spread)
+        if not simulation_parameters["risk_factors_present"]:
+            self.risk_factor_distribution = scipy.stats.uniform(loc=1.0, scale=0)
         #self.risk_value_distribution = scipy.stats.uniform(loc=100, scale=9900)
         self.risk_value_distribution = scipy.stats.uniform(loc=1000, scale=0)
         
@@ -69,9 +71,12 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
             
         # set up risk models
+        risk_factor_mean = self.risk_factor_distribution.mean() 
+        if np.isnan(risk_factor_mean):     # unfortunately scipy.stats.mean is not well-defined if scale = 0
+            risk_factor_mean = self.risk_factor_distribution.rvs() 
         self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
                     self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
-                    risk_value_mean, self.risk_factor_distribution.mean(), \
+                    risk_value_mean, risk_factor_mean, \
                     self.simulation_parameters["norm_profit_markup"]) \
                     for i in range(self.simulation_parameters["no_riskmodels"])]
         
@@ -108,9 +113,12 @@ class InsuranceSimulation():
                     affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
                     no_affected = len(affected_contracts)
                     damage = self.damage_distribution.rvs()
+                    print("**** PERIL ", damage)
                     damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
                     uniformvalues = np.random.uniform(0, 1, size=no_affected)
                     [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
+                else:
+                    print("Next peril ", self.rc_event_schedule[categ_id])
             # reset weights
             self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
             self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
@@ -136,13 +144,14 @@ class InsuranceSimulation():
     
     def effect_payments(self, time):
         due = [item for item in self.obligations if item["due_time"]<=time] 
+        #print("SIMULATION obligations: ", len(self.obligations), " of which are due: ", len(due))
         self.obligations = [item for item in self.obligations if item["due_time"]>time]
         sum_due = sum([item["amount"] for item in due])
-        self.obligations += due
         for obligation in due:
             self.pay(obligation["amount"], obligation["recipient"])
 
     def pay(self, amount, recipient):
+        #print("SIMULATION paying ", amount)
         try:
             assert self.money_supply > amount
         except:

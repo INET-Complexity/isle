@@ -45,7 +45,12 @@ class RiskModel():
                 expected_profits += 0
             var_per_risk = self.getPPF(self.var_tail_prob) * average_risk_factor * average_exposure
             necessary_liquidity += var_per_risk * len(categ_risks)
-            #print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
+            print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
+            print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
+            print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
+            print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))
+            print("RISKMODEL: ", self.getPPF(0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.25) * average_risk_factor * average_exposure * len(categ_risks))
+            print("RISKMODEL: ", self.getPPF(0.5) * average_risk_factor * average_exposure, " = PPF(0.5) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.5) * average_risk_factor * average_exposure * len(categ_risks))
             try:
                 acceptable = int(math.floor(cash / var_per_risk))
                 remaining = acceptable - len(categ_risks)
