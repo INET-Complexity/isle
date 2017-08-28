@@ -4,6 +4,7 @@ from riskmodel import RiskModel
 import numpy as np
 import scipy.stats
 import math
+import matplotlib.pyplot as plt
 
 class InsuranceSimulation():
     def __init__(self, simulation_parameters = {"no_categories": 2,\
@@ -12,7 +13,7 @@ class InsuranceSimulation():
                                                 "norm_profit_markup": 0.15, \
                                                 "mean_contract_runtime": 50, \
                                                 "contract_runtime_halfspread": 0, \
-                                                "max_time": 2000, \
+                                                "max_time": 200, \
                                                 "money_supply": 2000000000, \
                                                 "event_time_mean_separation": 100/3., \
                                                 "expire_immediately": True, \
@@ -144,14 +145,14 @@ class InsuranceSimulation():
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
         
         fig = plt.figure()
-        fig.subplot(211)
-        fig.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
-        fig.set_ylabel("Contracts")
-        fig.subplot(211)
+        ax0 = fig.add_subplot(211)
+        ax0.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
+        ax0.set_ylabel("Contracts")
+        ax1 = fig.add_subplot(212)
         for i in range(len(self.history_individual_contracts)):
-            fig.plot(range(len(self.history_individual_contracts[i])), self.history_total_contracts[i])
-        fig.set_ylabel("Contracts")
-        fig.set_xlabel("Time")
+            ax1.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+        ax1.set_ylabel("Contracts")
+        ax1.set_xlabel("Time")
         plt.show()
 
     def return_risks(self, not_accepted_risks):
