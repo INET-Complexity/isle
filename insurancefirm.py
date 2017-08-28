@@ -32,18 +32,18 @@ class InsuranceFirm():
         """realize due payments"""
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+
+        """mature contracts"""
+        maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
+        for contract in maturing:
+            self.underwritten_contracts.remove(contract)
+            contract.mature()
+        contracts_dissolved = len(maturing)
         
         if self.operational:
             # Only for ABCE:
             #"""collect messages"""
             #self.obligations += [obligation.content for obligation in self.get_messages('obligation')]
-            
-            """mature contracts"""
-            maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
-            for contract in maturing:
-                self.underwritten_contracts.remove(contract)
-                contract.mature()
-            contracts_dissolved = len(maturing)
             
             """request risks to be considered for underwriting in the next period and collect those for this period"""
             # Non-ABCE style
@@ -84,7 +84,7 @@ class InsuranceFirm():
                 new_risks = [risk for risk in new_risks if risk["category"] != categ_id]
                 categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
                 i = 0
-                #print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
+                print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
                 try:
                     while(acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
                         #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
@@ -115,7 +115,9 @@ class InsuranceFirm():
         self.enter_bankruptcy()
     
     def enter_bankruptcy(self):
-        [risk.mature() for risk in self.underwritten_risks()]   # removing (maturing) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
+        [risk.mature() for risk in self.underwritten_contracts]   # removing (maturing) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
+        self.simulation.receive(self.cash)
+        self.cash = 0
         self.operational = False
     
     def receive_obligation(self, amount, recipient, due_time):

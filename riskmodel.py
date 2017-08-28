@@ -2,6 +2,7 @@
 import math
 import numpy as np
 import sys, pdb
+import scipy.stats
 
 class RiskModel():
     def __init__(self, damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
@@ -38,19 +39,23 @@ class RiskModel():
                 average_risk_factor = np.mean([risk["risk_factor"] for risk in categ_risks])
                 # compute expected profits from category
                 mean_runtime = np.mean([risk["runtime"] for risk in categ_risks])
-                expected_profits += (self.norm_premium - mean_runtime / self.cat_separation_distribution.mean() * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
+                if self.expire_immediately:
+                    expected_profits += (self.norm_premium - (1 - scipy.stats.poisson(1 / self.cat_separation_distribution.mean() * \
+                                        mean_runtime).pmf(0)) * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
+                else:
+                    expected_profits += (self.norm_premium - mean_runtime / self.cat_separation_distribution.mean() * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
             else:
                 average_risk_factor = self.init_average_risk_factor
                 average_exposure = self.init_average_exposure
                 expected_profits += 0
             var_per_risk = self.getPPF(self.var_tail_prob) * average_risk_factor * average_exposure
             necessary_liquidity += var_per_risk * len(categ_risks)
-            print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
             print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
-            print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
-            print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))
-            print("RISKMODEL: ", self.getPPF(0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.25) * average_risk_factor * average_exposure * len(categ_risks))
-            print("RISKMODEL: ", self.getPPF(0.5) * average_risk_factor * average_exposure, " = PPF(0.5) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.5) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.25) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.5) * average_risk_factor * average_exposure, " = PPF(0.5) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.5) * average_risk_factor * average_exposure * len(categ_risks))
             try:
                 acceptable = int(math.floor(cash / var_per_risk))
                 remaining = acceptable - len(categ_risks)
@@ -64,5 +69,5 @@ class RiskModel():
             expected_profits = self.init_profit_estimate * cash
         else:
             expected_profits / necessary_liquidity
-        #print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
+        print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
         return expected_profits, remaining_acceptable_by_category

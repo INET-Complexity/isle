@@ -5,6 +5,7 @@ import numpy as np
 import scipy.stats
 import math
 import matplotlib.pyplot as plt
+import pdb
 
 class InsuranceSimulation():
     def __init__(self, simulation_parameters = {"no_categories": 2,\
@@ -13,24 +14,24 @@ class InsuranceSimulation():
                                                 "norm_profit_markup": 0.15, \
                                                 "mean_contract_runtime": 50, \
                                                 "contract_runtime_halfspread": 0, \
-                                                "max_time": 200, \
+                                                "max_time": 1000, \
                                                 "money_supply": 2000000000, \
                                                 "event_time_mean_separation": 100/3., \
                                                 "expire_immediately": True, \
-                                                "risk_factors_present": True, \
+                                                "risk_factors_present": False, \
                                                 "risk_factor_lower_bound": 0.4, \
                                                 "risk_factor_upper_bound": 0.6, \
                                                 "initial_acceptance_threshold": 0.5, \
                                                 "acceptance_threshold_friction": 0.9, \
-                                                "initial_agent_cash": 1000000, \
-                                                "no_risks": 2000 }):
+                                                "initial_agent_cash": 10000, \
+                                                "no_risks": 20000 }):
         
         # save parameters
         self.simulation_parameters = simulation_parameters
         
         # unpack parameters, set up environment (distributions etc.)
         self.damage_distribution = scipy.stats.uniform(loc=0, scale=1)
-        self.cat_separation_distribution = scipy.stats.expon(1, simulation_parameters["event_time_mean_separation"])
+        self.cat_separation_distribution = scipy.stats.expon(0, simulation_parameters["event_time_mean_separation"])
         self.risk_factor_lower_bound = simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_spread = simulation_parameters["risk_factor_upper_bound"] - simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_distribution = scipy.stats.uniform(loc=self.risk_factor_lower_bound, scale=self.risk_factor_spread)
@@ -44,10 +45,18 @@ class InsuranceSimulation():
             risk_factor_mean = self.risk_factor_distribution.rvs() 
         
         # set initial market price (normalized, i.e. must be multiplied by value or excess-deductible)
-        self.norm_premium = self.simulation_parameters["mean_contract_runtime"] / \
-                        self.cat_separation_distribution.mean() * self.damage_distribution.mean() * \
+        if self.simulation_parameters["expire_immediately"]:
+            assert self.cat_separation_distribution.dist.name == "expon"
+            expected_damage_frequency = 1 - scipy.stats.poisson(1 / self.simulation_parameters["event_time_mean_separation"] * \
+                                                                self.simulation_parameters["mean_contract_runtime"]).pmf(0)
+        else:
+            expected_damage_frequency = self.simulation_parameters["mean_contract_runtime"] / \
+                                                        self.cat_separation_distribution.mean()
+        self.norm_premium = expected_damage_frequency * self.damage_distribution.mean() * \
                         risk_factor_mean * \
                         (1 + self.simulation_parameters["norm_profit_markup"])
+        #print(self.norm_premium)
+        #pdb.set_trace()
         
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
         self.money_supply = self.simulation_parameters["money_supply"]
@@ -63,7 +72,7 @@ class InsuranceSimulation():
                 separation_time = self.cat_separation_distribution.rvs()
                 total += separation_time
                 if total < self.simulation_parameters["max_time"]:
-                    event_schedule.append(int(math.floor(total)))
+                    event_schedule.append(int(math.ceil(total)))
             self.rc_event_schedule.append(event_schedule)
         
         # set up risks
@@ -145,14 +154,17 @@ class InsuranceSimulation():
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
         
         fig = plt.figure()
-        ax0 = fig.add_subplot(211)
-        ax0.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
-        ax0.set_ylabel("Contracts")
-        ax1 = fig.add_subplot(212)
-        for i in range(len(self.history_individual_contracts)):
-            ax1.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+        ax0 = fig.add_subplot(311)
+        ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
+        ax0.set_ylabel("Cash")
+        ax1 = fig.add_subplot(312)
+        ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
         ax1.set_ylabel("Contracts")
-        ax1.set_xlabel("Time")
+        ax2 = fig.add_subplot(313)
+        for i in range(len(self.history_individual_contracts)):
+            ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+        ax2.set_ylabel("Contracts")
+        ax2.set_xlabel("Time")
         plt.show()
 
     def return_risks(self, not_accepted_risks):
