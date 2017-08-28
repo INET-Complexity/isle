@@ -38,10 +38,14 @@ class InsuranceSimulation():
         #self.risk_value_distribution = scipy.stats.uniform(loc=100, scale=9900)
         self.risk_value_distribution = scipy.stats.uniform(loc=1000, scale=0)
         
+        risk_factor_mean = self.risk_factor_distribution.mean() 
+        if np.isnan(risk_factor_mean):     # unfortunately scipy.stats.mean is not well-defined if scale = 0
+            risk_factor_mean = self.risk_factor_distribution.rvs() 
+        
         # set initial market price (normalized, i.e. must be multiplied by value or excess-deductible)
         self.norm_premium = self.simulation_parameters["mean_contract_runtime"] / \
                         self.cat_separation_distribution.mean() * self.damage_distribution.mean() * \
-                        self.risk_factor_distribution.mean() * \
+                        risk_factor_mean * \
                         (1 + self.simulation_parameters["norm_profit_markup"])
         
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
@@ -71,9 +75,6 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
             
         # set up risk models
-        risk_factor_mean = self.risk_factor_distribution.mean() 
-        if np.isnan(risk_factor_mean):     # unfortunately scipy.stats.mean is not well-defined if scale = 0
-            risk_factor_mean = self.risk_factor_distribution.rvs() 
         self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
                     self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
                     risk_value_mean, risk_factor_mean, \
@@ -93,7 +94,11 @@ class InsuranceSimulation():
             self.insurancefirms.append(insurer)
         self.insurancefirm_weights = [1 for i in self.insurancefirms]
         self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-
+        
+        # some output variables
+        self.history_total_cash = []
+        self.history_total_contracts = []
+        self.history_individual_contracts = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
         
     def run(self):
         for t in range(self.simulation_parameters["max_time"]):
@@ -128,6 +133,26 @@ class InsuranceSimulation():
             # iterate agents
             for agent in self.insurancefirms:
                 agent.iterate(t)
+            
+            # collect data
+            total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
+            total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
+            individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
+            self.history_total_cash.append(total_cash_no)
+            self.history_total_contracts.append(total_contracts_no)
+            for i in range(len(individual_contracts_no)):
+                self.history_individual_contracts[i].append(individual_contracts_no[i])
+        
+        fig = plt.figure()
+        fig.subplot(211)
+        fig.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
+        fig.set_ylabel("Contracts")
+        fig.subplot(211)
+        for i in range(len(self.history_individual_contracts)):
+            fig.plot(range(len(self.history_individual_contracts[i])), self.history_total_contracts[i])
+        fig.set_ylabel("Contracts")
+        fig.set_xlabel("Time")
+        plt.show()
 
     def return_risks(self, not_accepted_risks):
         self.risks += not_accepted_risks

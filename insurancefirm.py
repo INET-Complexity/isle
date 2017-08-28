@@ -115,6 +115,7 @@ class InsuranceFirm():
         self.enter_bankruptcy()
     
     def enter_bankruptcy(self):
+        [risk.mature() for risk in self.underwritten_risks()]   # removing (maturing) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
         self.operational = False
     
     def receive_obligation(self, amount, recipient, due_time):
