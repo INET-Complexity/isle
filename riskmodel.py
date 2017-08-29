@@ -6,7 +6,7 @@ import scipy.stats
 
 class RiskModel():
     def __init__(self, damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
-                category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate):
+                category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, inaccuracy):
         """risk_distribution is some scipy frozen rv distribution wich is bound between 0 and 1 and indicates 
            the share of risks suffering damage as part of any single catastrophic peril"""
         self.damage_distribution = damage_distribution  # TODO: separate that category wise?
@@ -18,6 +18,8 @@ class RiskModel():
         self.init_average_exposure = init_average_exposure
         self.init_average_risk_factor = init_average_risk_factor
         self.init_profit_estimate = init_profit_estimate
+        #self.inaccuracy = np.random.uniform(9/10., 10/9., size=self.category_number) 
+        self.inaccuracy = inaccuracy
     
     def getPPF(self, tailSize):
         """Method for getting quantile function of the distribution (value at risk).
@@ -36,7 +38,8 @@ class RiskModel():
             categ_risks = [risk for risk in risks if risk["category"]==categ_id]
             if len(categ_risks) > 0:
                 average_exposure = np.mean([risk["excess"]-risk["deductible"] for risk in categ_risks])
-                average_risk_factor = np.mean([risk["risk_factor"] for risk in categ_risks])
+                #average_risk_factor = np.mean([risk["risk_factor"] for risk in categ_risks])
+                average_risk_factor = self.inaccuracy[categ_id] * np.mean([risk["risk_factor"] for risk in categ_risks])
                 # compute expected profits from category
                 mean_runtime = np.mean([risk["runtime"] for risk in categ_risks])
                 if self.expire_immediately:
@@ -51,6 +54,7 @@ class RiskModel():
             var_per_risk = self.getPPF(self.var_tail_prob) * average_risk_factor * average_exposure
             necessary_liquidity += var_per_risk * len(categ_risks)
             #print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
+            print(self.inaccuracy)
             print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
             #print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
             #print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))

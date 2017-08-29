@@ -9,12 +9,12 @@ import pdb
 
 class InsuranceSimulation():
     def __init__(self, simulation_parameters = {"no_categories": 2,\
-                                                "no_insurancefirms": 2, \
+                                                "no_insurancefirms": 20, \
                                                 "no_riskmodels": 2, \
                                                 "norm_profit_markup": 0.15, \
                                                 "mean_contract_runtime": 50, \
                                                 "contract_runtime_halfspread": 0, \
-                                                "max_time": 1000, \
+                                                "max_time": 200, \
                                                 "money_supply": 2000000000, \
                                                 "event_time_mean_separation": 100/3., \
                                                 "expire_immediately": True, \
@@ -85,16 +85,18 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
             
         # set up risk models
+        inaccuracy = [[(0.5 if (i+j)%2==0 else 2.) for i in range(self.simulation_parameters["no_categories"])] for j in range(self.simulation_parameters["no_riskmodels"])]
         self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
                     self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
                     risk_value_mean, risk_factor_mean, \
-                    self.simulation_parameters["norm_profit_markup"]) \
+                    self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
                     for i in range(self.simulation_parameters["no_riskmodels"])]
         
         # set up insurance firms
         self.insurancefirms = []
         for i in range(self.simulation_parameters["no_insurancefirms"]):
             riskmodel = self.riskmodels[i % len(self.riskmodels)]
+            print(riskmodel)
             agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"], \
                                 'riskmodel': riskmodel, 'norm_premium': self.norm_premium, \
                                 'profit_target': simulation_parameters["norm_profit_markup"], \
