@@ -5,12 +5,12 @@ import numpy as np
 import scipy.stats
 import math
 import matplotlib.pyplot as plt
-import pdb
+import pdb, sys
 
 class InsuranceSimulation():
-    def __init__(self, simulation_parameters = {"no_categories": 2,\
+    def __init__(self, replic_ID, simulation_parameters = {"no_categories": 2,\
                                                 "no_insurancefirms": 20, \
-                                                "no_riskmodels": 2, \
+                                                "no_riskmodels": 1, \
                                                 "norm_profit_markup": 0.15, \
                                                 "mean_contract_runtime": 30, \
                                                 "contract_runtime_halfspread": 10, \
@@ -64,16 +64,22 @@ class InsuranceSimulation():
         
         # set up risk categorues
         self.riskcategories = list(range(self.simulation_parameters["no_categories"]))
-        self.rc_event_schedule = []
-        for i in self.riskcategories:
-            event_schedule = []
-            total = 0
-            while (total < self.simulation_parameters["max_time"]):
-                separation_time = self.cat_separation_distribution.rvs()
-                total += separation_time
-                if total < self.simulation_parameters["max_time"]:
-                    event_schedule.append(int(math.ceil(total)))
-            self.rc_event_schedule.append(event_schedule)
+        rfile = open("data/rc_event_schedule.dat","r")
+        for i, line in enumerate(rfile):
+            if i == replic_ID:
+                self.rc_event_schedule = eval(line)
+                #pdb.set_trace()
+        rfile.close()
+        #self.rc_event_schedule = []
+        #for i in self.riskcategories:
+        #    event_schedule = []
+        #    total = 0
+        #    while (total < self.simulation_parameters["max_time"]):
+        #        separation_time = self.cat_separation_distribution.rvs()
+        #        total += separation_time
+        #        if total < self.simulation_parameters["max_time"]:
+        #            event_schedule.append(int(math.ceil(total)))
+        #    self.rc_event_schedule.append(event_schedule)
         
         # set up risks
         risk_value_mean = self.risk_value_distribution.mean() 
@@ -112,10 +118,6 @@ class InsuranceSimulation():
         self.history_total_contracts = []
         self.history_individual_contracts = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
         self.history_total_operational = []
-        
-        wfile = open("data/rc_event_schedule.dat","a")
-        wfile.write(str(self.rc_event_schedule)+"\n")
-        wfile.close()
         
     def run(self):
         for t in range(self.simulation_parameters["max_time"]):
@@ -162,13 +164,13 @@ class InsuranceSimulation():
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
         
-        wfile = open("data/two_operational.dat","a")
+        wfile = open("data/one_operational.dat","a")
         wfile.write(str(self.history_total_operational)+"\n")
         wfile.close()
-        wfile = open("data/two_contracts.dat","a")
+        wfile = open("data/one_contracts.dat","a")
         wfile.write(str(self.history_total_contracts)+"\n")
         wfile.close()
-        wfile = open("data/two_cash.dat","a")
+        wfile = open("data/one_cash.dat","a")
         wfile.write(str(self.history_total_cash)+"\n")
         wfile.close()
         
@@ -225,5 +227,5 @@ class InsuranceSimulation():
 
 # main entry point
 if __name__ == "__main__":
-    S = InsuranceSimulation()
+    S = InsuranceSimulation(int(sys.argv[1]))
     S.run()
