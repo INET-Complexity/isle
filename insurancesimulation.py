@@ -55,6 +55,10 @@ class InsuranceSimulation():
         self.norm_premium = expected_damage_frequency * self.damage_distribution.mean() * \
                         risk_factor_mean * \
                         (1 + self.simulation_parameters["norm_profit_markup"])
+
+        self.market_premium = self.norm_premium
+        self.total_no_risks = simulation_parameters["no_risks"]
+
         #print(self.norm_premium)
         #pdb.set_trace()
         
@@ -121,6 +125,10 @@ class InsuranceSimulation():
         for t in range(self.simulation_parameters["max_time"]):
             print()
             print(t, ": ", len(self.risks))
+
+            # adjust market premiums
+            self.adjust_market_premium()
+
             # pay obligations
             self.effect_payments(t)
             # identify perils and effect claims
@@ -222,6 +230,12 @@ class InsuranceSimulation():
         # Non-ABCE style
         """Method to accept cash payments."""
         self.money_supply += amount
+
+    def adjust_market_premium(self):
+        self.market_premium = self.norm_premium * (0.5 + len(self.risks) / self.total_no_risks)
+
+    def get_market_premium(self):
+        return self.market_premium
 
 # main entry point
 if __name__ == "__main__":
