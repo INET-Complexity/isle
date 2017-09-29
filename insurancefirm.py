@@ -88,7 +88,7 @@ class InsuranceFirm():
                 try:
                     while(acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
                         #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
-                        contract = InsuranceContract(self, categ_risks[i], time, self.premium, self.contract_runtime_dist.rvs())
+                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
                         self.underwritten_contracts.append(contract)
                         acceptable_by_category[categ_id] -= 1
                         i += 1
