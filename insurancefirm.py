@@ -3,6 +3,7 @@ import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract 
 import sys, pdb
+import uuid
 
 class InsuranceFirm():
     def __init__(self, simulation, simulation_parameters, agent_parameters):
@@ -28,6 +29,8 @@ class InsuranceFirm():
     def iterate(self, time):
         #"""realize income: not necessary"""
         #pass
+
+        self.ans_reinsurance()
         
         """realize due payments"""
         self.effect_payments(time)
@@ -62,9 +65,9 @@ class InsuranceFirm():
             
             
             """make underwriting decisions, category-wise"""
-            underwritten_risks = [{"excess": contract.excess, "category": contract.category, \
+            underwritten_risks = [{"excess": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
-                            "runtime": contract.runtime} for contract in self.underwritten_contracts]
+                            "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reincontract != None]
             expected_profit, acceptable_by_category = self.riskmodel.evaluate(underwritten_risks, self.cash)    
             
             #if expected_profit * 1./self.cash < self.profit_target:
@@ -99,6 +102,9 @@ class InsuranceFirm():
                 
             #return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
+
+            self.ask_reinsurance()
+
             self.simulation.return_risks(not_accepted_risks)
     
             #not implemented
@@ -149,3 +155,40 @@ class InsuranceFirm():
         # Non-ABCE style
         """Method to accept cash payments."""
         self.cash += amount
+
+    def ask_reinsurance(self):
+        nonreinsured = [contract
+                        for contract in self.underwritten_contracts
+                        if contract.reinrisk == None]
+        counter = 0
+        limitrein = 0.1 * len(nonreinsured)
+        for contract in nonreinsured:
+            if counter < limitrein:
+                reinvalue = 0
+                risk = {"value": contract.value, "category": contract.category, "firm": self,
+                        "identifier": uuid.uuid1(),
+                        "runtime": contract.expiration, "contract": contract}
+                contract.reinsure(100)  # TODO percentage to floating point number
+                contract.reinrisk = risk["identifier"]
+                self.simulation.append_reinrisks(risk)
+                counter += 1
+            else:
+                break
+
+    def ans_reinsurance(self):
+        to_remove = []
+        print(self.simulation.reinrisks)
+        for rein in self.simulation.get_reinrisks():
+            for contract in self.underwritten_contracts:
+                if (rein["identifier"] == contract.reinrisk):
+                    contract.reinsure(0)
+                    contract.reinrisk = None
+                    contract.reinsurer = None
+                    contract.reincontract = None
+                    to_remove.append(rein)
+
+        for item in to_remove:
+            self.simulation.remove_reinrisks(item)
+
+
+
