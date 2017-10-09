@@ -1,7 +1,8 @@
 import numpy as np
 
 class InsuranceContract():
-    def __init__(self, insurer, properties, time, premium, runtime, deductible = 0, excess = None):
+    def __init__(self, insurer, properties, time, premium, runtime, deductible=0, excess=None, reinsurance=0,
+                 reinrisk=None):
         self.insurer = insurer
         self.risk_factor = properties["risk_factor"]
         self.category = properties["category"]
@@ -12,19 +13,29 @@ class InsuranceContract():
         self.expiration = runtime + time
         self.deductible = deductible
         self.excess = excess if excess != None else self.value
+        self.reinsurance = reinsurance
+        self.reinrisk = reinrisk
+        self.reinsurer = None
+        self.reincontract = None
         self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
-        
-    
+
+
     def explode(self, expire_immediately, time, uniform_value, damage_extent):
-        #np.mean(np.random.beta(1, 1./mu -1, size=90000))
-        #if np.random.uniform(0, 1) < self.risk_factor:
+        # np.mean(np.random.beta(1, 1./mu -1, size=90000))
+        # if np.random.uniform(0, 1) < self.risk_factor:
         if uniform_value < self.risk_factor:
-            #if True:
+            # if True:
             claim = damage_extent * self.excess - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time)
+            if (self.reincontract != None):
+                self.reinsurer.reinsurer_receive_obligation(claim, self.insurer, time)
+                self.reincontract.explode(True, time)
+            self.insurer.receive_obligation(claim, self.property_holder, time + 2)
             if expire_immediately:
                 self.expiration = time
     
     def mature(self):
         self.property_holder.return_risks([self.properties])
+
+    def reinsure(self, percentage):
+        self.reinsurance = self.value * percentage/100
 
