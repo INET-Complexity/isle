@@ -1,31 +1,35 @@
 
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
+from reinsurancefirm import ReinsuranceFirm
+from reinriskmodel import ReinriskModel
 import numpy as np
 import scipy.stats
 import math
-import matplotlib.pyplot as plt
-import pdb
 
 class InsuranceSimulation():
-    def __init__(self, simulation_parameters = {"no_categories": 2,\
-                                                "no_insurancefirms": 20, \
-                                                "no_riskmodels": 2, \
-                                                "norm_profit_markup": 0.15, \
-                                                "mean_contract_runtime": 30, \
-                                                "contract_runtime_halfspread": 10, \
-                                                "max_time": 600, \
-                                                "money_supply": 2000000000, \
-                                                "event_time_mean_separation": 200/1., \
-                                                "expire_immediately": True, \
-                                                "risk_factors_present": False, \
-                                                "risk_factor_lower_bound": 0.4, \
-                                                "risk_factor_upper_bound": 0.6, \
-                                                "initial_acceptance_threshold": 0.5, \
-                                                "acceptance_threshold_friction": 0.9, \
-                                                "initial_agent_cash": 10000, \
-                                                "no_risks": 20000 }):
-        
+    def __init__(self, simulation_parameters={"no_categories": 1, \
+                                              "no_insurancefirms": 2, \
+                                              "no_reinsurancefirms": 1, \
+                                              "no_riskmodels": 1, \
+                                              "no_reinriskmodels": 1, \
+                                              "norm_profit_markup": 0.15, \
+                                              "rein_norm_profit_markup": 0.15, \
+                                              "mean_contract_runtime": 50, \
+                                              "contract_runtime_halfspread": 10, \
+                                              "max_time": 1000, \
+                                              "money_supply": 2000000000, \
+                                              "event_time_mean_separation": 100 / 0.3, \
+                                              "expire_immediately": True, \
+                                              "risk_factors_present": False, \
+                                              "risk_factor_lower_bound": 0.4, \
+                                              "risk_factor_upper_bound": 0.6, \
+                                              "initial_acceptance_threshold": 0.5, \
+                                              "acceptance_threshold_friction": 0.9, \
+                                              "initial_agent_cash": 100000, \
+                                              "initial_reinagent_cash": 50000, \
+                                              "no_risks": 2000}):
+
         # save parameters
         self.simulation_parameters = simulation_parameters
         
@@ -110,16 +114,48 @@ class InsuranceSimulation():
             self.insurancefirms.append(insurer)
         self.insurancefirm_weights = [1 for i in self.insurancefirms]
         self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
+
+
+        # set up reinsurance risk models
+        self.reinriskmodels = [ReinriskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
+                                             self.cat_separation_distribution, self.norm_premium,
+                                             self.simulation_parameters["no_categories"], \
+                                             risk_value_mean, \
+                                             self.simulation_parameters["rein_norm_profit_markup"]) \
+                               for i in range(self.simulation_parameters["no_reinriskmodels"])]
+
+        # set up reinsurance firms
+        self.reinsurancefirms = []
+        for i in range(self.simulation_parameters["no_reinsurancefirms"]):
+            reinriskmodel = self.reinriskmodels[i % len(self.reinriskmodels)]
+            agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"], \
+                                'reinriskmodel': reinriskmodel, 'norm_premium': self.norm_premium, \
+                                'profit_target': simulation_parameters["rein_norm_profit_markup"], \
+                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"], \
+                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"]}
+            reinsurer = ReinsuranceFirm(self, simulation_parameters, agent_parameters)
+            self.reinsurancefirms.append(reinsurer)
+        self.reinsurancefirm_weights = [1 for i in self.reinsurancefirms]
+        self.reinsurancefirm_new_weights = [simulation_parameters["initial_reinagent_cash"] for i in self.reinsurancefirms]
+
+
+
         
         # some output variables
         self.history_total_cash = []
         self.history_total_contracts = []
         self.history_individual_contracts = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
         self.history_total_operational = []
+
+        self.history_total_reincash = []
+        self.history_total_reincontracts = []
+        self.history_total_reinoperational = []
         
         wfile = open("data/rc_event_schedule.dat","a")
         wfile.write(str(self.rc_event_schedule)+"\n")
         wfile.close()
+
+        self.reinrisks = []
         
     def run(self):
         for t in range(self.simulation_parameters["max_time"]):
@@ -149,6 +185,20 @@ class InsuranceSimulation():
                     [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
                 else:
                     print("Next peril ", self.rc_event_schedule[categ_id])
+
+
+            # reset reinweights
+            self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
+                self.reinsurancefirm_new_weights) * len(self.reinrisks)
+            self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
+            self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
+            np.random.shuffle(self.reinrisks)
+
+            # iterate reinagents
+            for reinagent in self.reinsurancefirms:
+                reinagent.iterate(t)
+
+
             # reset weights
             self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
             self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
@@ -162,22 +212,38 @@ class InsuranceSimulation():
             # collect data
             total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
             total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
-            individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
+            total_reincash_no = sum([reinsurancefirm.cash for reinsurancefirm in self.reinsurancefirms])
+            total_reincontracts_no = sum([len(reinsurancefirm.rein_underwritten_contracts) for reinsurancefirm in self.reinsurancefirms])
             operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
+            reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
             self.history_total_cash.append(total_cash_no)
             self.history_total_contracts.append(total_contracts_no)
             self.history_total_operational.append(operational_no)
+            self.history_total_reincash.append(total_reincash_no)
+            self.history_total_reincontracts.append(total_reincontracts_no)
+            self.history_total_reinoperational.append(reinoperational_no)
+
+            individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
         
-        wfile = open("data/two_operational.dat","a")
+        wfile = open("data/operational.dat","w")
         wfile.write(str(self.history_total_operational)+"\n")
         wfile.close()
-        wfile = open("data/two_contracts.dat","a")
+        wfile = open("data/contracts.dat","w")
         wfile.write(str(self.history_total_contracts)+"\n")
         wfile.close()
-        wfile = open("data/two_cash.dat","a")
+        wfile = open("data/cash.dat","w")
         wfile.write(str(self.history_total_cash)+"\n")
+        wfile.close()
+        wfile = open("data/reinoperational.dat","w")
+        wfile.write(str(self.history_total_reinoperational)+"\n")
+        wfile.close()
+        wfile = open("data/reincontracts.dat","w")
+        wfile.write(str(self.history_total_reincontracts)+"\n")
+        wfile.close()
+        wfile = open("data/reincash.dat","w")
+        wfile.write(str(self.history_total_reincash)+"\n")
         wfile.close()
         
         #fig = plt.figure()
@@ -193,15 +259,6 @@ class InsuranceSimulation():
         #ax2.set_ylabel("Contracts")
         #ax2.set_xlabel("Time")
         #plt.show()
-
-    def return_risks(self, not_accepted_risks):
-        self.risks += not_accepted_risks
-        
-    def solicit_insurance_requests(self, id, cash):
-        self.insurancefirm_new_weights[id] = cash
-        risks_to_be_sent = self.risks[:self.insurancefirm_weights[id]]
-        self.risks = self.risks[self.insurancefirm_weights[id]:]
-        return risks_to_be_sent
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
@@ -236,6 +293,38 @@ class InsuranceSimulation():
 
     def get_market_premium(self):
         return self.market_premium
+
+    def append_reinrisks(self, item):
+        if(len(item) > 0):
+            self.reinrisks.append(item)
+
+    def remove_reinrisks(self,risko):
+        if(risko != None):
+            self.reinrisks.remove(risko)
+
+    def get_reinrisks(self):
+        np.random.shuffle(self.reinrisks)
+        return self.reinrisks
+
+    def solicit_insurance_requests(self, id, cash):
+        self.insurancefirm_new_weights[id] = cash
+        risks_to_be_sent = self.risks[:self.insurancefirm_weights[id]]
+        self.risks = self.risks[self.insurancefirm_weights[id]:]
+        print("Number of risks", len(risks_to_be_sent))
+        return risks_to_be_sent
+
+    def return_risks(self, not_accepted_risks):
+        self.risks += not_accepted_risks
+
+    def solicit_reinsurance_requests(self, id, cash):
+        self.reinsurancefirm_new_weights[id] = cash
+        reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
+        self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
+        print("Number of risks",len(reinrisks_to_be_sent))
+        return reinrisks_to_be_sent
+
+    def return_reinrisks(self, not_accepted_risks):
+        self.reinrisks += not_accepted_risks
 
 # main entry point
 if __name__ == "__main__":
