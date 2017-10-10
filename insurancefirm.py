@@ -67,7 +67,7 @@ class InsuranceFirm():
             """make underwriting decisions, category-wise"""
             underwritten_risks = [{"excess": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
-                            "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reincontract != None]
+                            "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reinsurance_share != 1.0]
             expected_profit, acceptable_by_category = self.riskmodel.evaluate(underwritten_risks, self.cash)    
             
             #if expected_profit * 1./self.cash < self.profit_target:
@@ -165,10 +165,11 @@ class InsuranceFirm():
         for contract in nonreinsured:
             if counter < limitrein:
                 reinvalue = 0
-                risk = {"value": contract.value, "category": contract.category, "firm": self,
+                risk = {"value": contract.value, "category": contract.category, "owner": self,
                         "identifier": uuid.uuid1(),
-                        "runtime": contract.expiration, "contract": contract}
-                contract.reinsure(100)  # TODO percentage to floating point number
+                        "expiration": contract.expiration, "contract": contract,
+                        "risk_factor": contract.risk_factor}
+                contract.reinsure(1.)  # TODO percentage to floating point number
                 contract.reinrisk = risk["identifier"]
                 self.simulation.append_reinrisks(risk)
                 counter += 1
@@ -177,7 +178,7 @@ class InsuranceFirm():
 
     def ans_reinsurance(self):
         to_remove = []
-        print(self.simulation.reinrisks)
+        #print(self.simulation.reinrisks)
         for rein in self.simulation.get_reinrisks():
             for contract in self.underwritten_contracts:
                 if (rein["identifier"] == contract.reinrisk):

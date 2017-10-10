@@ -2,22 +2,22 @@
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
-from reinriskmodel import ReinriskModel
+#from reinriskmodel import ReinriskModel
 import numpy as np
 import scipy.stats
 import math
+import sys, pdb
 
 class InsuranceSimulation():
-    def __init__(self, simulation_parameters={"no_categories": 1, \
-                                              "no_insurancefirms": 2, \
-                                              "no_reinsurancefirms": 1, \
-                                              "no_riskmodels": 1, \
-                                              "no_reinriskmodels": 1, \
+    def __init__(self, replic_ID = None, override_no_riskmodels = False, simulation_parameters={"no_categories": 2, \
+                                              "no_insurancefirms": 20, \
+                                              "no_reinsurancefirms": 4, \
+                                              "no_riskmodels": 2, \
                                               "norm_profit_markup": 0.15, \
                                               "rein_norm_profit_markup": 0.15, \
                                               "mean_contract_runtime": 50, \
                                               "contract_runtime_halfspread": 10, \
-                                              "max_time": 1000, \
+                                              "max_time": 600, \
                                               "money_supply": 2000000000, \
                                               "event_time_mean_separation": 100 / 0.3, \
                                               "expire_immediately": True, \
@@ -29,8 +29,14 @@ class InsuranceSimulation():
                                               "initial_agent_cash": 100000, \
                                               "initial_reinagent_cash": 50000, \
                                               "no_risks": 2000}):
+        
+        # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
+        if override_no_riskmodels:
+            simulation_parameters["no_riskmodels"] = override_no_riskmodels
 
         # save parameters
+        self.background_run = False if replic_ID is None else True
+        self.replic_ID = replic_ID
         self.simulation_parameters = simulation_parameters
         
         # unpack parameters, set up environment (distributions etc.)
@@ -70,18 +76,10 @@ class InsuranceSimulation():
         self.money_supply = self.simulation_parameters["money_supply"]
         self.obligations = []
         
-        # set up risk categorues
+        # set up risk categories
         self.riskcategories = list(range(self.simulation_parameters["no_categories"]))
         self.rc_event_schedule = []
-        for i in self.riskcategories:
-            event_schedule = []
-            total = 0
-            while (total < self.simulation_parameters["max_time"]):
-                separation_time = self.cat_separation_distribution.rvs()
-                total += separation_time
-                if total < self.simulation_parameters["max_time"]:
-                    event_schedule.append(int(math.ceil(total)))
-            self.rc_event_schedule.append(event_schedule)
+        self.setup_risk_categories_caller()
         
         # set up risks
         risk_value_mean = self.risk_value_distribution.mean() 
@@ -104,7 +102,7 @@ class InsuranceSimulation():
         self.insurancefirms = []
         for i in range(self.simulation_parameters["no_insurancefirms"]):
             riskmodel = self.riskmodels[i % len(self.riskmodels)]
-            print(riskmodel)
+            #print(riskmodel)
             agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"], \
                                 'riskmodel': riskmodel, 'norm_premium': self.norm_premium, \
                                 'profit_target': simulation_parameters["norm_profit_markup"], \
@@ -115,19 +113,20 @@ class InsuranceSimulation():
         self.insurancefirm_weights = [1 for i in self.insurancefirms]
         self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
 
-
-        # set up reinsurance risk models
-        self.reinriskmodels = [ReinriskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
-                                             self.cat_separation_distribution, self.norm_premium,
-                                             self.simulation_parameters["no_categories"], \
-                                             risk_value_mean, \
-                                             self.simulation_parameters["rein_norm_profit_markup"]) \
-                               for i in range(self.simulation_parameters["no_reinriskmodels"])]
-
+        #
+        ## set up reinsurance risk models
+        #self.reinriskmodels = [ReinriskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
+        #                                     self.cat_separation_distribution, self.norm_premium,
+        #                                     self.simulation_parameters["no_categories"], \
+        #                                     risk_value_mean, \
+        #                                     self.simulation_parameters["rein_norm_profit_markup"]) \
+        #                       for i in range(self.simulation_parameters["no_reinriskmodels"])]
+        #
+        
         # set up reinsurance firms
         self.reinsurancefirms = []
         for i in range(self.simulation_parameters["no_reinsurancefirms"]):
-            reinriskmodel = self.reinriskmodels[i % len(self.reinriskmodels)]
+            reinriskmodel = self.riskmodels[i % len(self.riskmodels)]
             agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"], \
                                 'reinriskmodel': reinriskmodel, 'norm_premium': self.norm_premium, \
                                 'profit_target': simulation_parameters["rein_norm_profit_markup"], \
@@ -138,9 +137,6 @@ class InsuranceSimulation():
         self.reinsurancefirm_weights = [1 for i in self.reinsurancefirms]
         self.reinsurancefirm_new_weights = [simulation_parameters["initial_reinagent_cash"] for i in self.reinsurancefirms]
 
-
-
-        
         # some output variables
         self.history_total_cash = []
         self.history_total_contracts = []
@@ -151,10 +147,6 @@ class InsuranceSimulation():
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
         
-        wfile = open("data/rc_event_schedule.dat","a")
-        wfile.write(str(self.rc_event_schedule)+"\n")
-        wfile.close()
-
         self.reinrisks = []
         
     def run(self):
@@ -227,38 +219,49 @@ class InsuranceSimulation():
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
         
-        wfile = open("data/operational.dat","w")
-        wfile.write(str(self.history_total_operational)+"\n")
-        wfile.close()
-        wfile = open("data/contracts.dat","w")
-        wfile.write(str(self.history_total_contracts)+"\n")
-        wfile.close()
-        wfile = open("data/cash.dat","w")
-        wfile.write(str(self.history_total_cash)+"\n")
-        wfile.close()
-        wfile = open("data/reinoperational.dat","w")
-        wfile.write(str(self.history_total_reinoperational)+"\n")
-        wfile.close()
-        wfile = open("data/reincontracts.dat","w")
-        wfile.write(str(self.history_total_reincontracts)+"\n")
-        wfile.close()
-        wfile = open("data/reincash.dat","w")
-        wfile.write(str(self.history_total_reincash)+"\n")
-        wfile.close()
-        
-        #fig = plt.figure()
-        #ax0 = fig.add_subplot(311)
-        #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
-        #ax0.set_ylabel("Cash")
-        #ax1 = fig.add_subplot(312)
-        #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
-        #ax1.set_ylabel("Contracts")
-        #ax2 = fig.add_subplot(313)
-        #for i in range(len(self.history_individual_contracts)):
-        #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
-        #ax2.set_ylabel("Contracts")
-        #ax2.set_xlabel("Time")
-        #plt.show()
+        if self.background_run:
+            wfile = open("data/two_operational.dat","a")
+            wfile.write(str(self.history_total_operational)+"\n")
+            wfile.close()
+            wfile = open("data/two_contracts.dat","a")
+            wfile.write(str(self.history_total_contracts)+"\n")
+            wfile.close()
+            wfile = open("data/two_cash.dat","a")
+            wfile.write(str(self.history_total_cash)+"\n")
+            wfile.close()
+        else:
+            wfile = open("data/operational.dat","w")
+            wfile.write(str(self.history_total_operational)+"\n")
+            wfile.close()
+            wfile = open("data/contracts.dat","w")
+            wfile.write(str(self.history_total_contracts)+"\n")
+            wfile.close()
+            wfile = open("data/cash.dat","w")
+            wfile.write(str(self.history_total_cash)+"\n")
+            wfile.close()
+            wfile = open("data/reinoperational.dat","w")
+            wfile.write(str(self.history_total_reinoperational)+"\n")
+            wfile.close()
+            wfile = open("data/reincontracts.dat","w")
+            wfile.write(str(self.history_total_reincontracts)+"\n")
+            wfile.close()
+            wfile = open("data/reincash.dat","w")
+            wfile.write(str(self.history_total_reincash)+"\n")
+            wfile.close()
+            
+            #fig = plt.figure()
+            #ax0 = fig.add_subplot(311)
+            #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
+            #ax0.set_ylabel("Cash")
+            #ax1 = fig.add_subplot(312)
+            #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
+            #ax1.set_ylabel("Contracts")
+            #ax2 = fig.add_subplot(313)
+            #for i in range(len(self.history_individual_contracts)):
+            #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+            #ax2.set_ylabel("Contracts")
+            #ax2.set_xlabel("Time")
+            #plt.show()
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
@@ -326,7 +329,32 @@ class InsuranceSimulation():
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
 
+    def setup_risk_categories(self):
+        for i in self.riskcategories:
+            event_schedule = []
+            total = 0
+            while (total < self.simulation_parameters["max_time"]):
+                separation_time = self.cat_separation_distribution.rvs()
+                total += separation_time
+                if total < self.simulation_parameters["max_time"]:
+                    event_schedule.append(int(math.ceil(total)))
+            self.rc_event_schedule.append(event_schedule)
+
+    def setup_risk_categories_caller(self):
+        if self.background_run:
+            self.setup_risk_categories()
+            
+            wfile = open("data/rc_event_schedule.dat","a")
+            wfile.write(str(self.rc_event_schedule)+"\n")
+            wfile.close()
+            
+        else:
+            self.setup_risk_categories()    
+
 # main entry point
 if __name__ == "__main__":
-    S = InsuranceSimulation()
+    arg = None
+    if len(sys.argv) > 1:
+        arg = int(sys.argv[1])
+    S = InsuranceSimulation(replic_ID = arg)
     S.run()

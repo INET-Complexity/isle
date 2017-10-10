@@ -39,7 +39,11 @@ class RiskModel():
             if len(categ_risks) > 0:
                 average_exposure = np.mean([risk["excess"]-risk["deductible"] for risk in categ_risks])
                 #average_risk_factor = np.mean([risk["risk_factor"] for risk in categ_risks])
-                average_risk_factor = self.inaccuracy[categ_id] * np.mean([risk["risk_factor"] for risk in categ_risks])
+                try:
+                    average_risk_factor = self.inaccuracy[categ_id] * np.mean([risk["risk_factor"] for risk in categ_risks])
+                except:
+                    print(sys.exc_info())
+                    pdb.set_trace()
                 # compute expected profits from category
                 mean_runtime = np.mean([risk["runtime"] for risk in categ_risks])
                 if self.expire_immediately:
