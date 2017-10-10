@@ -14,12 +14,13 @@ class ReinsuranceContract():
         self.deductible = deductible
         self.excess = excess if excess != None else self.value
         self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.reinsurer, time)
-        if(len(self.property_holder.underwritten_contracts)>0):
-            for contract in self.property_holder.underwritten_contracts:
-                if contract.reinrisk!= None:
-                    if contract.reinrisk==reinrisk["identifier"]:
-                        contract.reinsurer = self.reinsurer
-
+        #if(len(self.property_holder.underwritten_contracts)>0):
+        #    for contract in self.property_holder.underwritten_contracts:
+        #        if contract.reinrisk!= None:
+        #            if contract.reinrisk==reinrisk["identifier"]:
+        #                print(contract, self.contract)
+        #                contract.reinsurer = self.reinsurer
+        self.contract.reinsurer = self.reinsurer
 
 
     def explode(self, expire_immediately, time):
