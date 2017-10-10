@@ -2,7 +2,7 @@
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
-from reinriskmodel import ReinriskModel
+#from reinriskmodel import ReinriskModel
 import numpy as np
 import scipy.stats
 import math
@@ -12,7 +12,6 @@ class InsuranceSimulation():
                                               "no_insurancefirms": 2, \
                                               "no_reinsurancefirms": 1, \
                                               "no_riskmodels": 1, \
-                                              "no_reinriskmodels": 1, \
                                               "norm_profit_markup": 0.15, \
                                               "rein_norm_profit_markup": 0.15, \
                                               "mean_contract_runtime": 50, \
@@ -115,19 +114,20 @@ class InsuranceSimulation():
         self.insurancefirm_weights = [1 for i in self.insurancefirms]
         self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
 
-
-        # set up reinsurance risk models
-        self.reinriskmodels = [ReinriskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
-                                             self.cat_separation_distribution, self.norm_premium,
-                                             self.simulation_parameters["no_categories"], \
-                                             risk_value_mean, \
-                                             self.simulation_parameters["rein_norm_profit_markup"]) \
-                               for i in range(self.simulation_parameters["no_reinriskmodels"])]
-
+        #
+        ## set up reinsurance risk models
+        #self.reinriskmodels = [ReinriskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
+        #                                     self.cat_separation_distribution, self.norm_premium,
+        #                                     self.simulation_parameters["no_categories"], \
+        #                                     risk_value_mean, \
+        #                                     self.simulation_parameters["rein_norm_profit_markup"]) \
+        #                       for i in range(self.simulation_parameters["no_reinriskmodels"])]
+        #
+        
         # set up reinsurance firms
         self.reinsurancefirms = []
         for i in range(self.simulation_parameters["no_reinsurancefirms"]):
-            reinriskmodel = self.reinriskmodels[i % len(self.reinriskmodels)]
+            reinriskmodel = self.riskmodels[i % len(self.riskmodels)]
             agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"], \
                                 'reinriskmodel': reinriskmodel, 'norm_premium': self.norm_premium, \
                                 'profit_target': simulation_parameters["rein_norm_profit_markup"], \

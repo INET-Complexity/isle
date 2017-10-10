@@ -65,7 +65,8 @@ class ReinsuranceFirm():
 
             """make rein_underwriting decisions, category-wise"""
             rein_underwritten_risks = [{"excess": reincontract.excess, "category": reincontract.category, "deductible": reincontract.deductible, \
-                                   "runtime": reincontract.runtime} for reincontract in self.rein_underwritten_contracts]
+                                   "runtime": reincontract.runtime, "risk_factor": reincontract.risk_factor} \
+                                   for reincontract in self.rein_underwritten_contracts]
             expected_profit, acceptable_by_category = self.reinriskmodel.evaluate(rein_underwritten_risks, self.cash)
 
             self.acceptable_mem = acceptable_by_category
