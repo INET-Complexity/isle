@@ -178,7 +178,7 @@ class InsuranceFirm():
 
     def ans_reinsurance(self):
         to_remove = []
-        print(self.simulation.reinrisks)
+        #print(self.simulation.reinrisks)
         for rein in self.simulation.get_reinrisks():
             for contract in self.underwritten_contracts:
                 if (rein["identifier"] == contract.reinrisk):
