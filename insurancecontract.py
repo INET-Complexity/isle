@@ -8,15 +8,26 @@ class InsuranceContract():
         self.category = properties["category"]
         self.property_holder = properties["owner"]
         self.value = properties["value"]
-        self.runtime = runtime
+        self.contract = properties.get("contract")  # will assign None if key does not exist
+        if self.contract is not None:
+            self.contract.reinsurer = self.insurer  #TODO: do not write into other object's attributes!
+        
         self.properties = properties
+        self.runtime = runtime
         self.expiration = runtime + time
+        
+        ##In the future should be able to accept deductible from properties:
+        #self.deductible = properties.get("deductible")
+        #if self.deductible is None:
+        #    self.deductible = deductible if deductible is not None else 0
         self.deductible = deductible
-        self.excess = excess if excess != None else self.value
+        
+        self.excess = excess if excess is not None else self.value
         self.reinsurance = reinsurance
         self.reinrisk = reinrisk
         self.reinsurer = None
         self.reincontract = None
+        self.reinsurance_share = None
         self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
 
 
@@ -36,6 +47,11 @@ class InsuranceContract():
     def mature(self):
         self.property_holder.return_risks([self.properties])
 
-    def reinsure(self, percentage):
-        self.reinsurance = self.value * percentage/100
+    def reinsure(self, reinsurance_share):
+        self.reinsurance = self.value * reinsurance_share
+        self.reinsurance_share = reinsurance_share
+        
+        # Values other than 0.0 and 1.0 are not implemented (will break the risk model.
+        # Assert that it breaks if other values are found.
+        assert self.reinsurance_share in [None, 0.0, 1.0] 
 

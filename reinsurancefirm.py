@@ -65,7 +65,8 @@ class ReinsuranceFirm():
 
             """make rein_underwriting decisions, category-wise"""
             rein_underwritten_risks = [{"excess": reincontract.excess, "category": reincontract.category, "deductible": reincontract.deductible, \
-                                   "runtime": reincontract.runtime} for reincontract in self.rein_underwritten_contracts]
+                                   "runtime": reincontract.runtime, "risk_factor": reincontract.risk_factor} \
+                                   for reincontract in self.rein_underwritten_contracts]
             expected_profit, acceptable_by_category = self.reinriskmodel.evaluate(rein_underwritten_risks, self.cash)
 
             self.acceptable_mem = acceptable_by_category
@@ -91,7 +92,9 @@ class ReinsuranceFirm():
                 try:
                     while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i):  # \
                         # and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
-                        reincontract = ReinsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium())
+                        #reincontract = ReinsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium())
+                        #reincontract = ReinsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), categ_risks[i]["contract"].expiration - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm 
+                        reincontract = ReinsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm 
                         self.rein_underwritten_contracts.append(reincontract)
                         categ_risks[i]["contract"].reincontract = reincontract
                         acceptable_by_category[categ_id] -= 1
