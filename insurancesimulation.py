@@ -15,20 +15,20 @@ class InsuranceSimulation():
                                               "no_riskmodels": 2, \
                                               "norm_profit_markup": 0.15, \
                                               "rein_norm_profit_markup": 0.15, \
-                                              "mean_contract_runtime": 50, \
+                                              "mean_contract_runtime": 30, \
                                               "contract_runtime_halfspread": 10, \
                                               "max_time": 600, \
                                               "money_supply": 2000000000, \
-                                              "event_time_mean_separation": 100 / 0.3, \
+                                              "event_time_mean_separation": 200 / 0.3, \
                                               "expire_immediately": True, \
                                               "risk_factors_present": False, \
                                               "risk_factor_lower_bound": 0.4, \
                                               "risk_factor_upper_bound": 0.6, \
                                               "initial_acceptance_threshold": 0.5, \
                                               "acceptance_threshold_friction": 0.9, \
-                                              "initial_agent_cash": 100000, \
+                                              "initial_agent_cash": 10000, \
                                               "initial_reinagent_cash": 50000, \
-                                              "no_risks": 2000}):
+                                              "no_risks": 20000}):
         
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
@@ -218,50 +218,59 @@ class InsuranceSimulation():
             individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
-        
+
+        self.log()
+    
+    def log(self):
         if self.background_run:
-            wfile = open("data/two_operational.dat","a")
-            wfile.write(str(self.history_total_operational)+"\n")
-            wfile.close()
-            wfile = open("data/two_contracts.dat","a")
-            wfile.write(str(self.history_total_contracts)+"\n")
-            wfile.close()
-            wfile = open("data/two_cash.dat","a")
-            wfile.write(str(self.history_total_cash)+"\n")
-            wfile.close()
+            self.replication_log()
         else:
-            wfile = open("data/operational.dat","w")
-            wfile.write(str(self.history_total_operational)+"\n")
-            wfile.close()
-            wfile = open("data/contracts.dat","w")
-            wfile.write(str(self.history_total_contracts)+"\n")
-            wfile.close()
-            wfile = open("data/cash.dat","w")
-            wfile.write(str(self.history_total_cash)+"\n")
-            wfile.close()
-            wfile = open("data/reinoperational.dat","w")
-            wfile.write(str(self.history_total_reinoperational)+"\n")
-            wfile.close()
-            wfile = open("data/reincontracts.dat","w")
-            wfile.write(str(self.history_total_reincontracts)+"\n")
-            wfile.close()
-            wfile = open("data/reincash.dat","w")
-            wfile.write(str(self.history_total_reincash)+"\n")
-            wfile.close()
-            
-            #fig = plt.figure()
-            #ax0 = fig.add_subplot(311)
-            #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
-            #ax0.set_ylabel("Cash")
-            #ax1 = fig.add_subplot(312)
-            #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
-            #ax1.set_ylabel("Contracts")
-            #ax2 = fig.add_subplot(313)
-            #for i in range(len(self.history_individual_contracts)):
-            #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
-            #ax2.set_ylabel("Contracts")
-            #ax2.set_xlabel("Time")
-            #plt.show()
+            self.single_log()
+
+    def replication_log(self):
+        wfile = open("data/two_operational.dat","a")
+        wfile.write(str(self.history_total_operational)+"\n")
+        wfile.close()
+        wfile = open("data/two_contracts.dat","a")
+        wfile.write(str(self.history_total_contracts)+"\n")
+        wfile.close()
+        wfile = open("data/two_cash.dat","a")
+        wfile.write(str(self.history_total_cash)+"\n")
+        wfile.close()
+    
+    def single_log(self):
+        wfile = open("data/operational.dat","w")
+        wfile.write(str(self.history_total_operational)+"\n")
+        wfile.close()
+        wfile = open("data/contracts.dat","w")
+        wfile.write(str(self.history_total_contracts)+"\n")
+        wfile.close()
+        wfile = open("data/cash.dat","w")
+        wfile.write(str(self.history_total_cash)+"\n")
+        wfile.close()
+        wfile = open("data/reinoperational.dat","w")
+        wfile.write(str(self.history_total_reinoperational)+"\n")
+        wfile.close()
+        wfile = open("data/reincontracts.dat","w")
+        wfile.write(str(self.history_total_reincontracts)+"\n")
+        wfile.close()
+        wfile = open("data/reincash.dat","w")
+        wfile.write(str(self.history_total_reincash)+"\n")
+        wfile.close()
+        
+        #fig = plt.figure()
+        #ax0 = fig.add_subplot(311)
+        #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
+        #ax0.set_ylabel("Cash")
+        #ax1 = fig.add_subplot(312)
+        #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
+        #ax1.set_ylabel("Contracts")
+        #ax2 = fig.add_subplot(313)
+        #for i in range(len(self.history_individual_contracts)):
+        #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+        #ax2.set_ylabel("Contracts")
+        #ax2.set_xlabel("Time")
+        #plt.show()
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
