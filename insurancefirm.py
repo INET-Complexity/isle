@@ -21,6 +21,8 @@ class InsuranceFirm():
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
         self.acceptance_threshold_friction = agent_parameters['acceptance_threshold_friction']  # 0.9 #1.0 to switch off
+        self.interest_rate = agent_parameters["interest_rate"]
+        self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
@@ -161,14 +163,14 @@ class InsuranceFirm():
         self.cash += amount
 
     def obtain_yield(self, time):
-        amount = self.cash * 0.01
+        amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
 
     def ask_reinsurance(self):
         nonreinsured = [contract
                         for contract in self.underwritten_contracts
                         if contract.reinrisk == None]
-        if len(nonreinsured) > 0.8*len(self.underwritten_contracts):
+        if len(nonreinsured) > (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
             counter = 0
             limitrein = 0.1 * len(nonreinsured)
             for contract in nonreinsured:

@@ -28,6 +28,10 @@ class InsuranceSimulation():
                                                                                             "acceptance_threshold_friction": 0.9, \
                                                                                             "initial_agent_cash": 10000, \
                                                                                             "initial_reinagent_cash": 50000, \
+                                                                                            "interest_rate": 0.001, \
+                                                                                            "reinsurance_limit": 0.1, \
+                                                                                            "upper_price_limit": 1.2, \
+                                                                                            "lower_price_limit": 0.85, \
                                                                                             "no_risks": 20000}):
         
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
@@ -107,7 +111,9 @@ class InsuranceSimulation():
                                 'riskmodel': riskmodel, 'norm_premium': self.norm_premium, \
                                 'profit_target': simulation_parameters["norm_profit_markup"], \
                                 'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"], \
-                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"]}
+                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"], \
+                                'reinsurance_limit': simulation_parameters["reinsurance_limit"], \
+                                'interest_rate': simulation_parameters["interest_rate"]}
             insurer = InsuranceFirm(self, simulation_parameters, agent_parameters)
             self.insurancefirms.append(insurer)
         self.insurancefirm_weights = [1 for i in self.insurancefirms]
@@ -302,9 +308,9 @@ class InsuranceSimulation():
 
     def adjust_market_premium(self):
         capital = sum([firm.cash for firm in self.insurancefirms])
-        self.market_premium = self.norm_premium * (1.2 - capital / (self.norm_premium * 2000))
-        if self.market_premium < self.norm_premium * 0.85:
-            self.market_premium = self.norm_premium * 0.85
+        self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.norm_premium * self.simulation_parameters["no_risks"]))
+        if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
+            self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
 
     def get_market_premium(self):
         return self.market_premium
