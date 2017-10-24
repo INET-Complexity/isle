@@ -9,26 +9,26 @@ import math
 import sys, pdb
 
 class InsuranceSimulation():
-    def __init__(self, replic_ID = None, override_no_riskmodels = False, simulation_parameters={"no_categories": 2, \
-                                              "no_insurancefirms": 20, \
-                                              "no_reinsurancefirms": 4, \
-                                              "no_riskmodels": 2, \
-                                              "norm_profit_markup": 0.15, \
-                                              "rein_norm_profit_markup": 0.15, \
-                                              "mean_contract_runtime": 30, \
-                                              "contract_runtime_halfspread": 10, \
-                                              "max_time": 600, \
-                                              "money_supply": 2000000000, \
-                                              "event_time_mean_separation": 200 / 0.3, \
-                                              "expire_immediately": True, \
-                                              "risk_factors_present": False, \
-                                              "risk_factor_lower_bound": 0.4, \
-                                              "risk_factor_upper_bound": 0.6, \
-                                              "initial_acceptance_threshold": 0.5, \
-                                              "acceptance_threshold_friction": 0.9, \
-                                              "initial_agent_cash": 10000, \
-                                              "initial_reinagent_cash": 50000, \
-                                              "no_risks": 20000}):
+    def __init__(self, replic_ID=None, override_no_riskmodels=False, simulation_parameters={"no_categories": 2, \
+                                                                                            "no_insurancefirms": 20, \
+                                                                                            "no_reinsurancefirms": 0, \
+                                                                                            "no_riskmodels": 2, \
+                                                                                            "norm_profit_markup": 0.15, \
+                                                                                            "rein_norm_profit_markup": 0.15, \
+                                                                                            "mean_contract_runtime": 30, \
+                                                                                            "contract_runtime_halfspread": 10, \
+                                                                                            "max_time": 600, \
+                                                                                            "money_supply": 2000000000, \
+                                                                                            "event_time_mean_separation": 200 / 0.1, \
+                                                                                            "expire_immediately": True, \
+                                                                                            "risk_factors_present": False, \
+                                                                                            "risk_factor_lower_bound": 0.4, \
+                                                                                            "risk_factor_upper_bound": 0.6, \
+                                                                                            "initial_acceptance_threshold": 0.5, \
+                                                                                            "acceptance_threshold_friction": 0.9, \
+                                                                                            "initial_agent_cash": 10000, \
+                                                                                            "initial_reinagent_cash": 50000, \
+                                                                                            "no_risks": 20000}):
         
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
@@ -301,7 +301,10 @@ class InsuranceSimulation():
         self.money_supply += amount
 
     def adjust_market_premium(self):
-        self.market_premium = self.norm_premium * (0.5 + len(self.risks) / self.total_no_risks)
+        capital = sum([firm.cash for firm in self.insurancefirms])
+        self.market_premium = self.norm_premium * (1.2 - capital / (self.norm_premium * 2000))
+        if self.market_premium < self.norm_premium * 0.85:
+            self.market_premium = self.norm_premium * 0.85
 
     def get_market_premium(self):
         return self.market_premium
