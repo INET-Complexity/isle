@@ -21,6 +21,8 @@ class InsuranceFirm():
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
         self.acceptance_threshold_friction = agent_parameters['acceptance_threshold_friction']  # 0.9 #1.0 to switch off
+        self.interest_rate = agent_parameters["interest_rate"]
+        self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
@@ -31,7 +33,11 @@ class InsuranceFirm():
         #pass
 
         self.ans_reinsurance()
-        
+
+        """obtain investments yield"""
+
+        self.obtain_yield(time)
+
         """realize due payments"""
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
@@ -156,25 +162,29 @@ class InsuranceFirm():
         """Method to accept cash payments."""
         self.cash += amount
 
+    def obtain_yield(self, time):
+        amount = self.cash * self.interest_rate
+        self.simulation.receive_obligation(amount, self, time)
+
     def ask_reinsurance(self):
         nonreinsured = [contract
                         for contract in self.underwritten_contracts
                         if contract.reinrisk == None]
-        counter = 0
-        limitrein = 0.1 * len(nonreinsured)
-        for contract in nonreinsured:
-            if counter < limitrein:
-                reinvalue = 0
-                risk = {"value": contract.value, "category": contract.category, "owner": self,
-                        "identifier": uuid.uuid1(),
-                        "expiration": contract.expiration, "contract": contract,
-                        "risk_factor": contract.risk_factor}
-                contract.reinsure(1.)  # TODO percentage to floating point number
-                contract.reinrisk = risk["identifier"]
-                self.simulation.append_reinrisks(risk)
-                counter += 1
-            else:
-                break
+        if len(nonreinsured) > (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
+            counter = 0
+            limitrein = 0.1 * len(nonreinsured)
+            for contract in nonreinsured:
+                if counter < limitrein:
+                    risk = {"value": contract.value, "category": contract.category, "owner": self,
+                            "identifier": uuid.uuid1(),
+                            "expiration": contract.expiration, "contract": contract,
+                            "risk_factor": contract.risk_factor}
+                    contract.reinsure(1.)  # TODO percentage to floating point number
+                    contract.reinrisk = risk["identifier"]
+                    self.simulation.append_reinrisks(risk)
+                    counter += 1
+                else:
+                    break
 
     def ans_reinsurance(self):
         to_remove = []
