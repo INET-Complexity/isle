@@ -2,6 +2,7 @@
 import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract 
+from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
 
@@ -27,12 +28,14 @@ class InsuranceFirm():
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
         self.operational = True
+        self.is_insurer = True
+        self.is_reinsurer = False
         
     def iterate(self, time):
         #"""realize income: not necessary"""
         #pass
 
-        self.ans_reinsurance()
+        #self.ans_reinsurance()
 
         """obtain investments yield"""
 
@@ -43,10 +46,11 @@ class InsuranceFirm():
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
 
         """mature contracts"""
+        print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
         for contract in maturing:
             self.underwritten_contracts.remove(contract)
-            contract.mature()
+            contract.mature(time)
         contracts_dissolved = len(maturing)
         
         if self.operational:
@@ -56,7 +60,11 @@ class InsuranceFirm():
             
             """request risks to be considered for underwriting in the next period and collect those for this period"""
             # Non-ABCE style
-            new_risks = self.simulation.solicit_insurance_requests(self.id, self.cash)
+            new_risks = []
+            if self.is_insurer:
+                new_risks += self.simulation.solicit_insurance_requests(self.id, self.cash)
+            if self.is_reinsurer:
+                new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash)
             ## ABCE style
             #self.message("insurancecustomer", 0, 'solicit_insurance_requests', {"number": self.posession("money")})
             #new_risks = []
@@ -74,6 +82,7 @@ class InsuranceFirm():
             underwritten_risks = [{"excess": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
                             "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reinsurance_share != 1.0]
+            # TODO: Enable reinsurance shares other tan 0.0 and 1.0
             expected_profit, acceptable_by_category = self.riskmodel.evaluate(underwritten_risks, self.cash)    
             
             #if expected_profit * 1./self.cash < self.profit_target:
@@ -94,22 +103,42 @@ class InsuranceFirm():
                 categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
                 i = 0
                 print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
-                try:
-                    while(acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
+                #try:
+                if True:
+                    while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
                         #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
-                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
-                        self.underwritten_contracts.append(contract)
-                        acceptable_by_category[categ_id] -= 1
+                        if categ_risks[i].get("contract") is not None: #categ_risks[i]["reinsurance"]:
+                            if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
+                                #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
+                                contract = ReinsuranceContract(self, categ_risks[i], time, \
+                                              self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm 
+                                self.underwritten_contracts.append(contract)
+                                #categ_risks[i]["contract"].reincontract = contract 
+                                # TODO: move this to insurancecontract (ca. line 14) -> DONE
+                                # TODO: do not write into other object's properties, use setter -> DONE
+                                
+                                assert categ_risks[i]["contract"].expiration >= contract.expiration, "Reinsurancecontract lasts longer than insurancecontract: {0:d}>{1:d} (EXPIRATION2: {2:d} Time: {3:d})".format(contract.expiration, categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], time)
+                            #else:
+                            #    pass
+                        else:
+                            contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
+                            self.underwritten_contracts.append(contract)
+                        acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
                         i += 1
-                except:
-                    print(sys.exc_info())
-                    pdb.set_trace()
+                #except:
+                #    print(sys.exc_info())
+                #    pdb.set_trace()
                 not_accepted_risks += categ_risks[i:]
+                
+                # reduce not_accepted_risks to insurance risks (properties), since reinsurance risks (contracts) are not returned
+                not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is not None]
                 
             #return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
-
-            self.ask_reinsurance()
+            
+            if self.is_insurer:
+                # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
+                self.ask_reinsurance()
 
             self.simulation.return_risks(not_accepted_risks)
     
@@ -123,11 +152,11 @@ class InsuranceFirm():
             #ABCE style:
             # ...requires collecting message with risks like above and sending the all back
         
-    def enter_illiquidity(self):
-        self.enter_bankruptcy()
+    def enter_illiquidity(self, time):
+        self.enter_bankruptcy(time)
     
-    def enter_bankruptcy(self):
-        [risk.mature() for risk in self.underwritten_contracts]   # removing (maturing) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
+    def enter_bankruptcy(self, time):
+        [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
         self.simulation.receive(self.cash)
         self.cash = 0
         self.operational = False
@@ -142,7 +171,7 @@ class InsuranceFirm():
         sum_due = sum([item["amount"] for item in due])
         if sum_due > self.cash:
             self.obligations += due
-            self.enter_illiquidity()
+            self.enter_illiquidity(time)
         else:
             for obligation in due:
                 self.pay(obligation["amount"], obligation["recipient"])
@@ -169,37 +198,26 @@ class InsuranceFirm():
     def ask_reinsurance(self):
         nonreinsured = [contract
                         for contract in self.underwritten_contracts
-                        if contract.reinrisk == None]
+                        if contract.reincontract == None]
         if len(nonreinsured) > (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
             counter = 0
-            limitrein = 0.1 * len(nonreinsured)
+            limitrein = 0.1 * len(nonreinsured) # TODO: Use parameter
             for contract in nonreinsured:
                 if counter < limitrein:
                     risk = {"value": contract.value, "category": contract.category, "owner": self,
-                            "identifier": uuid.uuid1(),
+                            #"identifier": uuid.uuid1(),
+                            "reinsurance_share": 1.,
                             "expiration": contract.expiration, "contract": contract,
                             "risk_factor": contract.risk_factor}
-                    contract.reinsure(1.)  # TODO percentage to floating point number
-                    contract.reinrisk = risk["identifier"]
+                    
+                    ## TODO: never write into other object's properties -> DONE
+                    #contract.reinsure(1.)  # TODO percentage to floating point number
+
+                    ## TODO: never write into other object's properties -> OBSOLETE
+                    #contract.rein_ID = risk["identifier"]
+                    
+                    #print("CREATING", risk["expiration"], contract.expiration, risk["contract"].expiration, risk["identifier"])
                     self.simulation.append_reinrisks(risk)
                     counter += 1
                 else:
                     break
-
-    def ans_reinsurance(self):
-        to_remove = []
-        #print(self.simulation.reinrisks)
-        for rein in self.simulation.get_reinrisks():
-            for contract in self.underwritten_contracts:
-                if (rein["identifier"] == contract.reinrisk):
-                    contract.reinsure(0)
-                    contract.reinrisk = None
-                    contract.reinsurer = None
-                    contract.reincontract = None
-                    to_remove.append(rein)
-
-        for item in to_remove:
-            self.simulation.remove_reinrisks(item)
-
-
-
