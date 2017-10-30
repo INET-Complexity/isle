@@ -28,7 +28,7 @@ class InsuranceSimulation():
                                                                                             "acceptance_threshold_friction": 0.9, \
                                                                                             "initial_agent_cash": 10000, \
                                                                                             "initial_reinagent_cash": 50000, \
-                                                                                            "interest_rate": 0.001, \
+                                                                                            "interest_rate": 0, \
                                                                                             "reinsurance_limit": 0.1, \
                                                                                             "upper_price_limit": 1.2, \
                                                                                             "lower_price_limit": 0.85, \

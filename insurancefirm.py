@@ -199,9 +199,12 @@ class InsuranceFirm():
         nonreinsured = [contract
                         for contract in self.underwritten_contracts
                         if contract.reincontract == None]
-        if len(nonreinsured) > (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
+
+        nonreinsured.reverse()
+        
+        if len(nonreinsured) >= (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
             counter = 0
-            limitrein = 0.1 * len(nonreinsured) # TODO: Use parameter
+            limitrein = len(nonreinsured) - (1 - self.reinsurance_limit)*len(self.underwritten_contracts)
             for contract in nonreinsured:
                 if counter < limitrein:
                     risk = {"value": contract.value, "category": contract.category, "owner": self,
