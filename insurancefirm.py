@@ -128,10 +128,9 @@ class InsuranceFirm():
                 #except:
                 #    print(sys.exc_info())
                 #    pdb.set_trace()
-                not_accepted_risks += categ_risks[i:]
-                
-                # reduce not_accepted_risks to insurance risks (properties), since reinsurance risks (contracts) are not returned
-                not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is not None]
+                if self.is_insurer:
+                    not_accepted_risks += categ_risks[i:]
+                    not_accepted_risks = [risk for risk in not_accepted_risks]
                 
             #return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
@@ -202,9 +201,9 @@ class InsuranceFirm():
 
         nonreinsured.reverse()
         
-        if len(nonreinsured) >= (1 - self.reinsurance_limit)*len(self.underwritten_contracts):
+        if len(nonreinsured) >= (1 - self.reinsurance_limit) * len(self.underwritten_contracts):
             counter = 0
-            limitrein = len(nonreinsured) - (1 - self.reinsurance_limit)*len(self.underwritten_contracts)
+            limitrein = len(nonreinsured) - (1 - self.reinsurance_limit) * len(self.underwritten_contracts)
             for contract in nonreinsured:
                 if counter < limitrein:
                     risk = {"value": contract.value, "category": contract.category, "owner": self,
