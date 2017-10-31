@@ -26,7 +26,7 @@ class InsuranceSimulation():
                                                                                             "risk_factor_upper_bound": 0.6, \
                                                                                             "initial_acceptance_threshold": 0.5, \
                                                                                             "acceptance_threshold_friction": 0.9, \
-                                                                                            "initial_agent_cash": 10000, \
+                                                                                            "initial_agent_cash": 100000, \
                                                                                             "initial_reinagent_cash": 50000, \
                                                                                             "interest_rate": 0, \
                                                                                             "reinsurance_limit": 0.1, \
@@ -357,9 +357,9 @@ class InsuranceSimulation():
             total = 0
             while (total < self.simulation_parameters["max_time"]):
                 separation_time = self.cat_separation_distribution.rvs()
-                total += separation_time
+                total += int(math.ceil(separation_time))
                 if total < self.simulation_parameters["max_time"]:
-                    event_schedule.append(int(math.ceil(total)))
+                    event_schedule.append(total)
             self.rc_event_schedule.append(event_schedule)
 
     def setup_risk_categories_caller(self):
