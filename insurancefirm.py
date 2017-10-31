@@ -128,9 +128,9 @@ class InsuranceFirm():
                 #except:
                 #    print(sys.exc_info())
                 #    pdb.set_trace()
-                if self.is_insurer:
-                    not_accepted_risks += categ_risks[i:]
-                    not_accepted_risks = [risk for risk in not_accepted_risks]
+                
+                not_accepted_risks += categ_risks[i:]
+                not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
                 
             #return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
