@@ -29,7 +29,7 @@ class RiskModel():
            Returns value-at-risk."""
         return self.damage_distribution.ppf(1-tailSize)
 
-    nb.jit
+    @nb.jit
     def get_categ_risks(self, risks, categ_id):
         #categ_risks2 = [risk for risk in risks if risk["category"]==categ_id]
         categ_risks = []
@@ -39,7 +39,7 @@ class RiskModel():
         #assert categ_risks == categ_risks2
         return categ_risks
     
-    nb.jit    
+    @nb.jit    
     def compute_expectation(self, categ_risks, categ_id):      #TODO: more intuitive name?
         #average_exposure2 = np.mean([risk["excess"]-risk["deductible"] for risk in categ_risks])
         #
