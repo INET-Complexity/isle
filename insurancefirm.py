@@ -5,6 +5,7 @@ from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
+import numba as nb
 
 class InsuranceFirm():
     def __init__(self, simulation, simulation_parameters, agent_parameters):
@@ -194,11 +195,22 @@ class InsuranceFirm():
         amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
 
+    @nb.jit
     def ask_reinsurance(self):
-        nonreinsured = [contract
-                        for contract in self.underwritten_contracts
-                        if contract.reincontract == None]
-
+        nonreinsured = []
+        for contract in self.underwritten_contracts:
+            if contract.reincontract == None:
+                nonreinsured.append(contract)
+        
+        #nonreinsured_b = [contract
+        #                for contract in self.underwritten_contracts
+        #                if contract.reincontract == None]
+        #
+        #try:
+        #    assert nonreinsured == nonreinsured_b
+        #except:
+        #    pdb.set_trace()
+        
         nonreinsured.reverse()
         
         if len(nonreinsured) >= (1 - self.reinsurance_limit) * len(self.underwritten_contracts):
