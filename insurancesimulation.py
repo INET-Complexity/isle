@@ -167,6 +167,7 @@ class InsuranceSimulation():
 
             # pay obligations
             self.effect_payments(t)
+            
             # identify perils and effect claims
             for categ_id in range(len(self.rc_event_schedule)):
                 try:
@@ -176,6 +177,8 @@ class InsuranceSimulation():
                     print("Something wrong; past events not deleted")
                 if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
                     self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
+                    
+                    # TODO: consider splitting the following lines from this method and running it with nb.jit
                     affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
                     no_affected = len(affected_contracts)
                     damage = self.damage_distribution.rvs()
@@ -185,16 +188,14 @@ class InsuranceSimulation():
                     [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
                 else:
                     print("Next peril ", self.rc_event_schedule[categ_id])
-
+            
+            # shuffle risks (insurance and reinsurance risks)
+            self.shuffle_risks()
 
             # reset reinweights
-            self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
-                self.reinsurancefirm_new_weights) * len(self.reinrisks)
-            self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
-            self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
-            np.random.shuffle(self.reinrisks)
-            
-            # iterate reinagents
+            self.reset_reinsurance_weights()
+                        
+            # iterate reinsurnace firm agents
             for reinagent in self.reinsurancefirms:
                 reinagent.iterate(t)
             
@@ -202,12 +203,9 @@ class InsuranceSimulation():
             self.reinrisks = []
 
             # reset weights
-            self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
-            self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
-            self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-            np.random.shuffle(self.risks)
-            
-            # iterate agents
+            self.reset_insurance_weights()
+                        
+            # iterate insurance firm agents
             for agent in self.insurancefirms:
                 agent.iterate(t)
             
@@ -224,7 +222,7 @@ class InsuranceSimulation():
             self.history_total_reincash.append(total_reincash_no)
             self.history_total_reincontracts.append(total_reincontracts_no)
             self.history_total_reinoperational.append(reinoperational_no)
-
+            
             individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
@@ -310,6 +308,24 @@ class InsuranceSimulation():
         """Method to accept cash payments."""
         self.money_supply += amount
 
+    def reset_reinsurance_weights(self):
+        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
+            self.reinsurancefirm_new_weights) * len(self.reinrisks)
+        self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
+        self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
+
+    @nb.jit
+    def reset_insurance_weights(self):
+        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
+        self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
+        self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
+    
+    @nb.jit
+    def shuffle_risks(self):
+        np.random.shuffle(self.reinrisks)
+        np.random.shuffle(self.risks)
+
+    @nb.jit
     def adjust_market_premium(self):
         capital = sum([firm.cash for firm in self.insurancefirms])
         self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.norm_premium * self.simulation_parameters["no_risks"]))
