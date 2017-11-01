@@ -26,7 +26,7 @@ class InsuranceSimulation():
                                                                                             "risk_factor_upper_bound": 0.6, \
                                                                                             "initial_acceptance_threshold": 0.5, \
                                                                                             "acceptance_threshold_friction": 0.9, \
-                                                                                            "initial_agent_cash": 100000, \
+                                                                                            "initial_agent_cash": 10000, \
                                                                                             "initial_reinagent_cash": 50000, \
                                                                                             "interest_rate": 0, \
                                                                                             "reinsurance_limit": 0.1, \
