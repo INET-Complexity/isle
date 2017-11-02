@@ -406,7 +406,7 @@ class InsuranceSimulation():
             to_log = self.replication_log_prepare()
         else:
             to_log = self.single_log_prepare()
-    
+        
         for filename, data, operation_character in to_log:
             wfile = open(filename, operation_character)
             wfile.write(str(data) + "\n")
@@ -417,6 +417,9 @@ class InsuranceSimulation():
         to_log.append(("data/two_operational.dat", self.history_total_operational, "a"))
         to_log.append(("data/two_contracts.dat", self.history_total_contracts, "a"))
         to_log.append(("data/two_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/two_reinoperational.dat", self.history_total_reinoperational, "a"))
+        to_log.append(("data/two_reincontracts.dat", self.history_total_reincontracts, "a"))
+        to_log.append(("data/two_reincash.dat", self.history_total_reincash, "a"))
         return to_log
 
     def single_log_prepare(self):

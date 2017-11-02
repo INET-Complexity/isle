@@ -9,6 +9,9 @@ class InsuranceSimulation_One(InsuranceSimulation):
         to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
         to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))
         to_log.append(("data/one_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
+        to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
+        to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
         return to_log
 
     def replication_log_z(self):
