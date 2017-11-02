@@ -65,8 +65,8 @@ def main(simulation_parameters, othervariable = None):
         simulation = world
 
     # set up insurance firms
-    agent_parameters = []
-    
+    #agent_parameters = []
+    #
     #for i in range(simulation_parameters["no_insurancefirms"]):
     #    riskmodel = world.riskmodels[i % len(world.riskmodels)]
     #    #print(riskmodel)
@@ -77,13 +77,19 @@ def main(simulation_parameters, othervariable = None):
     #                             'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
     #                             'reinsurance_limit': simulation_parameters["reinsurance_limit"],
     #                             'interest_rate': simulation_parameters["interest_rate"]})
-    world.insurancefirms = insurancefirms = simulation.build_agents(InsuranceFirm,
-                                                       'insurancefirm',
-                                                       parameters=simulation_parameters,
-                                                       agent_parameters=world.agent_parameters["insurancefirm"])
+    insurancefirms = simulation.build_agents(InsuranceFirm,
+                                             'insurancefirm',
+                                             parameters=simulation_parameters,
+                                             agent_parameters=world.agent_parameters["insurancefirm"])
+    
+    if isleconfig.use_abce:
+        insurancefirm_pointers = insurancefirms.get_pointer()
+    else:
+        insurancefirm_pointers = insurancefirms
+    world.accept_agents("insurancefirm", insurancefirm_pointers)
 
-    world._insurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
-    world._insurancefirm_new_weights = np.asarray([0 for _ in range(len(agent_parameters))])
+    #world._insurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
+    #world._insurancefirm_new_weights = np.asarray([0 for _ in range(len(agent_parameters))])
 
     #
     ## set up reinsurance risk models
@@ -106,13 +112,18 @@ def main(simulation_parameters, othervariable = None):
     #                        'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
     #                        'reinsurance_limit': simulation_parameters["reinsurance_limit"],
     #                        'interest_rate': simulation_parameters["interest_rate"]})
-    world.reinsurancefirms = reinsurancefirms = simulation.build_agents(ReinsuranceFirm,
-                                                                       'reinsurance',
-                                                                       parameters=simulation_parameters,
-                                                                       agent_parameters=world.agent_parameters["reinsurance"])
+    reinsurancefirms = simulation.build_agents(ReinsuranceFirm,
+                                               'reinsurance',
+                                               parameters=simulation_parameters,
+                                               agent_parameters=world.agent_parameters["reinsurance"])
+    if isleconfig.use_abce:
+        reinsurancefirm_pointers = reinsurancefirms.get_pointer()
+    else:
+        reinsurancefirm_pointers = reinsurancefirms
+    world.accept_agents("reinsurance", reinsurancefirm_pointers)
 
-    world.reinsurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
-    world._reinsurancefirm_new_weights = np.asarray([simulation_parameters["initial_reinagent_cash"] for _ in range(len(agent_parameters))])
+    #world.reinsurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
+    #world._reinsurancefirm_new_weights = np.asarray([simulation_parameters["initial_reinagent_cash"] for _ in range(len(agent_parameters))])
 
     for t in range(simulation_parameters["max_time"]):
         simulation.advance_round(t)
@@ -157,7 +168,7 @@ def main(simulation_parameters, othervariable = None):
         world.reset_reinsurance_weights(reinsurancefirms.zeros())
 
         # iterate reinsurnace firm agents
-        world.reinsurancefirms.iterate(time=t)
+        reinsurancefirms.iterate(time=t)
         # remove all non-accepted reinsurance risks
         world.reinrisks = []
 
@@ -165,7 +176,7 @@ def main(simulation_parameters, othervariable = None):
         world.reset_insurance_weights(insurancefirms.zeros())
 
         # iterate insurance firm agents
-        world.insurancefirms.iterate(time=t)
+        insurancefirms.iterate(time=t)
 
         if isleconfig.use_abce:
             #insurancefirms.logme()
@@ -175,8 +186,6 @@ def main(simulation_parameters, othervariable = None):
         
         print("here")
     simulation.finalize()
-
-
 
 # main entry point
 if __name__ == "__main__":

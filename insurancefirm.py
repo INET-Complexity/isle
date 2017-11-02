@@ -264,3 +264,6 @@ class InsuranceFirm(GenericAgent):
 
     def get_underwritten_contracts(self):
         return self.underwritten_contracts
+    
+    def get_pointer(self):
+        return self

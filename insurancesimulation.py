@@ -87,9 +87,8 @@ class InsuranceSimulation():
                     risk_value_mean, risk_factor_mean, \
                     self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
                     for i in range(self.simulation_parameters["no_riskmodels"])]
-
-        self.reinrisks = []
         
+        # prepare setting up agents (to be done from start.py)
         self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
 
         # TODO: collapse the following two loops into one generic one?
@@ -111,7 +110,36 @@ class InsuranceSimulation():
                                 'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                 'reinsurance_limit': simulation_parameters["reinsurance_limit"],
                                 'interest_rate': simulation_parameters["interest_rate"]})
+                                
+        # set up remaining lists
+        
+        # agent lists
+        self.reinsurancefirms = []
+        self.insurancefirms = []
+        
+        # lists of agent weights 
+        self.insurancefirm_weights = []
+        self.insurancefirm_new_weights = []
+        self.reinsurancefirm_weights = []
+        self.reinsurancefirm_new_weights = []
 
+        # list of reinsurance risks offered for underwriting
+        self.reinrisks = []
+        
+        # lists for logging history
+        
+        # sum insurance firms
+        self.history_total_cash = []
+        self.history_total_contracts = []
+        self.history_total_operational = []
+        # individual insurance firms
+        self.history_individual_contracts = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
+        
+        # sum reinsurance firms
+        self.history_total_reincash = []
+        self.history_total_reincontracts = []
+        self.history_total_reinoperational = []
+        
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
         assert agent_parameters == self.agent_parameters[agent_class_string]
@@ -125,13 +153,31 @@ class InsuranceSimulation():
             agents.append(agent_class(parameters, ap))
         return agents
         
-    def accept_agents(self, agent_class_string, agent_pointers):
+    def accept_agents(self, agent_class_string, agents):
         if agent_class_string == "insurancefirm":
-            self.insurancefirms = agent_pointers
+            try:
+                self.insurancefirms += agents
+                self.insurancefirm_weights += [1 for i in agents]
+                self.insurancefirm_new_weights += [agent.cash for agent in agents]
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()
         elif agent_class_string == "reinsurance":
-            self.reinsurancefirms == agent_parameters
+            try:
+                self.reinsurancefirms += agents
+                self.reinsurancefirm_weights += [1 for i in agents]
+                self.reinsurancefirm_new_weights += [agent.cash for agent in agents]
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()
         else:
             assert False, "Error: Unexpected agent class used"
+    
+    def advance_round(self, *args):
+        pass
+    
+    def finalize(self, *args):
+        pass
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
