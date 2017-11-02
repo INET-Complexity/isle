@@ -7,10 +7,21 @@ import scipy.stats
 import math
 import sys, pdb
 import numba as nb
-import abce
+#import abce
 from insurancesimulation import InsuranceSimulation
-from abce import gui
+#from abce import gui
 
+use_abce = False
+if (len(sys.argv) > 1):
+    if "--abce" in sys.argv:
+        abce_argument_idx = sys.argv.index("--abce")
+        assert len(sys.argv) > abce_argument_idx + 1
+        use_abce = True if int(sys.argv[abce_argument_idx + 1]) == 1 else False 
+
+if use_abce:
+    print("Importing abce")
+    import abce
+    from abce import gui
 
 replic_ID=None
 override_no_riskmodels=False
@@ -40,9 +51,14 @@ simulation_parameters={"no_categories": 2,
                        "no_risks": 20000}
 
 @gui(simulation_parameters, serve=True)
-def main(simulation_parameters):
-    simulation = abce.Simulation(processes=1)
+def main(simulation_parameters, othervariable = None):
+    if use_abce:
+        simulation = abce.Simulation(processes=1)
+    
     simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
+
+    if not use_abce:
+        simulation = world
 
     # set up insurance firms
     agent_parameters = []
@@ -148,11 +164,13 @@ def main(simulation_parameters):
 
         # iterate insurance firm agents
         world.insurancefirms.iterate(time=t)
-        #insurancefirms.logme()
-        #reinsurancefirms.logme()
 
-        insurancefirms.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
-        #reinsurancefirms.agg_log(variables=['cash'])
+        if use_abce:
+            #insurancefirms.logme()
+            #reinsurancefirms.logme()
+            insurancefirms.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
+            #reinsurancefirms.agg_log(variables=['cash'])
+        
         print("here")
     simulation.finalize()
 
@@ -160,4 +178,4 @@ def main(simulation_parameters):
 
 # main entry point
 if __name__ == "__main__":
-    main(simulation_parameters)
+    main(simulation_parameters, 77)
