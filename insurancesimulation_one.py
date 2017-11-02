@@ -4,7 +4,14 @@ import pdb, sys
 
 class InsuranceSimulation_One(InsuranceSimulation):
 
-    def replication_log(self):
+    def replication_log_prepare(self):
+        to_log = []
+        to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
+        to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))
+        to_log.append(("data/one_cash.dat", self.history_total_cash, "a"))
+        return to_log
+
+    def replication_log_z(self):
         wfile = open("data/one_operational.dat","a")
         wfile.write(str(self.history_total_operational)+"\n")
         wfile.close()

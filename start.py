@@ -37,7 +37,7 @@ simulation_parameters={"no_categories": 2,
                        "rein_norm_profit_markup": 0.15,
                        "mean_contract_runtime": 30,
                        "contract_runtime_halfspread": 10,
-                       "max_time": 600,
+                       "max_time": 60,
                        "money_supply": 2000000000,
                        "event_time_mean_separation": 100 / 3.,
                        "expire_immediately": True,
@@ -179,14 +179,16 @@ def main(simulation_parameters, othervariable = None):
 
             # iterate insurance firm agents
             insurancefirms.iterate(time=t)
-
+        
         if isleconfig.use_abce:
             #insurancefirms.logme()
             #reinsurancefirms.logme()
             insurancefirms.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
             #reinsurancefirms.agg_log(variables=['cash'])
+        else:
+            world.save_data()
         
-        print("here")
+        #print("here")
     simulation.finalize()
 
 # main entry point

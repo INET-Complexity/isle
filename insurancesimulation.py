@@ -226,6 +226,7 @@ class InsuranceSimulation():
         for agent in self.insurancefirms:
             agent.iterate(t)
         
+    def save_data(self):
         # collect data
         total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
         total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
@@ -248,6 +249,7 @@ class InsuranceSimulation():
         pass
     
     def finalize(self, *args):
+        self.log()
         pass
 
     def receive_obligation(self, amount, recipient, due_time):
@@ -399,4 +401,76 @@ class InsuranceSimulation():
         else:
             self.setup_risk_categories()
 
+    def log(self):
+        if self.background_run:
+            to_log = self.replication_log_prepare()
+        else:
+            to_log = self.single_log_prepare()
+    
+        for filename, data, operation_character in to_log:
+            wfile = open(filename, operation_character)
+            wfile.write(str(data) + "\n")
+            wfile.close()
+    
+    def replication_log_prepare(self):
+        to_log = []
+        to_log.append(("data/two_operational.dat", self.history_total_operational, "a"))
+        to_log.append(("data/two_contracts.dat", self.history_total_contracts, "a"))
+        to_log.append(("data/two_cash.dat", self.history_total_cash, "a"))
+        return to_log
+
+    def single_log_prepare(self):
+        to_log = []
+        to_log.append(("data/operational.dat", self.history_total_operational, "w"))
+        to_log.append(("data/contracts.dat", self.history_total_contracts, "w"))
+        to_log.append(("data/cash.dat", self.history_total_cash, "w"))
+        to_log.append(("data/reinoperational.dat", self.history_total_reinoperational, "w"))
+        to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
+        to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
+        return to_log
+    
+    def replication_log_z(self):
+        wfile = open("data/two_operational.dat","a")
+        wfile.write(str(self.history_total_operational)+"\n")
+        wfile.close()
+        wfile = open("data/two_contracts.dat","a")
+        wfile.write(str(self.history_total_contracts)+"\n")
+        wfile.close()
+        wfile = open("data/two_cash.dat","a")
+        wfile.write(str(self.history_total_cash)+"\n")
+        wfile.close()
+    
+    def single_log_z(self):
+        wfile = open("data/operational.dat","w")
+        wfile.write(str(self.history_total_operational)+"\n")
+        wfile.close()
+        wfile = open("data/contracts.dat","w")
+        wfile.write(str(self.history_total_contracts)+"\n")
+        wfile.close()
+        wfile = open("data/cash.dat","w")
+        wfile.write(str(self.history_total_cash)+"\n")
+        wfile.close()
+        wfile = open("data/reinoperational.dat","w")
+        wfile.write(str(self.history_total_reinoperational)+"\n")
+        wfile.close()
+        wfile = open("data/reincontracts.dat","w")
+        wfile.write(str(self.history_total_reincontracts)+"\n")
+        wfile.close()
+        wfile = open("data/reincash.dat","w")
+        wfile.write(str(self.history_total_reincash)+"\n")
+        wfile.close()
+        
+        #fig = plt.figure()
+        #ax0 = fig.add_subplot(311)
+        #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
+        #ax0.set_ylabel("Cash")
+        #ax1 = fig.add_subplot(312)
+        #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
+        #ax1.set_ylabel("Contracts")
+        #ax2 = fig.add_subplot(313)
+        #for i in range(len(self.history_individual_contracts)):
+        #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
+        #ax2.set_ylabel("Contracts")
+        #ax2.set_xlabel("Time")
+        #plt.show()
 
