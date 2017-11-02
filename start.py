@@ -1,27 +1,31 @@
-from insurancefirm import InsuranceFirm
-from riskmodel import RiskModel
-from reinsurancefirm import ReinsuranceFirm
-#from reinriskmodel import ReinriskModel
 import numpy as np
 import scipy.stats
 import math
 import sys, pdb
 import numba as nb
 #import abce
-from insurancesimulation import InsuranceSimulation
 #from abce import gui
+import isleconfig
 
-use_abce = False
+#isleconfig.use_abce = False
+# if command line argument is given, override use_abce from config file
 if (len(sys.argv) > 1):
     if "--abce" in sys.argv:
         abce_argument_idx = sys.argv.index("--abce")
         assert len(sys.argv) > abce_argument_idx + 1
-        use_abce = True if int(sys.argv[abce_argument_idx + 1]) == 1 else False 
+        isleconfig.use_abce = True if int(sys.argv[abce_argument_idx + 1]) == 1 else False 
 
-if use_abce:
+if isleconfig.use_abce:
     print("Importing abce")
     import abce
     from abce import gui
+
+from insurancesimulation import InsuranceSimulation
+from insurancefirm import InsuranceFirm
+from riskmodel import RiskModel
+from reinsurancefirm import ReinsuranceFirm
+#from reinriskmodel import ReinriskModel
+
 
 replic_ID=None
 override_no_riskmodels=False
@@ -50,38 +54,36 @@ simulation_parameters={"no_categories": 2,
                        "lower_price_limit": 0.85,
                        "no_risks": 20000}
 
-@gui(simulation_parameters, serve=True)
+#@gui(simulation_parameters, serve=True)
 def main(simulation_parameters, othervariable = None):
-    if use_abce:
+    if isleconfig.use_abce:
         simulation = abce.Simulation(processes=1)
     
     simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
 
-    if not use_abce:
+    if not isleconfig.use_abce:
         simulation = world
 
     # set up insurance firms
     agent_parameters = []
-
-    for i in range(simulation_parameters["no_insurancefirms"]):
-        riskmodel = world.riskmodels[i % len(world.riskmodels)]
-        #print(riskmodel)
-        agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
-                                 'riskmodel': riskmodel, 'norm_premium': world.norm_premium,
-                                 'profit_target': simulation_parameters["norm_profit_markup"],
-                                 'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
-                                 'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
-                                 'reinsurance_limit': simulation_parameters["reinsurance_limit"],
-                                 'interest_rate': simulation_parameters["interest_rate"]})
+    
+    #for i in range(simulation_parameters["no_insurancefirms"]):
+    #    riskmodel = world.riskmodels[i % len(world.riskmodels)]
+    #    #print(riskmodel)
+    #    agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
+    #                             'riskmodel': riskmodel, 'norm_premium': world.norm_premium,
+    #                             'profit_target': simulation_parameters["norm_profit_markup"],
+    #                             'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+    #                             'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+    #                             'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+    #                             'interest_rate': simulation_parameters["interest_rate"]})
     world.insurancefirms = insurancefirms = simulation.build_agents(InsuranceFirm,
                                                        'insurancefirm',
                                                        parameters=simulation_parameters,
-                                                       agent_parameters=agent_parameters)
+                                                       agent_parameters=world.agent_parameters["insurancefirm"])
 
     world._insurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
     world._insurancefirm_new_weights = np.asarray([0 for _ in range(len(agent_parameters))])
-
-
 
     #
     ## set up reinsurance risk models
@@ -94,20 +96,20 @@ def main(simulation_parameters, othervariable = None):
     #
 
     # set up reinsurance firms
-    agent_parameters = []
-    for i in range(simulation_parameters["no_reinsurancefirms"]):
-        riskmodel = world.riskmodels[i % len(world.riskmodels)]
-        agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
-                            'riskmodel': riskmodel, 'norm_premium': world.norm_premium,
-                            'profit_target': simulation_parameters["norm_profit_markup"],
-                            'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
-                            'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
-                            'reinsurance_limit': simulation_parameters["reinsurance_limit"],
-                            'interest_rate': simulation_parameters["interest_rate"]})
+    #agent_parameters = []
+    #for i in range(simulation_parameters["no_reinsurancefirms"]):
+    #    riskmodel = world.riskmodels[i % len(world.riskmodels)]
+    #    agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
+    #                        'riskmodel': riskmodel, 'norm_premium': world.norm_premium,
+    #                        'profit_target': simulation_parameters["norm_profit_markup"],
+    #                        'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+    #                        'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+    #                        'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+    #                        'interest_rate': simulation_parameters["interest_rate"]})
     world.reinsurancefirms = reinsurancefirms = simulation.build_agents(ReinsuranceFirm,
                                                                        'reinsurance',
                                                                        parameters=simulation_parameters,
-                                                                       agent_parameters=agent_parameters)
+                                                                       agent_parameters=world.agent_parameters["reinsurance"])
 
     world.reinsurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
     world._reinsurancefirm_new_weights = np.asarray([simulation_parameters["initial_reinagent_cash"] for _ in range(len(agent_parameters))])
@@ -165,7 +167,7 @@ def main(simulation_parameters, othervariable = None):
         # iterate insurance firm agents
         world.insurancefirms.iterate(time=t)
 
-        if use_abce:
+        if isleconfig.use_abce:
             #insurancefirms.logme()
             #reinsurancefirms.logme()
             insurancefirms.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])

@@ -1,4 +1,5 @@
 
+import isleconfig
 import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract
@@ -6,9 +7,15 @@ from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
 import numba as nb
-import abce
 
-class InsuranceFirm(abce.Agent):
+if isleconfig.use_abce:
+    from genericagentabce import GenericAgent
+    print("abce imported")
+else:
+    from genericagent import GenericAgent
+    print("abce not imported")
+
+class InsuranceFirm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
         ##or: ABCE style:

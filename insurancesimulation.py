@@ -8,8 +8,13 @@ import scipy.stats
 import math
 import sys, pdb
 import numba as nb
-import abce
+import isleconfig
 
+if isleconfig.use_abce:
+    import abce
+    print("abce imported")
+else:
+    print("abce not imported")
 
 
 
@@ -84,6 +89,49 @@ class InsuranceSimulation():
                     for i in range(self.simulation_parameters["no_riskmodels"])]
 
         self.reinrisks = []
+        
+        self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
+
+        # TODO: collapse the following two loops into one generic one?
+        for i in range(simulation_parameters["no_insurancefirms"]):
+            riskmodel = self.riskmodels[i % len(self.riskmodels)]
+            self.agent_parameters["insurancefirm"].append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
+                                     'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                     'profit_target': simulation_parameters["norm_profit_markup"],
+                                     'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+                                     'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+                                     'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                     'interest_rate': simulation_parameters["interest_rate"]})
+        for i in range(simulation_parameters["no_reinsurancefirms"]):
+            riskmodel = self.riskmodels[i % len(self.riskmodels)]
+            self.agent_parameters["reinsurance"].append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
+                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                'profit_target': simulation_parameters["norm_profit_markup"],
+                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+                                'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                'interest_rate': simulation_parameters["interest_rate"]})
+
+    
+    def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
+        assert agent_parameters == self.agent_parameters[agent_class_string]
+        agents = []
+        #try:
+        #    agent_class(parameters, agent_parameters[0])
+        #except:
+        #    print(sys.exc_info())
+        #    pdb.set_trace()
+        for ap in agent_parameters:
+            agents.append(agent_class(parameters, ap))
+        return agents
+        
+    def accept_agents(self, agent_class_string, agent_pointers):
+        if agent_class_string == "insurancefirm":
+            self.insurancefirms = agent_pointers
+        elif agent_class_string == "reinsurance":
+            self.reinsurancefirms == agent_parameters
+        else:
+            assert False, "Error: Unexpected agent class used"
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
