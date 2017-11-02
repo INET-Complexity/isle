@@ -35,7 +35,7 @@ class InsuranceSimulation():
                                                                                             "upper_price_limit": 1.2, \
                                                                                             "lower_price_limit": 0.85, \
                                                                                             "no_risks": 20000}):
-        
+
         self.simulation = simulation = abce.Simulation()
         simulation_parameters['simulation'] = self
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
@@ -46,7 +46,7 @@ class InsuranceSimulation():
         self.background_run = False if replic_ID is None else True
         self.replic_ID = replic_ID
         self.simulation_parameters = simulation_parameters
-        
+
         # unpack parameters, set up environment (distributions etc.)
         self.damage_distribution = scipy.stats.uniform(loc=0, scale=1)
         self.cat_separation_distribution = scipy.stats.expon(0, simulation_parameters["event_time_mean_separation"])
@@ -57,11 +57,11 @@ class InsuranceSimulation():
             self.risk_factor_distribution = scipy.stats.uniform(loc=1.0, scale=0)
         #self.risk_value_distribution = scipy.stats.uniform(loc=100, scale=9900)
         self.risk_value_distribution = scipy.stats.uniform(loc=1000, scale=0)
-        
-        risk_factor_mean = self.risk_factor_distribution.mean() 
+
+        risk_factor_mean = self.risk_factor_distribution.mean()
         if np.isnan(risk_factor_mean):     # unfortunately scipy.stats.mean is not well-defined if scale = 0
-            risk_factor_mean = self.risk_factor_distribution.rvs() 
-        
+            risk_factor_mean = self.risk_factor_distribution.rvs()
+
         # set initial market price (normalized, i.e. must be multiplied by value or excess-deductible)
         if self.simulation_parameters["expire_immediately"]:
             assert self.cat_separation_distribution.dist.name == "expon"
@@ -79,25 +79,25 @@ class InsuranceSimulation():
 
         #print(self.norm_premium)
         #pdb.set_trace()
-        
+
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
         self.money_supply = self.simulation_parameters["money_supply"]
         self.obligations = []
-        
+
         # set up risk categories
         self.riskcategories = list(range(self.simulation_parameters["no_categories"]))
         self.rc_event_schedule = []
         self.setup_risk_categories_caller()
-        
+
         # set up risks
-        risk_value_mean = self.risk_value_distribution.mean() 
+        risk_value_mean = self.risk_value_distribution.mean()
         if np.isnan(risk_value_mean):     # unfortunately scipy.stats.mean is not well-defined if scale = 0
-            risk_value_mean = self.risk_value_distribution.rvs() 
+            risk_value_mean = self.risk_value_distribution.rvs()
         rrisk_factors = self.risk_factor_distribution.rvs(size=self.simulation_parameters["no_risks"])
         rvalues = self.risk_value_distribution.rvs(size=self.simulation_parameters["no_risks"])
         rcategories = np.random.randint(0, self.simulation_parameters["no_categories"], size=self.simulation_parameters["no_risks"])
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
-            
+
         # set up risk models
         inaccuracy = [[(0.5 if (i+j)%2==0 else 2.) for i in range(self.simulation_parameters["no_categories"])] for j in range(self.simulation_parameters["no_riskmodels"])]
         self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
@@ -105,7 +105,7 @@ class InsuranceSimulation():
                     risk_value_mean, risk_factor_mean, \
                     self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
                     for i in range(self.simulation_parameters["no_riskmodels"])]
-        
+
         # set up insurance firms
         agent_parameters = []
 
@@ -136,7 +136,7 @@ class InsuranceSimulation():
         #                                     self.simulation_parameters["rein_norm_profit_markup"]) \
         #                       for i in range(self.simulation_parameters["no_reinriskmodels"])]
         #
-        
+
         # set up reinsurance firms
         agent_parameters = []
         for i in range(self.simulation_parameters["no_reinsurancefirms"]):
@@ -165,9 +165,9 @@ class InsuranceSimulation():
         self.history_total_reincash = []
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
-        
+
         self.reinrisks = []
-        
+
     def run(self):
         for t in range(self.simulation_parameters["max_time"]):
             self.simulation.advance_round(t)
@@ -179,7 +179,7 @@ class InsuranceSimulation():
 
             # pay obligations
             self.effect_payments(t)
-            
+
             # identify perils and effect claims
             for categ_id in range(len(self.rc_event_schedule)):
                 try:
@@ -189,7 +189,7 @@ class InsuranceSimulation():
                     print("Something wrong; past events not deleted")
                 if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
                     self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
-                    
+
                     # TODO: consider splitting the following lines from this method and running it with nb.jit
                     affected_contracts = [contract for sublist in self.insurancefirms.get_underwritten_contracts() for contract in sublist
                                           if contract.category == categ_id]
@@ -201,13 +201,13 @@ class InsuranceSimulation():
                     [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
                 else:
                     print("Next peril ", self.rc_event_schedule[categ_id])
-            
+
             # shuffle risks (insurance and reinsurance risks)
             self.shuffle_risks()
 
             # reset reinweights
             self.reset_reinsurance_weights()
-                        
+
             # iterate reinsurnace firm agents
             self.reinsurancefirms.iterate(time=t)
             # remove all non-accepted reinsurance risks
@@ -215,7 +215,7 @@ class InsuranceSimulation():
 
             # reset weights
             self.reset_insurance_weights()
-                        
+
             # iterate insurance firm agents
             self.insurancefirms.iterate(time=t)
 
@@ -256,7 +256,7 @@ class InsuranceSimulation():
         wfile = open("data/two_cash.dat","a")
         wfile.write(str(self.history_total_cash)+"\n")
         wfile.close()
-    
+
     def single_log(self):
         wfile = open("data/operational.dat","w")
         wfile.write(str(self.history_total_operational)+"\n")
@@ -276,7 +276,7 @@ class InsuranceSimulation():
         wfile = open("data/reincash.dat","w")
         wfile.write(str(self.history_total_reincash)+"\n")
         wfile.close()
-        
+
         #fig = plt.figure()
         #ax0 = fig.add_subplot(311)
         #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
@@ -294,9 +294,9 @@ class InsuranceSimulation():
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
         self.obligations.append(obligation)
-    
+
     def effect_payments(self, time):
-        due = [item for item in self.obligations if item["due_time"]<=time] 
+        due = [item for item in self.obligations if item["due_time"]<=time]
         #print("SIMULATION obligations: ", len(self.obligations), " of which are due: ", len(due))
         self.obligations = [item for item in self.obligations if item["due_time"]>time]
         sum_due = sum([item["amount"] for item in due])
@@ -400,14 +400,14 @@ class InsuranceSimulation():
     def setup_risk_categories_caller(self):
         if self.background_run:
             self.setup_risk_categories()
-            
+
             wfile = open("data/rc_event_schedule.dat","a")
             wfile.write(str(self.rc_event_schedule)+"\n")
             wfile.close()
-            
+
         else:
-            self.setup_risk_categories()    
-    
+            self.setup_risk_categories()
+
 
 # main entry point
 if __name__ == "__main__":
