@@ -113,10 +113,13 @@ class InsuranceSimulation():
         """Method to accept cash payments."""
         self.money_supply += amount
 
-    @nb.jit
+
     def reset_reinsurance_weights(self, zeros):
-        self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
-            self._reinsurancefirm_new_weights) * len(self.reinrisks)
+        try:
+            self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
+                self._reinsurancefirm_new_weights) * len(self.reinrisks)
+        except ZeroDivisionError:
+            self.reinsurancefirm_weights = np.zeros(self.reinsurancefirm_weights)
         self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
 
 
