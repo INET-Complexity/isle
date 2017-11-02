@@ -127,56 +127,58 @@ def main(simulation_parameters, othervariable = None):
 
     for t in range(simulation_parameters["max_time"]):
         simulation.advance_round(t)
-        print()
-        print(t, ": ", len(world.risks))
+        world.iterate(t)
+        if False:
+            print()
+            print(t, ": ", len(world.risks))
 
-        # adjust market premiums
-        world.adjust_market_premium(capital=sum(insurancefirms.get_cash()))
+            # adjust market premiums
+            world.adjust_market_premium(capital=sum(insurancefirms.get_cash()))
 
-        # pay obligations
-        world.effect_payments(t)
+            # pay obligations
+            world.effect_payments(t)
 
-        # identify perils and effect claims
-        for categ_id in range(len(world.rc_event_schedule)):
-            try:
-                if len(world.rc_event_schedule[categ_id]) > 0:
-                    assert world.rc_event_schedule[categ_id][0] >= t
-            except:
-                print("Something wrong; past events not deleted")
-            if len(world.rc_event_schedule[categ_id]) > 0 and world.rc_event_schedule[categ_id][0] == t:
-                world.rc_event_schedule[categ_id] = world.rc_event_schedule[categ_id][1:]
+            # identify perils and effect claims
+            for categ_id in range(len(world.rc_event_schedule)):
+                try:
+                    if len(world.rc_event_schedule[categ_id]) > 0:
+                        assert world.rc_event_schedule[categ_id][0] >= t
+                except:
+                    print("Something wrong; past events not deleted")
+                if len(world.rc_event_schedule[categ_id]) > 0 and world.rc_event_schedule[categ_id][0] == t:
+                    world.rc_event_schedule[categ_id] = world.rc_event_schedule[categ_id][1:]
 
-                # TODO: consider splitting the following lines from this method and running it with nb.jit
-                affected_contracts = [contract
-                                      for sublist in insurancefirms.get_underwritten_contracts()
-                                      for contract in sublist
-                                      if contract.category == categ_id]
-                no_affected = len(affected_contracts)
-                damage = world.damage_distribution.rvs()
-                print("**** PERIL ", damage)
-                damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
-                uniformvalues = np.random.uniform(0, 1, size=no_affected)
-                for i, contract in enumerate(affected_contracts):
-                    contract.explode(simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i])
-            else:
-                print("Next peril ", world.rc_event_schedule[categ_id])
+                    # TODO: consider splitting the following lines from this method and running it with nb.jit
+                    affected_contracts = [contract
+                                          for sublist in insurancefirms.get_underwritten_contracts()
+                                          for contract in sublist
+                                          if contract.category == categ_id]
+                    no_affected = len(affected_contracts)
+                    damage = world.damage_distribution.rvs()
+                    print("**** PERIL ", damage)
+                    damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
+                    uniformvalues = np.random.uniform(0, 1, size=no_affected)
+                    for i, contract in enumerate(affected_contracts):
+                        contract.explode(simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i])
+                else:
+                    print("Next peril ", world.rc_event_schedule[categ_id])
 
-        # shuffle risks (insurance and reinsurance risks)
-        world.shuffle_risks()
+            # shuffle risks (insurance and reinsurance risks)
+            world.shuffle_risks()
 
-        # reset reinweights
-        world.reset_reinsurance_weights(reinsurancefirms.zeros())
+            # reset reinweights
+            world.reset_reinsurance_weights(reinsurancefirms.zeros())
 
-        # iterate reinsurnace firm agents
-        reinsurancefirms.iterate(time=t)
-        # remove all non-accepted reinsurance risks
-        world.reinrisks = []
+            # iterate reinsurnace firm agents
+            reinsurancefirms.iterate(time=t)
+            # remove all non-accepted reinsurance risks
+            world.reinrisks = []
 
-        # reset weights
-        world.reset_insurance_weights(insurancefirms.zeros())
+            # reset weights
+            world.reset_insurance_weights(insurancefirms.zeros())
 
-        # iterate insurance firm agents
-        insurancefirms.iterate(time=t)
+            # iterate insurance firm agents
+            insurancefirms.iterate(time=t)
 
         if isleconfig.use_abce:
             #insurancefirms.logme()

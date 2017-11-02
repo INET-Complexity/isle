@@ -139,7 +139,7 @@ class InsuranceSimulation():
         self.history_total_reincash = []
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
-        
+            
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
         assert agent_parameters == self.agent_parameters[agent_class_string]
@@ -172,6 +172,77 @@ class InsuranceSimulation():
                 pdb.set_trace()
         else:
             assert False, "Error: Unexpected agent class used"
+
+    
+    def iterate(self, t):
+        print()
+        print(t, ": ", len(self.risks))
+
+        # adjust market premiums
+        sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])
+        self.adjust_market_premium(capital=sum_capital)
+
+        # pay obligations
+        self.effect_payments(t)
+        
+        # identify perils and effect claims
+        for categ_id in range(len(self.rc_event_schedule)):
+            try:
+                if len(self.rc_event_schedule[categ_id]) > 0:
+                    assert self.rc_event_schedule[categ_id][0] >= t
+            except:
+                print("Something wrong; past events not deleted")
+            if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
+                self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
+                
+                # TODO: consider splitting the following lines from this method and running it with nb.jit
+                affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
+                no_affected = len(affected_contracts)
+                damage = self.damage_distribution.rvs()
+                print("**** PERIL ", damage)
+                damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
+                uniformvalues = np.random.uniform(0, 1, size=no_affected)
+                [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
+            else:
+                print("Next peril ", self.rc_event_schedule[categ_id])
+        
+        # shuffle risks (insurance and reinsurance risks)
+        self.shuffle_risks()
+
+        # reset reinweights
+        self.reset_reinsurance_weights()
+                    
+        # iterate reinsurnace firm agents
+        for reinagent in self.reinsurancefirms:
+            reinagent.iterate(t)
+        
+        # remove all non-accepted reinsurance risks
+        self.reinrisks = []
+
+        # reset weights
+        self.reset_insurance_weights()
+                    
+        # iterate insurance firm agents
+        for agent in self.insurancefirms:
+            agent.iterate(t)
+        
+        # collect data
+        total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
+        total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
+        total_reincash_no = sum([reinsurancefirm.cash for reinsurancefirm in self.reinsurancefirms])
+        total_reincontracts_no = sum([len(reinsurancefirm.underwritten_contracts) for reinsurancefirm in self.reinsurancefirms])
+        operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
+        reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
+        self.history_total_cash.append(total_cash_no)
+        self.history_total_contracts.append(total_contracts_no)
+        self.history_total_operational.append(operational_no)
+        self.history_total_reincash.append(total_reincash_no)
+        self.history_total_reincontracts.append(total_reincontracts_no)
+        self.history_total_reinoperational.append(reinoperational_no)
+        
+        individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
+        for i in range(len(individual_contracts_no)):
+            self.history_individual_contracts[i].append(individual_contracts_no[i])
     
     def advance_round(self, *args):
         pass
@@ -207,29 +278,45 @@ class InsuranceSimulation():
         """Method to accept cash payments."""
         self.money_supply += amount
 
-
-    def reset_reinsurance_weights(self, zeros):
-        try:
-            self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
-                self._reinsurancefirm_new_weights) * len(self.reinrisks)
-        except ZeroDivisionError:
-            self.reinsurancefirm_weights = np.zeros(self.reinsurancefirm_weights)
+    @nb.jit
+    def reset_reinsurance_weights(self):
+        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
+            self.reinsurancefirm_new_weights) * len(self.reinrisks)
         self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
-
-
         #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
         #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
-        self.reinsurancefirm_new_weights = zeros
+        self.reinsurancefirm_new_weights = list(np.zeros(len(self.reinsurancefirms)))
         #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
 
     @nb.jit
-    def reset_insurance_weights(self, zeros):
-        self.insurancefirm_weights = self._insurancefirm_new_weights / sum(self._insurancefirm_new_weights) * len(self.risks)
-        self.insurancefirm_weights = np.int64(np.floor(self._insurancefirm_weights))
+    def reset_insurance_weights(self):
+        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
+        self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-        self.insurancefirm_new_weights = zeros
-        print('@', self.insurancefirm_weights)
+        self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
 
+
+    #def reset_reinsurance_weights_z(self, zeros):
+    #    try:
+    #        self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
+    #            self._reinsurancefirm_new_weights) * len(self.reinrisks)
+    #    except ZeroDivisionError:
+    #        self.reinsurancefirm_weights = np.zeros(self.reinsurancefirm_weights)
+    #    self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
+    #
+    #
+    #    #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
+    #    #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
+    #    self.reinsurancefirm_new_weights = zeros
+    #    #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
+    #
+    #@nb.jit
+    #def reset_insurance_weights_z(self, zeros):
+    #    self.insurancefirm_weights = self._insurancefirm_new_weights / sum(self._insurancefirm_new_weights) * len(self.risks)
+    #    self.insurancefirm_weights = np.int64(np.floor(self._insurancefirm_weights))
+    #    #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
+    #    self.insurancefirm_new_weights = zeros
+    #    print('@', self.insurancefirm_weights)
 
     @nb.jit
     def shuffle_risks(self):
@@ -257,21 +344,35 @@ class InsuranceSimulation():
         return self.reinrisks
 
     def solicit_insurance_requests(self, id, cash):
-        self._insurancefirm_new_weights[id] = cash
-        risks_to_be_sent = self.risks[:int(self._insurancefirm_weights[id])]
-        self.risks = self.risks[int(self._insurancefirm_weights[id]):]
+        self.insurancefirm_new_weights[id] = cash
+        risks_to_be_sent = self.risks[:int(self.insurancefirm_weights[id])]
+        self.risks = self.risks[int(self.insurancefirm_weights[id]):]
         print("Number of risks", len(risks_to_be_sent))
         return risks_to_be_sent
 
-    def return_risks(self, not_accepted_risks):
-        self.risks += not_accepted_risks
-
     def solicit_reinsurance_requests(self, id, cash):
-        self._reinsurancefirm_new_weights[id] = cash
+        self.reinsurancefirm_new_weights[id] = cash
         reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
         self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
         print("Number of risks",len(reinrisks_to_be_sent))
         return reinrisks_to_be_sent
+
+    #def solicit_insurance_requests_z(self, id, cash):
+    #    self._insurancefirm_new_weights[id] = cash
+    #    risks_to_be_sent = self.risks[:int(self._insurancefirm_weights[id])]
+    #    self.risks = self.risks[int(self._insurancefirm_weights[id]):]
+    #    print("Number of risks", len(risks_to_be_sent))
+    #    return risks_to_be_sent
+    #
+    #def solicit_reinsurance_requests_z(self, id, cash):
+    #    self._reinsurancefirm_new_weights[id] = cash
+    #    reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
+    #    self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
+    #    print("Number of risks",len(reinrisks_to_be_sent))
+    #    return reinrisks_to_be_sent
+
+    def return_risks(self, not_accepted_risks):
+        self.risks += not_accepted_risks
 
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
