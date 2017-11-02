@@ -8,6 +8,7 @@ import scipy.stats
 import math
 import sys, pdb
 import numba as nb
+import abce
 
 class InsuranceSimulation():
     def __init__(self, replic_ID=None, override_no_riskmodels=False, simulation_parameters={"no_categories": 2, \
@@ -35,6 +36,8 @@ class InsuranceSimulation():
                                                                                             "lower_price_limit": 0.85, \
                                                                                             "no_risks": 20000}):
         
+        self.simulation = simulation = abce.Simulation()
+        simulation_parameters['simulation'] = self
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
@@ -104,21 +107,25 @@ class InsuranceSimulation():
                     for i in range(self.simulation_parameters["no_riskmodels"])]
         
         # set up insurance firms
-        self.insurancefirms = []
+        agent_parameters = []
+
         for i in range(self.simulation_parameters["no_insurancefirms"]):
             riskmodel = self.riskmodels[i % len(self.riskmodels)]
             #print(riskmodel)
-            agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"], \
-                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium, \
-                                'profit_target': simulation_parameters["norm_profit_markup"], \
-                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"], \
-                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"], \
-                                'reinsurance_limit': simulation_parameters["reinsurance_limit"], \
-                                'interest_rate': simulation_parameters["interest_rate"]}
-            insurer = InsuranceFirm(self, simulation_parameters, agent_parameters)
-            self.insurancefirms.append(insurer)
-        self.insurancefirm_weights = [1 for i in self.insurancefirms]
-        self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
+            agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
+                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                'profit_target': simulation_parameters["norm_profit_markup"],
+                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+                                'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                'interest_rate': simulation_parameters["interest_rate"]})
+        self.insurancefirms = insurer = simulation.build_agents(InsuranceFirm,
+                                                                'insurancefirm',
+                                                                parameters=simulation_parameters,
+                                                                agent_parameters=agent_parameters)
+
+        self._insurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
+        self._insurancefirm_new_weights = np.asarray([0 for _ in range(len(agent_parameters))])
 
         #
         ## set up reinsurance risk models
@@ -131,20 +138,23 @@ class InsuranceSimulation():
         #
         
         # set up reinsurance firms
-        self.reinsurancefirms = []
+        agent_parameters = []
         for i in range(self.simulation_parameters["no_reinsurancefirms"]):
             riskmodel = self.riskmodels[i % len(self.riskmodels)]
-            agent_parameters = {'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"], \
-                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium, \
-                                'profit_target': simulation_parameters["norm_profit_markup"], \
-                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"], \
-                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"], \
-                                'reinsurance_limit': simulation_parameters["reinsurance_limit"], \
-                                'interest_rate': simulation_parameters["interest_rate"]}
-            reinsurer = ReinsuranceFirm(self, simulation_parameters, agent_parameters)
-            self.reinsurancefirms.append(reinsurer)
-        self.reinsurancefirm_weights = [1 for i in self.reinsurancefirms]
-        self.reinsurancefirm_new_weights = [simulation_parameters["initial_reinagent_cash"] for i in self.reinsurancefirms]
+            agent_parameters.append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
+                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                'profit_target': simulation_parameters["norm_profit_markup"],
+                                'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
+                                'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
+                                'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                'interest_rate': simulation_parameters["interest_rate"]})
+        self.reinsurancefirms = reinsurer = simulation.build_agents(ReinsuranceFirm,
+                                                                    'reinsurance',
+                                                                    parameters=simulation_parameters,
+                                                                    agent_parameters=agent_parameters)
+
+        self.reinsurancefirm_weights = np.asarray([1 for _ in range(len(agent_parameters))])
+        self._reinsurancefirm_new_weights = np.asarray([simulation_parameters["initial_reinagent_cash"] for _ in range(len(agent_parameters))])
 
         # some output variables
         self.history_total_cash = []
@@ -160,6 +170,7 @@ class InsuranceSimulation():
         
     def run(self):
         for t in range(self.simulation_parameters["max_time"]):
+            self.simulation.advance_round(t)
             print()
             print(t, ": ", len(self.risks))
 
@@ -180,7 +191,8 @@ class InsuranceSimulation():
                     self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
                     
                     # TODO: consider splitting the following lines from this method and running it with nb.jit
-                    affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
+                    affected_contracts = [contract for sublist in self.insurancefirms.get_underwritten_contracts() for contract in sublist
+                                          if contract.category == categ_id]
                     no_affected = len(affected_contracts)
                     damage = self.damage_distribution.rvs()
                     print("**** PERIL ", damage)
@@ -197,9 +209,7 @@ class InsuranceSimulation():
             self.reset_reinsurance_weights()
                         
             # iterate reinsurnace firm agents
-            for reinagent in self.reinsurancefirms:
-                reinagent.iterate(t)
-            
+            self.reinsurancefirms.iterate(time=t)
             # remove all non-accepted reinsurance risks
             self.reinrisks = []
 
@@ -207,29 +217,29 @@ class InsuranceSimulation():
             self.reset_insurance_weights()
                         
             # iterate insurance firm agents
-            for agent in self.insurancefirms:
-                agent.iterate(t)
-            
+            self.insurancefirms.iterate(time=t)
+
             # collect data
-            total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
-            total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
-            total_reincash_no = sum([reinsurancefirm.cash for reinsurancefirm in self.reinsurancefirms])
-            total_reincontracts_no = sum([len(reinsurancefirm.underwritten_contracts) for reinsurancefirm in self.reinsurancefirms])
-            operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
-            reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
+            total_cash_no = sum(self.insurancefirms.get_cash())
+            total_contracts_no = sum(self.insurancefirms.len_underwritten_contracts())
+            total_reincash_no = sum(self.reinsurancefirms.get_cash())
+            total_reincontracts_no = sum(self.reinsurancefirms.len_underwritten_contracts())
+            operational_no = sum(self.insurancefirms.get_operational())
+            reinoperational_no = sum(self.reinsurancefirms.get_operational())
             self.history_total_cash.append(total_cash_no)
             self.history_total_contracts.append(total_contracts_no)
             self.history_total_operational.append(operational_no)
             self.history_total_reincash.append(total_reincash_no)
             self.history_total_reincontracts.append(total_reincontracts_no)
             self.history_total_reinoperational.append(reinoperational_no)
-            
-            individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
+
+            individual_contracts_no = [self.insurancefirms.len_underwritten_contracts()]
             for i in range(len(individual_contracts_no)):
                 self.history_individual_contracts[i].append(individual_contracts_no[i])
 
         self.log()
-    
+        self.simulation.finalize()
+
     def log(self):
         if self.background_run:
             self.replication_log()
@@ -311,28 +321,32 @@ class InsuranceSimulation():
 
     @nb.jit
     def reset_reinsurance_weights(self):
-        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
-            self.reinsurancefirm_new_weights) * len(self.reinrisks)
+        self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
+            self._reinsurancefirm_new_weights) * len(self.reinrisks)
         self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
+
+
         #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
         #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
-        self.reinsurancefirm_new_weights = list(np.zeros(len(self.reinsurancefirms)))
+        self.reinsurancefirm_new_weights = self.reinsurancefirms.zeros()
         #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
 
     @nb.jit
     def reset_insurance_weights(self):
-        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
-        self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
+        self.insurancefirm_weights = self._insurancefirm_new_weights / sum(self._insurancefirm_new_weights) * len(self.risks)
+        self.insurancefirm_weights = np.int64(np.floor(self._insurancefirm_weights))
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-        self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
-    
+        self.insurancefirm_new_weights = self.insurancefirms.zeros()
+        print('@', self.insurancefirm_weights)
+
+
     @nb.jit
     def shuffle_risks(self):
         np.random.shuffle(self.reinrisks)
         np.random.shuffle(self.risks)
 
     def adjust_market_premium(self):
-        capital = sum([firm.cash for firm in self.insurancefirms])
+        capital = sum(self.insurancefirms.get_cash())
         self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.norm_premium * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
@@ -353,9 +367,9 @@ class InsuranceSimulation():
         return self.reinrisks
 
     def solicit_insurance_requests(self, id, cash):
-        self.insurancefirm_new_weights[id] = cash
-        risks_to_be_sent = self.risks[:self.insurancefirm_weights[id]]
-        self.risks = self.risks[self.insurancefirm_weights[id]:]
+        self._insurancefirm_new_weights[id] = cash
+        risks_to_be_sent = self.risks[:int(self._insurancefirm_weights[id])]
+        self.risks = self.risks[int(self._insurancefirm_weights[id]):]
         print("Number of risks", len(risks_to_be_sent))
         return risks_to_be_sent
 
@@ -363,7 +377,7 @@ class InsuranceSimulation():
         self.risks += not_accepted_risks
 
     def solicit_reinsurance_requests(self, id, cash):
-        self.reinsurancefirm_new_weights[id] = cash
+        self._reinsurancefirm_new_weights[id] = cash
         reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
         self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
         print("Number of risks",len(reinrisks_to_be_sent))

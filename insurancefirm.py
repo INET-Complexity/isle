@@ -6,10 +6,11 @@ from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
 import numba as nb
+import abce
 
-class InsuranceFirm():
-    def __init__(self, simulation, simulation_parameters, agent_parameters):
-        self.simulation = simulation
+class InsuranceFirm(abce.Agent):
+    def init(self, simulation_parameters, agent_parameters):
+        self.simulation = simulation_parameters['simulation']
         ##or: ABCE style:
         #def init(self, simulation_parameters, agent_parameters):
         ##note that ABCE-style cannot have a pointer to the simulation. It should deal with customers directly instead.
@@ -235,3 +236,18 @@ class InsuranceFirm():
                     counter += 1
                 else:
                     break
+
+    def get_cash(self):
+        return self.cash
+
+    def zeros(self):
+        return 0
+
+    def len_underwritten_contracts(self):
+        return len(self.underwritten_contracts)
+
+    def get_operational(self):
+        return self.operational
+
+    def get_underwritten_contracts(self):
+        return self.underwritten_contracts
