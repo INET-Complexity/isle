@@ -110,7 +110,7 @@ class InsuranceSimulation():
                                 'reinsurance_limit': simulation_parameters["reinsurance_limit"],
                                 'interest_rate': simulation_parameters["interest_rate"]})
                                 
-        # set up remaining lists
+        # set up remaining list variables
         
         # agent lists
         self.reinsurancefirms = []
@@ -189,14 +189,7 @@ class InsuranceSimulation():
             if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
                 self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
                 
-                # TODO: consider splitting the following lines from this method and running it with nb.jit
-                affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
-                no_affected = len(affected_contracts)
-                damage = self.damage_distribution.rvs()
-                print("**** PERIL ", damage)
-                damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
-                uniformvalues = np.random.uniform(0, 1, size=no_affected)
-                [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
+                self.inflict_peril(categ_id=categ_id, t=t)# TODO: consider splitting the following lines from this method and running it with nb.jit
             else:
                 print("Next peril ", self.rc_event_schedule[categ_id])
         
@@ -246,6 +239,15 @@ class InsuranceSimulation():
         self.log()
         pass
 
+    def inflict_peril(self, categ_id, t):
+        affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
+        no_affected = len(affected_contracts)
+        damage = self.damage_distribution.rvs()
+        print("**** PERIL ", damage)
+        damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
+        uniformvalues = np.random.uniform(0, 1, size=no_affected)
+        [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
+    
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
         self.obligations.append(obligation)

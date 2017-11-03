@@ -1,8 +1,11 @@
+# import common packages
 import numpy as np
 import scipy.stats
 import math
 import sys, pdb
 import numba as nb
+
+# import config file and apply configuration
 import isleconfig
 
 simulation_parameters = isleconfig.simulation_parameters
@@ -39,19 +42,24 @@ if (len(sys.argv) > 1):
         # force foreground runs even if replication ID is given (which defaults to background runs)
         isleconfig.force_foreground = True
 
+# import isle and abce modules 
 if isleconfig.use_abce:
     #print("Importing abce")
     import abce
     from abce import gui
 
 from insurancesimulation import InsuranceSimulation
-
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 
+
+# main function
+
 #@gui(simulation_parameters, serve=True)
 def main(simulation_parameters):
+    
+    # create simulation and world objects (identical in non-abce mode)
     if isleconfig.use_abce:
         simulation = abce.Simulation(processes=1)
     
@@ -59,7 +67,8 @@ def main(simulation_parameters):
 
     if not isleconfig.use_abce:
         simulation = world
-
+    
+    # create agents: insurance firms 
     insurancefirms = simulation.build_agents(InsuranceFirm,
                                              'insurancefirm',
                                              parameters=simulation_parameters,
@@ -71,6 +80,7 @@ def main(simulation_parameters):
         insurancefirm_pointers = insurancefirms
     world.accept_agents("insurancefirm", insurancefirm_pointers)
 
+    # create agents: reinsurance firms 
     reinsurancefirms = simulation.build_agents(ReinsuranceFirm,
                                                'reinsurance',
                                                parameters=simulation_parameters,
@@ -80,11 +90,17 @@ def main(simulation_parameters):
     else:
         reinsurancefirm_pointers = reinsurancefirms
     world.accept_agents("reinsurance", reinsurancefirm_pointers)
-
+    
+    # time iteration
     for t in range(simulation_parameters["max_time"]):
+        
+        # abce time step
         simulation.advance_round(t)
+        
+        # iterate simulation
         world.iterate(t)
         
+        # log data
         if isleconfig.use_abce:
             #insurancefirms.logme()
             #reinsurancefirms.logme()
@@ -94,6 +110,8 @@ def main(simulation_parameters):
             world.save_data()
         
         #print("here")
+    
+    # finish simulation, write logs
     simulation.finalize()
 
 # main entry point
