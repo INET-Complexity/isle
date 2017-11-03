@@ -292,20 +292,24 @@ class InsuranceSimulation():
 
     @nb.jit
     def reset_reinsurance_weights(self):
-        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / sum(
-            self.reinsurancefirm_new_weights) * len(self.reinrisks)
+        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / \
+                                    sum(self.reinsurancefirm_new_weights) * len(self.reinrisks)
         self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
         #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
         #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
         self.reinsurancefirm_new_weights = list(np.zeros(len(self.reinsurancefirms)))
         #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
-
+        
+        #self.reinsurancefirm_new_weights = self.reinsurancefirms.zeros()
+        
     @nb.jit
     def reset_insurance_weights(self):
-        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / sum(self.insurancefirm_new_weights) * len(self.risks)
+        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / \
+                                   sum(self.insurancefirm_new_weights) * len(self.risks)
         self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
         self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
+        print('@', self.insurancefirm_weights)
 
     @nb.jit
     def shuffle_risks(self):

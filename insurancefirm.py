@@ -217,7 +217,6 @@ class InsuranceFirm(GenericAgent):
     def len_underwritten_contracts(self):
         return len(self.underwritten_contracts)
 
-
     def get_operational(self):
         return self.operational
 
