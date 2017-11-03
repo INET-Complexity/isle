@@ -84,27 +84,27 @@ def main(simulation_parameters):
         simulation = world
     
     # create agents: insurance firms 
-    insurancefirms = simulation.build_agents(InsuranceFirm,
+    insurancefirms_group = simulation.build_agents(InsuranceFirm,
                                              'insurancefirm',
                                              parameters=simulation_parameters,
                                              agent_parameters=world.agent_parameters["insurancefirm"])
     
     if isleconfig.use_abce:
-        insurancefirm_pointers = insurancefirms.get_pointer()
+        insurancefirm_pointers = insurancefirms_group.get_pointer()
     else:
-        insurancefirm_pointers = insurancefirms
-    world.accept_agents("insurancefirm", insurancefirm_pointers)
+        insurancefirm_pointers = insurancefirms_group
+    world.accept_agents("insurancefirm", insurancefirm_pointers, insurancefirms_group)
 
     # create agents: reinsurance firms 
-    reinsurancefirms = simulation.build_agents(ReinsuranceFirm,
+    reinsurancefirms_group = simulation.build_agents(ReinsuranceFirm,
                                                'reinsurance',
                                                parameters=simulation_parameters,
                                                agent_parameters=world.agent_parameters["reinsurance"])
     if isleconfig.use_abce:
-        reinsurancefirm_pointers = reinsurancefirms.get_pointer()
+        reinsurancefirm_pointers = reinsurancefirms_group.get_pointer()
     else:
-        reinsurancefirm_pointers = reinsurancefirms
-    world.accept_agents("reinsurance", reinsurancefirm_pointers)
+        reinsurancefirm_pointers = reinsurancefirms_group
+    world.accept_agents("reinsurance", reinsurancefirm_pointers, reinsurancefirms_group)
     
     # time iteration
     for t in range(simulation_parameters["max_time"]):
@@ -119,8 +119,8 @@ def main(simulation_parameters):
         if isleconfig.use_abce:
             #insurancefirms.logme()
             #reinsurancefirms.logme()
-            insurancefirms.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
-            #reinsurancefirms.agg_log(variables=['cash'])
+            insurancefirms_group.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
+            reinsurancefirms_group.agg_log(variables=['cash'])
         else:
             world.save_data()
         

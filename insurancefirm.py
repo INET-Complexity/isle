@@ -211,8 +211,8 @@ class InsuranceFirm(GenericAgent):
         self.log('underwritten_contracts', self.underwritten_contracts)
         self.log('operational', self.operational)
 
-    def zeros(self):
-        return 0
+    #def zeros(self):
+    #    return 0
 
     def len_underwritten_contracts(self):
         return len(self.underwritten_contracts)

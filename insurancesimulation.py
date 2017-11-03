@@ -147,12 +147,13 @@ class InsuranceSimulation():
             agents.append(agent_class(parameters, ap))
         return agents
         
-    def accept_agents(self, agent_class_string, agents):
+    def accept_agents(self, agent_class_string, agents, agent_group):
         if agent_class_string == "insurancefirm":
             try:
                 self.insurancefirms += agents
                 self.insurancefirm_weights += [1 for i in agents]
                 self.insurancefirm_new_weights += [agent.cash for agent in agents]
+                self.insurancefirms_group = agent_group
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
@@ -161,6 +162,7 @@ class InsuranceSimulation():
                 self.reinsurancefirms += agents
                 self.reinsurancefirm_weights += [1 for i in agents]
                 self.reinsurancefirm_new_weights += [agent.cash for agent in agents]
+                self.reinsurancefirms_group = agent_group
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
@@ -202,6 +204,12 @@ class InsuranceSimulation():
         # iterate reinsurnace firm agents
         for reinagent in self.reinsurancefirms:
             reinagent.iterate(t)
+        # TODO: is the following necessary for abce to work (log) properly?
+        #if isleconfig.use_abce:
+        #    self.reinsurancefirms_group.iterate(time=t)
+        #else:
+        #    for reinagent in self.reinsurancefirms:
+        #        reinagent.iterate(t)
         
         # remove all non-accepted reinsurance risks
         self.reinrisks = []
@@ -212,6 +220,12 @@ class InsuranceSimulation():
         # iterate insurance firm agents
         for agent in self.insurancefirms:
             agent.iterate(t)
+        # TODO: is the following necessary for abce to work (log) properly?
+        #if isleconfig.use_abce:
+        #    self.insurancefirms_group.iterate(time=t)
+        #else:
+        #    for agent in self.insurancefirms:
+        #        agent.iterate(t)
         
     def save_data(self):
         # collect data
@@ -373,7 +387,6 @@ class InsuranceSimulation():
         wfile.close()
         
     def restore_state_and_risk_categories(self):
-        print("HI")
         rfile = open("data/replication_rc_event_schedule.dat","r")
         found = False
         for i, line in enumerate(rfile):
