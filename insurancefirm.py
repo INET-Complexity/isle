@@ -7,7 +7,6 @@ from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
 import numba as nb
-import abce
 
 if isleconfig.use_abce:
     from genericagentabce import GenericAgent
