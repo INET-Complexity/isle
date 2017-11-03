@@ -7,6 +7,7 @@ from reinsurancecontract import ReinsuranceContract
 import sys, pdb
 import uuid
 import numba as nb
+import abce
 
 if isleconfig.use_abce:
     from genericagentabce import GenericAgent
@@ -216,7 +217,6 @@ class InsuranceFirm(GenericAgent):
 
     def len_underwritten_contracts(self):
         return len(self.underwritten_contracts)
-
 
     def get_operational(self):
         return self.operational
