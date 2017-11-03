@@ -18,9 +18,6 @@ else:
 class InsuranceFirm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
-        ##or: ABCE style:
-        #def init(self, simulation_parameters, agent_parameters):
-        ##note that ABCE-style cannot have a pointer to the simulation. It should deal with customers directly instead.
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
                   simulation_parameters["contract_runtime_halfspread"], simulation_parameters["mean_contract_runtime"] \
                   + simulation_parameters["contract_runtime_halfspread"] + 1)
@@ -41,13 +38,7 @@ class InsuranceFirm(GenericAgent):
         self.is_reinsurer = False
 
     def iterate(self, time):
-        #"""realize income: not necessary"""
-        #pass
-
-        #self.ans_reinsurance()
-
         """obtain investments yield"""
-
         self.obtain_yield(time)
 
         """realize due payments"""
@@ -63,22 +54,13 @@ class InsuranceFirm(GenericAgent):
         contracts_dissolved = len(maturing)
 
         if self.operational:
-            # Only for ABCE:
-            #"""collect messages"""
-            #self.obligations += [obligation.content for obligation in self.get_messages('obligation')]
 
             """request risks to be considered for underwriting in the next period and collect those for this period"""
-            # Non-ABCE style
             new_risks = []
             if self.is_insurer:
                 new_risks += self.simulation.solicit_insurance_requests(self.id, self.cash)
             if self.is_reinsurer:
                 new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash)
-            ## ABCE style
-            #self.message("insurancecustomer", 0, 'solicit_insurance_requests', {"number": self.posession("money")})
-            #new_risks = []
-            #for new_risks in self.get_messages('new_risks')
-            #    new_risks += new_risks.content
             contracts_offered = len(new_risks)
             try:
                 assert contracts_offered > 2 * contracts_dissolved
@@ -112,53 +94,42 @@ class InsuranceFirm(GenericAgent):
                 categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
                 i = 0
                 print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
-                #try:
-                if True:
-                    while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
-                        #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
-                        if categ_risks[i].get("contract") is not None: #categ_risks[i]["reinsurance"]:
-                            if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
-                                #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
-                                contract = ReinsuranceContract(self, categ_risks[i], time, \
-                                              self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm
-                                self.underwritten_contracts.append(contract)
-                                #categ_risks[i]["contract"].reincontract = contract
-                                # TODO: move this to insurancecontract (ca. line 14) -> DONE
-                                # TODO: do not write into other object's properties, use setter -> DONE
-
-                                assert categ_risks[i]["contract"].expiration >= contract.expiration, "Reinsurancecontract lasts longer than insurancecontract: {0:d}>{1:d} (EXPIRATION2: {2:d} Time: {3:d})".format(contract.expiration, categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], time)
-                            #else:
-                            #    pass
-                        else:
-                            contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
+                while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
+                    #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
+                    if categ_risks[i].get("contract") is not None: #categ_risks[i]["reinsurance"]:
+                        if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
+                            #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
+                            contract = ReinsuranceContract(self, categ_risks[i], time, \
+                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm
                             self.underwritten_contracts.append(contract)
-                        acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
-                        i += 1
-                #except:
-                #    print(sys.exc_info())
-                #    pdb.set_trace()
+                            #categ_risks[i]["contract"].reincontract = contract
+                            # TODO: move this to insurancecontract (ca. line 14) -> DONE
+                            # TODO: do not write into other object's properties, use setter -> DONE
+
+                            assert categ_risks[i]["contract"].expiration >= contract.expiration, "Reinsurancecontract lasts longer than insurancecontract: {0:d}>{1:d} (EXPIRATION2: {2:d} Time: {3:d})".format(contract.expiration, categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], time)
+                        #else:
+                        #    pass
+                    else:
+                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
+                        self.underwritten_contracts.append(contract)
+                    acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
+                    i += 1
 
                 not_accepted_risks += categ_risks[i:]
                 not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
 
-            #return unacceptables
-            #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
-
+            # seek reinsurance
             if self.is_insurer:
                 # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
                 self.ask_reinsurance()
 
+            # return unacceptables
+            #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
             self.simulation.return_risks(not_accepted_risks)
 
             #not implemented
             #"""adjust liquidity, borrow or invest"""
             #pass
-        else:
-            pass
-            #Non-ABCE style not required
-            #self.simulation.return_risks(self.simulation.solicit_insurance_requests(0))
-            #ABCE style:
-            # ...requires collecting message with risks like above and sending the all back
 
     def enter_illiquidity(self, time):
         self.enter_bankruptcy(time)
@@ -186,16 +157,10 @@ class InsuranceFirm(GenericAgent):
 
 
     def pay(self, amount, recipient):
-        ## ABCE style:
-        #self.give(self, recipient, "cash", amount)
-        # Non-ABCE style:
         self.cash -= amount
         recipient.receive(amount)
 
     def receive(self, amount):
-        ## Not necessary in ABCE style
-        #pass
-        # Non-ABCE style
         """Method to accept cash payments."""
         self.cash += amount
 
@@ -231,12 +196,6 @@ class InsuranceFirm(GenericAgent):
                             "reinsurance_share": 1.,
                             "expiration": contract.expiration, "contract": contract,
                             "risk_factor": contract.risk_factor}
-
-                    ## TODO: never write into other object's properties -> DONE
-                    #contract.reinsure(1.)  # TODO percentage to floating point number
-
-                    ## TODO: never write into other object's properties -> OBSOLETE
-                    #contract.rein_ID = risk["identifier"]
 
                     #print("CREATING", risk["expiration"], contract.expiration, risk["contract"].expiration, risk["identifier"])
                     self.simulation.append_reinrisks(risk)

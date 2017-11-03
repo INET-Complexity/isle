@@ -1,11 +1,8 @@
 import numpy as np
 import sys, pdb
 
-#from insurancesimulation import InsuranceSimulation
-
 class InsuranceContract():
     def __init__(self, insurer, properties, time, premium, runtime, deductible=0, excess=None, reinsurance=0):
-                 #reinrisk=None):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
@@ -43,7 +40,6 @@ class InsuranceContract():
         self.excess = excess if excess is not None else self.value
         
         self.reinsurance = reinsurance
-        #self.rein_ID = reinrisk
         self.reinsurer = None
         self.reincontract = None
         self.reinsurance_share = None
@@ -56,10 +52,6 @@ class InsuranceContract():
         if self.contract is not None:
             self.contract.reinsure(reinsurer=self.insurer, reinsurance_share=properties["reinsurance_share"], \
                                    reincontract=self)
-            #self.contract.reinsurer = self.insurer  #TODO: do not write into other object's attributes!
-            #self.contract.reinsurance_share = properties["reinsurance_share"]
-            #self.contract.reincontract = self
-            
 
     def explode(self, expire_immediately, time, uniform_value, damage_extent):
         """Explode method.
@@ -132,20 +124,11 @@ class InsuranceContract():
         self.reincontract = reincontract
         assert self.reinsurance_share in [None, 0.0, 1.0] 
         
-    #def reinsure(self, reinsurance_share):
-    #    self.reinsurance = self.value * reinsurance_share
-    #    self.reinsurance_share = reinsurance_share
-    #    
-    #    # Values other than 0.0 and 1.0 are not implemented (will break the risk model.
-    #    # Assert that it breaks if other values are found.
-    #    assert self.reinsurance_share in [None, 0.0, 1.0] 
-
     def unreinsure(self): 
         """Unreinsurance Method.
                Accepts no arguments:
                No return value.
            Removes parameters for reinsurance of the current contract. To be called when reinsurance has terminated."""
-        #self.rein_ID = None   
         self.reinsurer = None
         self.reincontract = None
         self.reinsurance = 0

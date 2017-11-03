@@ -2,7 +2,6 @@
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
-#from reinriskmodel import ReinriskModel
 import numpy as np
 import scipy.stats
 import math
@@ -61,9 +60,6 @@ class InsuranceSimulation():
 
         self.market_premium = self.norm_premium
         self.total_no_risks = simulation_parameters["no_risks"]
-
-        #print(self.norm_premium)
-        #pdb.set_trace()
 
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
         self.money_supply = self.simulation_parameters["money_supply"]
@@ -147,11 +143,6 @@ class InsuranceSimulation():
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
         assert agent_parameters == self.agent_parameters[agent_class_string]
         agents = []
-        #try:
-        #    agent_class(parameters, agent_parameters[0])
-        #except:
-        #    print(sys.exc_info())
-        #    pdb.set_trace()
         for ap in agent_parameters:
             agents.append(agent_class(parameters, ap))
         return agents
@@ -300,29 +291,6 @@ class InsuranceSimulation():
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
         self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
 
-
-    #def reset_reinsurance_weights_z(self, zeros):
-    #    try:
-    #        self.reinsurancefirm_weights = self._reinsurancefirm_new_weights / sum(
-    #            self._reinsurancefirm_new_weights) * len(self.reinrisks)
-    #    except ZeroDivisionError:
-    #        self.reinsurancefirm_weights = np.zeros(self.reinsurancefirm_weights)
-    #    self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
-    #
-    #
-    #    #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
-    #    #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
-    #    self.reinsurancefirm_new_weights = zeros
-    #    #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
-    #
-    #@nb.jit
-    #def reset_insurance_weights_z(self, zeros):
-    #    self.insurancefirm_weights = self._insurancefirm_new_weights / sum(self._insurancefirm_new_weights) * len(self.risks)
-    #    self.insurancefirm_weights = np.int64(np.floor(self._insurancefirm_weights))
-    #    #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-    #    self.insurancefirm_new_weights = zeros
-    #    print('@', self.insurancefirm_weights)
-
     @nb.jit
     def shuffle_risks(self):
         np.random.shuffle(self.reinrisks)
@@ -361,20 +329,6 @@ class InsuranceSimulation():
         self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
         print("Number of risks",len(reinrisks_to_be_sent))
         return reinrisks_to_be_sent
-
-    #def solicit_insurance_requests_z(self, id, cash):
-    #    self._insurancefirm_new_weights[id] = cash
-    #    risks_to_be_sent = self.risks[:int(self._insurancefirm_weights[id])]
-    #    self.risks = self.risks[int(self._insurancefirm_weights[id]):]
-    #    print("Number of risks", len(risks_to_be_sent))
-    #    return risks_to_be_sent
-    #
-    #def solicit_reinsurance_requests_z(self, id, cash):
-    #    self._reinsurancefirm_new_weights[id] = cash
-    #    reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
-    #    self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
-    #    print("Number of risks",len(reinrisks_to_be_sent))
-    #    return reinrisks_to_be_sent
 
     def return_risks(self, not_accepted_risks):
         self.risks += not_accepted_risks
@@ -481,52 +435,6 @@ class InsuranceSimulation():
         to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
         to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
         return to_log
-    
-    def replication_log_z(self):
-        wfile = open("data/two_operational.dat","a")
-        wfile.write(str(self.history_total_operational)+"\n")
-        wfile.close()
-        wfile = open("data/two_contracts.dat","a")
-        wfile.write(str(self.history_total_contracts)+"\n")
-        wfile.close()
-        wfile = open("data/two_cash.dat","a")
-        wfile.write(str(self.history_total_cash)+"\n")
-        wfile.close()
-    
-    def single_log_z(self):
-        wfile = open("data/operational.dat","w")
-        wfile.write(str(self.history_total_operational)+"\n")
-        wfile.close()
-        wfile = open("data/contracts.dat","w")
-        wfile.write(str(self.history_total_contracts)+"\n")
-        wfile.close()
-        wfile = open("data/cash.dat","w")
-        wfile.write(str(self.history_total_cash)+"\n")
-        wfile.close()
-        wfile = open("data/reinoperational.dat","w")
-        wfile.write(str(self.history_total_reinoperational)+"\n")
-        wfile.close()
-        wfile = open("data/reincontracts.dat","w")
-        wfile.write(str(self.history_total_reincontracts)+"\n")
-        wfile.close()
-        wfile = open("data/reincash.dat","w")
-        wfile.write(str(self.history_total_reincash)+"\n")
-        wfile.close()
-        
-        #fig = plt.figure()
-        #ax0 = fig.add_subplot(311)
-        #ax0.plot(range(len(self.history_total_cash)), self.history_total_cash)
-        #ax0.set_ylabel("Cash")
-        #ax1 = fig.add_subplot(312)
-        #ax1.plot(range(len(self.history_total_contracts)), self.history_total_contracts)
-        #ax1.set_ylabel("Contracts")
-        #ax2 = fig.add_subplot(313)
-        #for i in range(len(self.history_individual_contracts)):
-        #    ax2.plot(range(len(self.history_individual_contracts[i])), self.history_individual_contracts[i])
-        #ax2.set_ylabel("Contracts")
-        #ax2.set_xlabel("Time")
-        #plt.show()
-
 
 #if __name__ == "__main__":
 #    arg = None
