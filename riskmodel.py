@@ -64,10 +64,14 @@ class RiskModel():
         #assert mean_runtime == mean_runtime2
         
         if self.expire_immediately:
-            incr_expected_profits = (self.norm_premium - (1 - scipy.stats.poisson(1 / self.cat_separation_distribution.mean() * \
-                                mean_runtime).pmf(0)) * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
+            incr_expected_profits = -1
+            # TODO: fix the norm_premium estimation
+            #incr_expected_profits = (self.norm_premium - (1 - scipy.stats.poisson(1 / self.cat_separation_distribution.mean() * \
+            #                    mean_runtime).pmf(0)) * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
         else:
-            incr_expected_profits = (self.norm_premium - mean_runtime / self.cat_separation_distribution.mean() * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
+            incr_expected_profits = -1
+            # TODO: expected profits should only be returned once the expire_immediately == False case is fixed
+            #incr_expected_profits = (self.norm_premium - mean_runtime / self.cat_separation_distribution.mean() * self.damage_distribution.mean() * average_risk_factor) * average_exposure * len(categ_risks)
         
         return average_risk_factor, average_exposure, incr_expected_profits
             
@@ -87,7 +91,11 @@ class RiskModel():
             else:
                 average_risk_factor = self.init_average_risk_factor
                 average_exposure = self.init_average_exposure
-                incr_expected_profits = 0
+
+                incr_expected_profits = -1
+                # TODO: expected profits should only be returned once the expire_immediately == False case is fixed
+                #incr_expected_profits = 0
+
             expected_profits += incr_expected_profits
             var_per_risk = self.getPPF(self.var_tail_prob) * average_risk_factor * average_exposure
             necessary_liquidity += var_per_risk * len(categ_risks)
@@ -106,10 +114,16 @@ class RiskModel():
                 pdb.set_trace()
             acceptable_by_category.append(acceptable)
             remaining_acceptable_by_category.append(remaining)
-        if necessary_liquidity == 0:
-            assert expected_profits == 0
-            expected_profits = self.init_profit_estimate * cash
+
+        # TODO: expected profits should only be returned once the expire_immediately == False case is fixed; the else-clause conditional statement should then be raised to unconditional
+        if expected_profits < 0:
+            expected_profits = None
         else:
-            expected_profits /= necessary_liquidity
+            if necessary_liquidity == 0:
+                assert expected_profits == 0
+                expected_profits = self.init_profit_estimate * cash
+            else:
+                expected_profits /= necessary_liquidity
+
         print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
         return expected_profits, remaining_acceptable_by_category

@@ -2,7 +2,7 @@ import numpy as np
 import sys, pdb
 
 class InsuranceContract():
-    def __init__(self, insurer, properties, time, premium, runtime, deductible=0, excess=None, reinsurance=0):
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, deductible=0, excess=None, reinsurance=0):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
@@ -10,6 +10,7 @@ class InsuranceContract():
                     time: Type integer. The current time.
                     premium: Type float.
                     runtime: Type integer.
+                    payment_period: Type integer.
                 optional:
                     deductible: Type float (or int)
                     excess: Type float (or int or None)
@@ -45,13 +46,27 @@ class InsuranceContract():
         self.reinsurance_share = None
         #self.is_reinsurancecontract = False
 
-        # Create obligation for premium payment
-        self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
+        # setup payment schedule
+        self.payment_times = [time + i for i in range(runtime) if i % payment_period == 0]
+        self.payment_values = premium * (np.ones(len(self.payment_times)) / len(self.payment_times))
+        
+        ## Create obligation for premium payment
+        #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
  
         # Embed contract in reinsurance network, if applicable
         if self.contract is not None:
             self.contract.reinsure(reinsurer=self.insurer, reinsurance_share=properties["reinsurance_share"], \
                                    reincontract=self)
+
+    def check_payment_due(self, time):
+        if len(self.payment_times) > 0 and time >= self.payment_times[0]:
+            # Create obligation for premium payment
+            #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
+            self.property_holder.receive_obligation(self.payment_values[0] * (self.excess - self.deductible), self.insurer, time)
+            
+            # Remove current payment from payment schedule
+            self.payment_times = self.payment_times[1:]
+            self.payment_values = self.payment_values[1:]
 
     def explode(self, expire_immediately, time, uniform_value, damage_extent):
         """Explode method.
