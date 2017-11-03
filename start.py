@@ -120,7 +120,7 @@ def main(simulation_parameters):
             #insurancefirms.logme()
             #reinsurancefirms.logme()
             insurancefirms_group.agg_log(variables=['cash', 'operational'], len=['underwritten_contracts'])
-            reinsurancefirms_group.agg_log(variables=['cash'])
+            #reinsurancefirms_group.agg_log(variables=['cash'])
         else:
             world.save_data()
         

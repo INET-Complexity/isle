@@ -21,6 +21,7 @@ class InsuranceFirm(GenericAgent):
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
                   simulation_parameters["contract_runtime_halfspread"], simulation_parameters["mean_contract_runtime"] \
                   + simulation_parameters["contract_runtime_halfspread"] + 1)
+        self.default_contract_payment_period = simulation_parameters["default_contract_payment_period"]
         self.id = agent_parameters['id']
         self.cash = agent_parameters['initial_cash']
         self.riskmodel = agent_parameters['riskmodel']
@@ -44,7 +45,7 @@ class InsuranceFirm(GenericAgent):
         """realize due payments"""
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
-
+        
         """mature contracts"""
         print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
@@ -52,6 +53,9 @@ class InsuranceFirm(GenericAgent):
             self.underwritten_contracts.remove(contract)
             contract.mature(time)
         contracts_dissolved = len(maturing)
+
+        """effect payments from contracts"""
+        [contract.check_payment_due(time) for contract in self.underwritten_contracts]
 
         if self.operational:
 
@@ -100,7 +104,7 @@ class InsuranceFirm(GenericAgent):
                         if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
                             #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
                             contract = ReinsuranceContract(self, categ_risks[i], time, \
-                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time)  # TODO: make last agrument less convoluted, but consistent with insurancefirm
+                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time, self.default_contract_payment_period)  # TODO: make second-to-last agrument less convoluted, but consistent with insurancefirm
                             self.underwritten_contracts.append(contract)
                             #categ_risks[i]["contract"].reincontract = contract
                             # TODO: move this to insurancecontract (ca. line 14) -> DONE
@@ -110,7 +114,7 @@ class InsuranceFirm(GenericAgent):
                         #else:
                         #    pass
                     else:
-                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs())
+                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs(), self.default_contract_payment_period)
                         self.underwritten_contracts.append(contract)
                     acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
                     i += 1
