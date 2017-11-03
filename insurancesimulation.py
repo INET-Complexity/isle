@@ -12,9 +12,9 @@ import isleconfig
 
 if isleconfig.use_abce:
     import abce
-    print("abce imported")
-else:
-    print("abce not imported")
+    #print("abce imported")
+#else:
+#    print("abce not imported")
 
 
 
@@ -25,7 +25,10 @@ class InsuranceSimulation():
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
 
         # save parameters
-        self.background_run = False if replic_ID is None else True
+        if (replic_ID is None) or (isleconfig.force_foreground):
+            self.background_run = False 
+        else:
+            self.background_run = True
         self.replic_ID = replic_ID
         self.simulation_parameters = simulation_parameters
 
@@ -391,19 +394,56 @@ class InsuranceSimulation():
             self.rc_event_schedule.append(event_schedule)
 
     def setup_risk_categories_caller(self):
-        if self.background_run:
-            self.setup_risk_categories()
-
-            wfile = open("data/rc_event_schedule.dat","a")
-            wfile.write(str(self.rc_event_schedule)+"\n")
-            wfile.close()
-
+        #if self.background_run:
+        if self.replic_ID is not None:
+            if isleconfig.replicating:
+                self.restore_state_and_risk_categories()
+            else:
+                self.setup_risk_categories()
+                self.save_state_and_risk_categories()
         else:
             self.setup_risk_categories()
 
+    def save_state_and_risk_categories(self):
+        # save numpy Mersenne Twister state
+        mersennetwoster_randomseed = str(np.random.get_state())
+        mersennetwoster_randomseed = mersennetwoster_randomseed.replace("\n","").replace("array", "np.array").replace("uint32", "np.uint32")
+        wfile = open("data/replication_randomseed.dat","a")
+        wfile.write(mersennetwoster_randomseed+"\n")
+        wfile.close()
+        # save event schedule
+        wfile = open("data/replication_rc_event_schedule.dat","a")
+        wfile.write(str(self.rc_event_schedule)+"\n")
+        wfile.close()
+        
+    def restore_state_and_risk_categories(self):
+        print("HI")
+        rfile = open("data/replication_rc_event_schedule.dat","r")
+        found = False
+        for i, line in enumerate(rfile):
+            #print(i, self.replic_ID)
+            if i == self.replic_ID:
+                self.rc_event_schedule = eval(line)
+                found = True
+        rfile.close()
+        assert found, "rc event schedule for current replication ID number {0:d} not found in data file. Exiting.".format(self.replic_ID)
+        rfile = open("data/replication_randomseed.dat","r")
+        found = False
+        for i, line in enumerate(rfile):
+            #print(i, self.replic_ID)
+            if i == self.replic_ID:
+                mersennetwister_randomseed = eval(line)
+                found = True
+        rfile.close()
+        np.random.set_state(mersennetwister_randomseed)
+        assert found, "mersennetwister randomseed for current replication ID number {0:d} not found in data file. Exiting.".format(self.replic_ID)
+
     def log(self):
         if self.background_run:
-            to_log = self.replication_log_prepare()
+            if isleconfig.oneriskmodel:
+                to_log = self.replication_log_prepare_oneriskmodel()
+            else:
+                to_log = self.replication_log_prepare()
         else:
             to_log = self.single_log_prepare()
         
@@ -420,6 +460,16 @@ class InsuranceSimulation():
         to_log.append(("data/two_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/two_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/two_reincash.dat", self.history_total_reincash, "a"))
+        return to_log
+
+    def replication_log_prepare_oneriskmodel(self):
+        to_log = []
+        to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
+        to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))
+        to_log.append(("data/one_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
+        to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
+        to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
         return to_log
 
     def single_log_prepare(self):
@@ -477,3 +527,10 @@ class InsuranceSimulation():
         #ax2.set_xlabel("Time")
         #plt.show()
 
+
+#if __name__ == "__main__":
+#    arg = None
+#    if len(sys.argv) > 1:
+#        arg = int(sys.argv[1])
+#    S = InsuranceSimulation(replic_ID = arg)
+#    S.run()

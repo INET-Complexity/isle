@@ -10,10 +10,10 @@ import numba as nb
 
 if isleconfig.use_abce:
     from genericagentabce import GenericAgent
-    print("abce imported")
+    #print("abce imported")
 else:
     from genericagent import GenericAgent
-    print("abce not imported")
+    #print("abce not imported")
 
 class InsuranceFirm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):

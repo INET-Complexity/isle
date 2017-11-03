@@ -7,28 +7,57 @@ import numba as nb
 #from abce import gui
 import isleconfig
 
-#isleconfig.use_abce = False
-# if command line argument is given, override use_abce from config file
+replic_ID = None
+override_no_riskmodels = False
+
+# handle command line arguments 
 if (len(sys.argv) > 1):
     if "--abce" in sys.argv:
-        abce_argument_idx = sys.argv.index("--abce")
-        assert len(sys.argv) > abce_argument_idx + 1
-        isleconfig.use_abce = True if int(sys.argv[abce_argument_idx + 1]) == 1 else False 
+        # if command line argument --abce is given, override use_abce from config file
+        argument_idx = sys.argv.index("--abce")
+        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --abce"
+        isleconfig.use_abce = True if int(sys.argv[argument_idx + 1]) == 1 else False 
+    if "--oneriskmodel" in sys.argv:
+        # allow overriding the number of riskmodels from standard config
+        isleconfig.oneriskmodel = True
+        override_no_riskmodels = True         
+    if "--replicid" in sys.argv:
+        # if replication ID is given, pass this to the simulation so that the risk profile can be restored 
+        argument_idx = sys.argv.index("--replicid")
+        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --replicid"
+        replic_ID = int(sys.argv[argument_idx + 1])
+    if "--replicating" in sys.argv:
+        # if this is a simulation run designed to replicate another, override the config filr parameter
+        isleconfig.replicating = True
+        assert replic_ID is not None, "Error: Replication requires a replication ID to identify run to be replicated"
+    if "--randomseed" in sys.argv:
+        # allow setting of numpy random seed
+        argument_idx = sys.argv.index("--randomseed")
+        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --randomseed"
+        randomseed = float(sys.argv[argument_idx + 1])
+        np.random.seed(randomseed)
+    if "--foreground" in sys.argv:
+        # force foreground runs even if replication ID is given (which defaults to background runs)
+        isleconfig.force_foreground = True
 
 if isleconfig.use_abce:
-    print("Importing abce")
+    #print("Importing abce")
     import abce
     from abce import gui
 
+#if isleconfig.oneriskmodel:
+#    #print("Overriding number of riskmodels")
+#    from insurancesimulation_one import InsuranceSimulation_One
+#else:
+#    from insurancesimulation import InsuranceSimulation
 from insurancesimulation import InsuranceSimulation
+
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 #from reinriskmodel import ReinriskModel
 
 
-replic_ID=None
-override_no_riskmodels=False
 simulation_parameters={"no_categories": 2,
                        "no_insurancefirms": 20,
                        "no_reinsurancefirms": 2,
