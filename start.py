@@ -53,10 +53,25 @@ from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 
+# create conditional decorator
+def conditionally(decorator_function, condition):
+    def wrapper(target_function):
+        if not condition:
+            return target_function
+        return decorator_function(target_function)
+    return wrapper
+
+# create non-abce placeholder gui decorator 
+# TODO: replace this with more elegant solution if possible. Currently required since script will otherwise crash at the conditional decorator below since gui is then undefined
+if not isleconfig.use_abce:
+    def gui(*args, **kwargs):
+        pass
+
 
 # main function
 
 #@gui(simulation_parameters, serve=True)
+@conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
 def main(simulation_parameters):
     
     # create simulation and world objects (identical in non-abce mode)
