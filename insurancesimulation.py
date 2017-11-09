@@ -138,6 +138,8 @@ class InsuranceSimulation():
         self.history_total_reincash = []
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
+
+        self.history_market_premium = []
             
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
@@ -241,6 +243,7 @@ class InsuranceSimulation():
         self.history_total_reincash.append(total_reincash_no)
         self.history_total_reincontracts.append(total_reincontracts_no)
         self.history_total_reinoperational.append(reinoperational_no)
+        self.history_market_premium.append(self.market_premium)
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
@@ -433,6 +436,8 @@ class InsuranceSimulation():
         to_log.append(("data/two_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/two_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/two_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/two_premium.dat", self.history_market_premium, "a"))
+
         return to_log
 
     def replication_log_prepare_oneriskmodel(self):
@@ -443,6 +448,8 @@ class InsuranceSimulation():
         to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
+
         return to_log
 
     def single_log_prepare(self):
@@ -453,6 +460,8 @@ class InsuranceSimulation():
         to_log.append(("data/reinoperational.dat", self.history_total_reinoperational, "w"))
         to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
         to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
+        to_log.append(("data/premium.dat", self.history_market_premium, "w"))
+
         return to_log
 
 #if __name__ == "__main__":
