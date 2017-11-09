@@ -2,7 +2,7 @@ import numpy as np
 import sys, pdb
 
 class InsuranceContract():
-    def __init__(self, insurer, properties, time, premium, runtime, payment_period, deductible=0, excess=None, reinsurance=0):
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, insurancetype=None, deductible=0, excess=None, reinsurance=0):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
@@ -27,8 +27,10 @@ class InsuranceContract():
         self.property_holder = properties["owner"]
         self.value = properties["value"]
         self.contract = properties.get("contract")  # will assign None if key does not exist
+        self.insurancetype = properties.get("insurancetype") if insurancetype is None else insurancetype 
         self.properties = properties
         self.runtime = runtime
+        self.starttime = time
         self.expiration = runtime + time
         self.terminating = False
 
@@ -38,7 +40,7 @@ class InsuranceContract():
         #    self.deductible = deductible if deductible is not None else 0
         self.deductible = deductible
         
-        self.excess = excess if excess is not None else self.value
+        self.excess = excess if excess is not None else 1.
         
         self.reinsurance = reinsurance
         self.reinsurer = None
@@ -47,8 +49,11 @@ class InsuranceContract():
         #self.is_reinsurancecontract = False
 
         # setup payment schedule
+        #total_premium = premium * (self.excess - self.deductible)   # TODO: excess and deductible should not be considered linearily in premium computation; this should be shifted to the (re)insurer who supplies the premium as argument to the contract's constructor method
+        total_premium = premium * self.value 
+        self.periodized_premium = total_premium / self.runtime
         self.payment_times = [time + i for i in range(runtime) if i % payment_period == 0]
-        self.payment_values = premium * (np.ones(len(self.payment_times)) / len(self.payment_times))
+        self.payment_values = total_premium * (np.ones(len(self.payment_times)) / len(self.payment_times))
         
         ## Create obligation for premium payment
         #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
@@ -62,7 +67,7 @@ class InsuranceContract():
         if len(self.payment_times) > 0 and time >= self.payment_times[0]:
             # Create obligation for premium payment
             #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
-            self.property_holder.receive_obligation(self.payment_values[0] * (self.excess - self.deductible), self.insurer, time)
+            self.property_holder.receive_obligation(self.payment_values[0], self.insurer, time)
             
             # Remove current payment from payment schedule
             self.payment_times = self.payment_times[1:]
