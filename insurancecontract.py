@@ -12,6 +12,7 @@ class InsuranceContract():
                     runtime: Type integer.
                     payment_period: Type integer.
                 optional:
+                    insurancetype: Type string. The type of this contract, especially "proportional" vs "excess_of_loss"
                     deductible: Type float (or int)
                     excess: Type float (or int or None)
                     reinsurance: Type float (or int). The value that is being reinsured.
