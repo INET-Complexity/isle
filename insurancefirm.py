@@ -32,6 +32,9 @@ class InsuranceFirm(GenericAgent):
         self.interest_rate = agent_parameters["interest_rate"]
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
+        if self.simulation_reinsurance_type == 'non-proportional':
+            self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            self.np_reinsurance_excess = simulation_parameters["default_non-proportional_reinsurance_excess"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
