@@ -75,7 +75,11 @@ class RiskModel():
         
         return average_risk_factor, average_exposure, incr_expected_profits
             
-    def evaluate(self, risks, cash):
+    def evaluate(self, risks, cash, offered_risk = None):
+        # sort current contracts
+        el_risks = [risk for risk in risks if risk["insurancetype"] == 'excess-of-loss']
+        risks = [risk for risk in risks if risk["insurancetype"] == 'proportional']
+        
         acceptable_by_category = []
         remaining_acceptable_by_category = []
         expected_profits = 0

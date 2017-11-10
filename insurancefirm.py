@@ -78,7 +78,7 @@ class InsuranceFirm(GenericAgent):
                 print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(self.id, contracts_offered, 2*contracts_dissolved))
             #print(self.id, " has ", len(self.underwritten_contracts), " & receives ", contracts_offered, " & lost ", contracts_dissolved)
             
-            new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='non-proportional']
+            new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss']
             new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None]]
 
             underwritten_risks = [{"excess": contract.value, "category": contract.category, \
@@ -215,7 +215,7 @@ class InsuranceFirm(GenericAgent):
                 avg_risk_factor /= number_risks
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
-                            "insurancetype": 'non-proportional',"number_risks": number_risks, 
+                            "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
                             "deductible": self.np_reinsurance_deductible, "excess": np_reinsurance_excess,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}
