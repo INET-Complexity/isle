@@ -2,7 +2,7 @@ import numpy as np
 import sys, pdb
 
 class InsuranceContract():
-    def __init__(self, insurer, properties, time, premium, runtime, payment_period, insurancetype=None, deductible=0, excess=None, reinsurance=0):
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
