@@ -31,6 +31,7 @@ class InsuranceFirm(GenericAgent):
         self.acceptance_threshold_friction = agent_parameters['acceptance_threshold_friction']  # 0.9 #1.0 to switch off
         self.interest_rate = agent_parameters["interest_rate"]
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
+        self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
@@ -171,9 +172,20 @@ class InsuranceFirm(GenericAgent):
     def obtain_yield(self, time):
         amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
+    
+    def ask_reinsurance(self):
+        if self.simulation_reinsurance_type == 'proportional':
+            self.ask_reinsurance_proportional()
+        elif self.simulation_reinsurance_type == 'non-proportional':
+            self.ask_reinsurance_non_proportional()
+        else:
+            assert False, "Undefined reinsurance type"
+        
+    def ask_reinsurance_non_proportional(self):
+        pass
 
     @nb.jit
-    def ask_reinsurance(self):
+    def ask_reinsurance_proportional(self):
         nonreinsured = []
         for contract in self.underwritten_contracts:
             if contract.reincontract == None:
