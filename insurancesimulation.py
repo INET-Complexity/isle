@@ -2,6 +2,7 @@
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
+from distributiontruncated import TruncatedDistWrapper
 import numpy as np
 import scipy.stats
 import math
@@ -32,7 +33,14 @@ class InsuranceSimulation():
         self.simulation_parameters = simulation_parameters
 
         # unpack parameters, set up environment (distributions etc.)
-        self.damage_distribution = scipy.stats.uniform(loc=0, scale=1)
+        
+        # damage distribution
+        # TODO: control damage distribution via parameters, not directly
+        #self.damage_distribution = scipy.stats.uniform(loc=0, scale=1)
+        non_truncated = scipy.stats.pareto(b=2, loc=0, scale=0.25)
+        self.damage_distribution = TruncatedDistWrapper(lower_bound=0.25, upper_bound=1., dist=non_truncated)
+        
+        # remaining parameters
         self.cat_separation_distribution = scipy.stats.expon(0, simulation_parameters["event_time_mean_separation"])
         self.risk_factor_lower_bound = simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_spread = simulation_parameters["risk_factor_upper_bound"] - simulation_parameters["risk_factor_lower_bound"]
