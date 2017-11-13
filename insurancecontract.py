@@ -90,7 +90,7 @@ class InsuranceContract():
         # if np.random.uniform(0, 1) < self.risk_factor:
         if uniform_value < self.risk_factor:
             # if True:
-            claim = damage_extent * self.excess - self.deductible
+            claim = min(self.excess, damage_extent * self.value) - self.deductible
             if (self.reincontract != None):
                 self.reinsurer.receive_obligation(claim, self.insurer, time)
                 self.reincontract.explode(True, time)

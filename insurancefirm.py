@@ -37,6 +37,7 @@ class InsuranceFirm(GenericAgent):
         if self.simulation_reinsurance_type == 'non-proportional':
             self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]
             self.np_reinsurance_excess = simulation_parameters["default_non-proportional_reinsurance_excess"]
+            self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
@@ -88,11 +89,12 @@ class InsuranceFirm(GenericAgent):
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                #accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly
-                #if accept:
-                #    contract = ReinsuranceContract(...)
-                #    self.underwritten_contracts.append(contract)
-                pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this
+                accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                if accept:
+                    per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
+                    contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], self.default_contract_payment_period, insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
+                    self.underwritten_contracts.append(contract)
+                #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
             """make underwriting decisions, category-wise"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
@@ -143,7 +145,7 @@ class InsuranceFirm(GenericAgent):
             # seek reinsurance
             if self.is_insurer:
                 # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
-                self.ask_reinsurance()
+                self.ask_reinsurance(time)
 
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
@@ -190,18 +192,18 @@ class InsuranceFirm(GenericAgent):
         amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
     
-    def ask_reinsurance(self):
+    def ask_reinsurance(self, time):
         if self.simulation_reinsurance_type == 'proportional':
             self.ask_reinsurance_proportional()
         elif self.simulation_reinsurance_type == 'non-proportional':
-            self.ask_reinsurance_non_proportional()
+            self.ask_reinsurance_non_proportional(time)
         else:
             assert False, "Undefined reinsurance type"
         
-    def ask_reinsurance_non_proportional(self):
-        for categ_id in range(len(self.simulation_no_risk_categories)):
+    def ask_reinsurance_non_proportional(self, time):
+        for categ_id in range(self.simulation_no_risk_categories):
             # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (not self.categories_reinsured[categ_id]) and np.random() < 0.05:
+            if (not self.categories_reinsured[categ_id]) and np.random.random() < 0.05:
                 total_value = 0
                 avg_risk_factor = 0
                 number_risks = 0
@@ -216,9 +218,9 @@ class InsuranceFirm(GenericAgent):
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
                             "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible": self.np_reinsurance_deductible, "excess": np_reinsurance_excess,
+                            "deductible": self.np_reinsurance_deductible, "excess": self.np_reinsurance_excess,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
-                            "expiration": time + 12, "risk_factor": avg_risk_factor}
+                            "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
                 self.simulation.append_reinrisks(risk)
 
@@ -256,6 +258,12 @@ class InsuranceFirm(GenericAgent):
                     counter += 1
                 else:
                     break
+
+    def add_reinsurance(self, category, excess, deductible, contract):
+        pass
+
+    def delete_reinsurance(self, category, excess, deductible, contract):
+        pass
 
     def get_cash(self):
         return self.cash
