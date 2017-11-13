@@ -18,6 +18,7 @@ else:
 class InsuranceFirm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
+        self.simulation_parameters = simulation_parameters
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
                   simulation_parameters["contract_runtime_halfspread"], simulation_parameters["mean_contract_runtime"] \
                   + simulation_parameters["contract_runtime_halfspread"] + 1)
@@ -103,7 +104,10 @@ class InsuranceFirm(GenericAgent):
                 accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
                 if accept:
                     per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
-                    contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], self.default_contract_payment_period, insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
+                    contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
+                                                  self.default_contract_payment_period, \
+                                                  expire_immediately=self.simulation_parameters["expire_immediately"], \
+                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
@@ -135,7 +139,9 @@ class InsuranceFirm(GenericAgent):
                         if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
                             #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
                             contract = ReinsuranceContract(self, categ_risks[i], time, \
-                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time, self.default_contract_payment_period)  # TODO: make second-to-last agrument less convoluted, but consistent with insurancefirm
+                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time, \
+                                          self.default_contract_payment_period, \
+                                          expire_immediately=self.simulation_parameters["expire_immediately"], )  
                             self.underwritten_contracts.append(contract)
                             #categ_risks[i]["contract"].reincontract = contract
                             # TODO: move this to insurancecontract (ca. line 14) -> DONE
@@ -145,7 +151,10 @@ class InsuranceFirm(GenericAgent):
                         #else:
                         #    pass
                     else:
-                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs(), self.default_contract_payment_period)
+                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), \
+                                                     self.contract_runtime_dist.rvs(), \
+                                                     self.default_contract_payment_period, \
+                                                     expire_immediately=self.simulation_parameters["expire_immediately"])
                         self.underwritten_contracts.append(contract)
                     acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
                     i += 1

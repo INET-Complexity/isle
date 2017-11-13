@@ -8,8 +8,10 @@ class ReinsuranceContract(InsuranceContract):
             and ReinsuranceContract objects.
         The signature of this class' constructor is the same as that of the InsuranceContract constructor.
         The class has two methods (explode, mature) that overwrite methods in InsuranceContract."""
-    def __init__(self, insurer, properties, time, premium, runtime, payment_period, insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
-        super(ReinsuranceContract, self).__init__(insurer, properties, time, premium, runtime, payment_period, insurancetype, deductible, excess, reinsurance)
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, \
+                 insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
+        super(ReinsuranceContract, self).__init__(insurer, properties, time, premium, runtime, payment_period, \
+                                            expire_immediately, insurancetype, deductible, excess, reinsurance)
         #self.is_reinsurancecontract = True
         
         if self.insurancetype == "excess-of-loss":
@@ -17,11 +19,9 @@ class ReinsuranceContract(InsuranceContract):
         else:
             assert self.contract is not None
         
-    def explode(self, expire_immediately, time, uniform_value=None, damage_extent=None):
+    def explode(self, time, uniform_value=None, damage_extent=None):
         """Explode method.
                Accepts agruments
-                   expire_immediately: Type boolean. True if the contract expires with the first risk event. False
-                                       if multiple risk events are covered.
                    time: Type integer. The current time.
                    uniform_value: Not used
                    damage_extent: Type float. The absolute damage in excess-of-loss reinsurance (not relative as in 
@@ -37,7 +37,7 @@ class ReinsuranceContract(InsuranceContract):
             
             self.insurer.receive_obligation(claim, self.property_holder, time + 1)
             # Reinsurer pays as soon as possible.
-        if expire_immediately:
+        if self.expire_immediately:
             self.current_claim += self.contract.claim   # TODO: should proportional reinsurance claims be subject to excess_of_loss retrocession? If so, reorganize more straightforwardly
             
             self.expiration = time
