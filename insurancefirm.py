@@ -18,6 +18,7 @@ else:
 class InsuranceFirm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
+        self.simulation_parameters = simulation_parameters
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
                   simulation_parameters["contract_runtime_halfspread"], simulation_parameters["mean_contract_runtime"] \
                   + simulation_parameters["contract_runtime_halfspread"] + 1)
@@ -33,10 +34,11 @@ class InsuranceFirm(GenericAgent):
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
-        self.categories_reinsured = [False for i in range(self.simulation_no_risk_categories)]
+        self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
             self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]
             self.np_reinsurance_excess = simulation_parameters["default_non-proportional_reinsurance_excess"]
+            self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
         #self.reinsurance_contracts = []
@@ -52,6 +54,17 @@ class InsuranceFirm(GenericAgent):
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
         
+        """collect and effect reinsurance claims"""
+        # TODO: reorganize this with risk category ledgers
+        claims_this_turn = np.zeros(self.simulation_no_risk_categories)
+        for contract in self.underwritten_contracts:
+            categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
+            if is_proportional:
+                claims_this_turn[categ_id] += claims
+        for categ_id in range(self.simulation_no_risk_categories):
+            if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
+                self.category_reinsurance[categ_id].check_if_liable(time, claims_this_turn[categ_id]) 
+
         """mature contracts"""
         print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
@@ -81,18 +94,22 @@ class InsuranceFirm(GenericAgent):
             new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss']
             new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None]]
 
-            underwritten_risks = [{"excess": contract.value, "category": contract.category, \
+            underwritten_risks = [{"value": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
                             "excess": contract.excess, "insurancetype": contract.insurancetype, \
                             "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reinsurance_share != 1.0]
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                #accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly
-                #if accept:
-                #    contract = ReinsuranceContract(...)
-                #    self.underwritten_contracts.append(contract)
-                pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this
+                accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                if accept:
+                    per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
+                    contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
+                                                  self.default_contract_payment_period, \
+                                                  expire_immediately=self.simulation_parameters["expire_immediately"], \
+                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
+                    self.underwritten_contracts.append(contract)
+                #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
             """make underwriting decisions, category-wise"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
@@ -122,7 +139,9 @@ class InsuranceFirm(GenericAgent):
                         if categ_risks[i]["contract"].expiration > time:    # required to rule out contracts that have exploded in the meantime
                             #print("ACCEPTING", categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], categ_risks[i]["identifier"], categ_risks[i].get("contract").terminating)
                             contract = ReinsuranceContract(self, categ_risks[i], time, \
-                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time, self.default_contract_payment_period)  # TODO: make second-to-last agrument less convoluted, but consistent with insurancefirm
+                                          self.simulation.get_market_premium(), categ_risks[i]["expiration"] - time, \
+                                          self.default_contract_payment_period, \
+                                          expire_immediately=self.simulation_parameters["expire_immediately"], )  
                             self.underwritten_contracts.append(contract)
                             #categ_risks[i]["contract"].reincontract = contract
                             # TODO: move this to insurancecontract (ca. line 14) -> DONE
@@ -132,7 +151,10 @@ class InsuranceFirm(GenericAgent):
                         #else:
                         #    pass
                     else:
-                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), self.contract_runtime_dist.rvs(), self.default_contract_payment_period)
+                        contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), \
+                                                     self.contract_runtime_dist.rvs(), \
+                                                     self.default_contract_payment_period, \
+                                                     expire_immediately=self.simulation_parameters["expire_immediately"])
                         self.underwritten_contracts.append(contract)
                     acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
                     i += 1
@@ -143,7 +165,7 @@ class InsuranceFirm(GenericAgent):
             # seek reinsurance
             if self.is_insurer:
                 # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
-                self.ask_reinsurance()
+                self.ask_reinsurance(time)
 
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
@@ -190,18 +212,18 @@ class InsuranceFirm(GenericAgent):
         amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
     
-    def ask_reinsurance(self):
+    def ask_reinsurance(self, time):
         if self.simulation_reinsurance_type == 'proportional':
             self.ask_reinsurance_proportional()
         elif self.simulation_reinsurance_type == 'non-proportional':
-            self.ask_reinsurance_non_proportional()
+            self.ask_reinsurance_non_proportional(time)
         else:
             assert False, "Undefined reinsurance type"
         
-    def ask_reinsurance_non_proportional(self):
-        for categ_id in range(len(self.simulation_no_risk_categories)):
+    def ask_reinsurance_non_proportional(self, time):
+        for categ_id in range(self.simulation_no_risk_categories):
             # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (not self.categories_reinsured[categ_id]) and np.random() < 0.05:
+            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.05:
                 total_value = 0
                 avg_risk_factor = 0
                 number_risks = 0
@@ -216,9 +238,9 @@ class InsuranceFirm(GenericAgent):
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
                             "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible": self.np_reinsurance_deductible, "excess": np_reinsurance_excess,
+                            "deductible": self.np_reinsurance_deductible, "excess": self.np_reinsurance_excess,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
-                            "expiration": time + 12, "risk_factor": avg_risk_factor}
+                            "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
                 self.simulation.append_reinrisks(risk)
 
@@ -256,6 +278,14 @@ class InsuranceFirm(GenericAgent):
                     counter += 1
                 else:
                     break
+
+    def add_reinsurance(self, category, excess, deductible, contract):
+        self.category_reinsurance[category] = contract
+        #pass
+
+    def delete_reinsurance(self, category, excess, deductible, contract):
+        self.category_reinsurance[category] = None
+        #pass
 
     def get_cash(self):
         return self.cash

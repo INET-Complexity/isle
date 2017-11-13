@@ -2,7 +2,8 @@ import numpy as np
 import sys, pdb
 
 class InsuranceContract():
-    def __init__(self, insurer, properties, time, premium, runtime, payment_period, insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, \
+                       insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
@@ -11,6 +12,8 @@ class InsuranceContract():
                     premium: Type float.
                     runtime: Type integer.
                     payment_period: Type integer.
+                    expire_immediately: Type boolean. True if the contract expires with the first risk event. False
+                                       if multiple risk events are covered.
                 optional:
                     insurancetype: Type string. The type of this contract, especially "proportional" vs "excess_of_loss"
                     deductible: Type float (or int)
@@ -33,7 +36,9 @@ class InsuranceContract():
         self.runtime = runtime
         self.starttime = time
         self.expiration = runtime + time
+        self.expire_immediately = expire_immediately
         self.terminating = False
+        self.current_claim = 0
 
         ##In the future should be able to accept deductible from properties:
         #self.deductible = properties.get("deductible")
@@ -74,11 +79,9 @@ class InsuranceContract():
             self.payment_times = self.payment_times[1:]
             self.payment_values = self.payment_values[1:]
 
-    def explode(self, expire_immediately, time, uniform_value, damage_extent):
+    def explode(self, time, uniform_value, damage_extent):
         """Explode method.
                Accepts arguments
-                   expire_immediately: Type boolean. True if the contract expires with the first risk event. False
-                                       if multiple risk events are covered.
                    time: Type integer. The current time.
                    uniform_value: Type float. Random value drawn in InsuranceSimulation. To determine if this risk 
                                   is affected by peril.
@@ -90,19 +93,27 @@ class InsuranceContract():
         # if np.random.uniform(0, 1) < self.risk_factor:
         if uniform_value < self.risk_factor:
             # if True:
-            claim = damage_extent * self.excess - self.deductible
+            claim = min(self.excess, damage_extent * self.value) - self.deductible
+
+            self.current_claim += claim
+            
             if (self.reincontract != None):
                 self.reinsurer.receive_obligation(claim, self.insurer, time)
-                self.reincontract.explode(True, time)
+                self.reincontract.explode(time)
             
             self.insurer.receive_obligation(claim, self.property_holder, time + 2)
             # Insurer pays one time step after reinsurer to avoid bankruptcy.
             # TODO: Is this realistic? Change this?
             
-            if expire_immediately:
+            if self.expire_immediately:
                 self.expiration = time
                 #self.terminating = True
-
+    
+    def get_and_reset_current_claim(self):
+        current_claim = self.current_claim
+        self.current_claim = 0
+        return self.category, current_claim, (self.insurancetype == "proportional")
+    
     def mature(self, time):
         """Mature method.
                Accepts arguments
