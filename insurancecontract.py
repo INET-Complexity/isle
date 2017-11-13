@@ -34,6 +34,7 @@ class InsuranceContract():
         self.starttime = time
         self.expiration = runtime + time
         self.terminating = False
+        self.current_claim = 0
 
         ##In the future should be able to accept deductible from properties:
         #self.deductible = properties.get("deductible")
@@ -91,6 +92,9 @@ class InsuranceContract():
         if uniform_value < self.risk_factor:
             # if True:
             claim = min(self.excess, damage_extent * self.value) - self.deductible
+
+            self.current_claim += claim
+            
             if (self.reincontract != None):
                 self.reinsurer.receive_obligation(claim, self.insurer, time)
                 self.reincontract.explode(True, time)
@@ -102,7 +106,12 @@ class InsuranceContract():
             if expire_immediately:
                 self.expiration = time
                 #self.terminating = True
-
+    
+    def get_and_reset_current_claim(self):
+        current_claim = self.current_claim
+        self.current_claim = 0
+        return self.category, current_claim, (self.insurancetype == "proportional")
+    
     def mature(self, time):
         """Mature method.
                Accepts arguments

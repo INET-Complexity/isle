@@ -29,10 +29,7 @@ class ReinsuranceContract(InsuranceContract):
                No return value.
            Method marks the contract for termination.
             """
-        if expire_immediately:
-            self.expiration = time
-            #self.terminating = True
-        if self.insurancetype == "excess-of-loss":
+        if self.insurancetype == "excess-of-loss" and damage_extent > self.deductible:
             claim = min(self.excess, damage_extent) - self.deductible
             if (self.reincontract != None):
                 self.reinsurer.receive_obligation(claim, self.insurer, time)
@@ -40,6 +37,11 @@ class ReinsuranceContract(InsuranceContract):
             
             self.insurer.receive_obligation(claim, self.property_holder, time + 1)
             # Reinsurer pays as soon as possible.
+        if expire_immediately:
+            self.current_claim += self.contract.claim   # TODO: should proportional reinsurance claims be subject to excess_of_loss retrocession? If so, reorganize more straightforwardly
+            
+            self.expiration = time
+            #self.terminating = True
             
     def mature(self, time):
         """Mature method. 
@@ -54,3 +56,6 @@ class ReinsuranceContract(InsuranceContract):
             self.property_holder.delete_reinsurance(category=self.category, excess=self.excess, deductible=self.deductible, contract=self)
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
+
+    def check_if_liable(self, time, claim):
+        self.explode(False, time, damage_extent=claim)
