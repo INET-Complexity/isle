@@ -81,7 +81,7 @@ class InsuranceFirm(GenericAgent):
             new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss']
             new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None]]
 
-            underwritten_risks = [{"excess": contract.value, "category": contract.category, \
+            underwritten_risks = [{"value": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
                             "excess": contract.excess, "insurancetype": contract.insurancetype, \
                             "runtime": contract.runtime} for contract in self.underwritten_contracts if contract.reinsurance_share != 1.0]
