@@ -3,7 +3,7 @@ import sys, pdb
 
 class InsuranceContract():
     def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, \
-                       insurancetype="proportional", deductible=0, excess=None, reinsurance=0):
+                       insurancetype="proportional", deductible_fraction=None, excess_fraction=None, reinsurance=0):
         """Constructor method.
                Accepts arguments
                     insurer: Type InsuranceFirm. 
@@ -39,14 +39,20 @@ class InsuranceContract():
         self.expire_immediately = expire_immediately
         self.terminating = False
         self.current_claim = 0
-
-        ##In the future should be able to accept deductible from properties:
-        #self.deductible = properties.get("deductible")
-        #if self.deductible is None:
-        #    self.deductible = deductible if deductible is not None else 0
-        self.deductible = deductible
         
-        self.excess = excess if excess is not None else self.value
+        # set deductible from argument, risk property or default value, whichever first is not None 
+        default_deductible_fraction = 0.0
+        deductible_fraction_generator = (item for item in [deductible_fraction, properties.get("deductible_fraction"), \
+                                                          default_deductible_fraction] if item is not None)
+        self.deductible_fraction = next(deductible_fraction_generator)
+        self.deductible = self.deductible_fraction * self.value
+                
+        # set excess from argument, risk property or default value, whichever first is not None 
+        default_excess_fraction = 1.0
+        excess_fraction_generator = (item for item in [excess_fraction, properties.get("excess_fraction"), \
+                                                          default_excess_fraction] if item is not None)
+        self.excess_fraction = next(excess_fraction_generator)
+        self.excess = self.excess_fraction * self.value
         
         self.reinsurance = reinsurance
         self.reinsurer = None
