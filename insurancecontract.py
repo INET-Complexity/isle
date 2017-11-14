@@ -42,17 +42,17 @@ class InsuranceContract():
         
         # set deductible from argument, risk property or default value, whichever first is not None 
         default_deductible_percentage = 0.0
-        deductible_percentage = (item for item in [deductible_percentage, properties.get("deductible_percentage"), \
+        deductible_percentage_generator = (item for item in [deductible_percentage, properties.get("deductible_percentage"), \
                                                           default_deductible_percentage] if item is not None)
-        deductible_percentage = next(deductible_percentage)
-        self.deductible = deductible_percentage * self.value
+        self.deductible_percentage = next(deductible_percentage_generator)
+        self.deductible = self.deductible_percentage * self.value
                 
         # set excess from argument, risk property or default value, whichever first is not None 
         default_excess_percentage = 1.0
-        excess_percentage = (item for item in [excess_percentage, properties.get("excess_percentage"), \
+        excess_percentage_generator = (item for item in [excess_percentage, properties.get("excess_percentage"), \
                                                           default_excess_percentage] if item is not None)
-        excess_percentage = next(excess_percentage)
-        self.excess = excess_percentage * self.value
+        self.excess_percentage = next(excess_percentage_generator)
+        self.excess = self.excess_percentage * self.value
         
         self.reinsurance = reinsurance
         self.reinsurer = None

@@ -15,7 +15,8 @@ class ReinsuranceContract(InsuranceContract):
         #self.is_reinsurancecontract = True
         
         if self.insurancetype == "excess-of-loss":
-            self.property_holder.add_reinsurance(category=self.category, excess=self.excess, deductible=self.deductible, contract=self)
+            self.property_holder.add_reinsurance(category=self.category, excess_percentage=self.excess_percentage, \
+                                                    deductible_percentage=self.deductible_percentage, contract=self)
         else:
             assert self.contract is not None
         
@@ -48,12 +49,14 @@ class ReinsuranceContract(InsuranceContract):
                Accepts arguments
                     time: Tyoe integer. The current time.
                No return value.
-           Removes any reinsurance functions this contract has and terminates any reinsurance contracts for this contract."""
+           Removes any reinsurance functions this contract has and terminates any reinsurance contracts for this 
+           contract."""
         #self.terminating = True
         self.terminate_reinsurance(time)
         
         if self.insurancetype == "excess-of-loss":
-            self.property_holder.delete_reinsurance(category=self.category, excess=self.excess, deductible=self.deductible, contract=self)
+            self.property_holder.delete_reinsurance(category=self.category, excess_percentage=self.excess_percentage, \
+                                                        deductible_percentage=self.deductible_percentage, contract=self)
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 

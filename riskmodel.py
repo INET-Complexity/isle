@@ -5,6 +5,9 @@ import sys, pdb
 import scipy.stats
 import numba as nb
 
+from distributionreinsurance import ReinsuranceDistWrapper
+
+
 class RiskModel():
     def __init__(self, damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
                 category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, inaccuracy):
@@ -18,7 +21,9 @@ class RiskModel():
         self.init_average_exposure = init_average_exposure
         self.init_average_risk_factor = init_average_risk_factor
         self.init_profit_estimate = init_profit_estimate
-        self.damage_distribution = [damage_distribution for _ in range(self.category_number)] # TODO: separate that category wise?
+        self.damage_distribution = [damage_distribution for _ in range(self.category_number)] # TODO: separate that category wise? -> DONE.
+        self.damage_distribution_stack = [[] for _ in range(self.category_number)] 
+        self.reinsurance_contract_stack = [[] for _ in range(self.category_number)] 
         #self.inaccuracy = np.random.uniform(9/10., 10/9., size=self.category_number) 
         self.inaccuracy = inaccuracy
     
@@ -159,13 +164,16 @@ class RiskModel():
             
             # compute liquidity requirements from existing contracts
             for risk in categ_risks:
-                expected_damage = percentage_value_at_risk * risk["value"]
+                expected_damage = percentage_value_at_risk * risk["value"] * risk["risk_factor"] \
+                                                                           * self.inaccuracy[categ_id]
                 expected_claim = min(expected_damage, risk["excess"]) - risk["deductible"]
                 cash_left_by_categ[categ_id] -= expected_claim
             
             # compute additional liquidity requirements from newly offered contract
             if (offered_risk is not None) and (offered_risk.get("category") == categ_id):
-                expected_claim_percentage = min(percentage_value_at_risk, offered_risk["excess_percentage"]) - offered_risk["deductible_percentage"]
+                expected_damage_percentage = percentage_value_at_risk * offered_risk["risk_factor"] \
+                                                                      * self.inaccuracy[categ_id]
+                expected_claim_percentage = min(expected_damage_percentage, offered_risk["excess_percentage"]) - offered_risk["deductible_percentage"]
                 expected_claim_total = expected_claim_percentage * offered_risk["value"]
                 additional_required[categ_id] += expected_claim_total  
                 #pdb.set_trace()              
@@ -203,3 +211,15 @@ class RiskModel():
             #    pdb.set_trace()
             return (cash_left_by_categ - additional_required > 0).all()
         
+    def add_reinsurance(self, categ_id, excess_percentage, deductible_percentage, contract):
+        self.damage_distribution_stack[categ_id].append(self.damage_distribution[categ_id])
+        self.reinsurance_contract_stack[categ_id].append(contract)
+        self.damage_distribution[categ_id] = ReinsuranceDistWrapper(lower_bound=deductible_percentage, \
+                                                                    upper_bound=excess_percentage, \
+                                                                    dist=self.damage_distribution[categ_id])
+
+    def delete_reinsurance(self, categ_id, excess_percentage, deductible_percentage, contract):
+        assert self.reinsurance_contract_stack[categ_id][-1] == contract
+        self.reinsurance_contract_stack[categ_id].pop()
+        self.damage_distribution[categ_id] = self.damage_distribution_stack[categ_id].pop()
+                

@@ -309,11 +309,13 @@ class InsuranceFirm(GenericAgent):
                 else:
                     break
 
-    def add_reinsurance(self, category, excess, deductible, contract):
+    def add_reinsurance(self, category, excess_percentage, deductible_percentage, contract):
+        self.riskmodel.add_reinsurance(category, excess_percentage, deductible_percentage, contract)
         self.category_reinsurance[category] = contract
         #pass
 
-    def delete_reinsurance(self, category, excess, deductible, contract):
+    def delete_reinsurance(self, category, excess_percentage, deductible_percentage, contract):
+        self.riskmodel.delete_reinsurance(category, excess_percentage, deductible_percentage, contract)
         self.category_reinsurance[category] = None
         #pass
 
