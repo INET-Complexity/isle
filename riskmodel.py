@@ -10,9 +10,8 @@ from distributionreinsurance import ReinsuranceDistWrapper
 
 class RiskModel():
     def __init__(self, damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
-                category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, inaccuracy):
-        """risk_distribution is some scipy frozen rv distribution wich is bound between 0 and 1 and indicates 
-           the share of risks suffering damage as part of any single catastrophic peril"""
+                category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, \
+                margin_of_safety, inaccuracy):
         self.cat_separation_distribution = cat_separation_distribution
         self.norm_premium = norm_premium
         self.var_tail_prob = 0.02
@@ -21,6 +20,9 @@ class RiskModel():
         self.init_average_exposure = init_average_exposure
         self.init_average_risk_factor = init_average_risk_factor
         self.init_profit_estimate = init_profit_estimate
+        self.margin_of_safety = margin_of_safety
+        """damage_distribution is some scipy frozen rv distribution wich is bound between 0 and 1 and indicates 
+           the share of risks suffering damage as part of any single catastrophic peril"""
         self.damage_distribution = [damage_distribution for _ in range(self.category_number)] # TODO: separate that category wise? -> DONE.
         self.damage_distribution_stack = [[] for _ in range(self.category_number)] 
         self.reinsurance_contract_stack = [[] for _ in range(self.category_number)] 
@@ -111,8 +113,12 @@ class RiskModel():
                 #incr_expected_profits = 0
 
             expected_profits += incr_expected_profits
+            
+            # compute value at risk
             var_per_risk = self.getPPF(categ_id=categ_id, tailSize=self.var_tail_prob) * average_risk_factor * average_exposure
-            necessary_liquidity += var_per_risk * len(categ_risks)
+            
+            # record liquidity requirement and apply margin of safety for liquidity requirement
+            necessary_liquidity += var_per_risk * self.margin_of_safety * len(categ_risks)
             #print("RISKMODEL: ", self.getPPF(categ_id=categ_id, tailSize=0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(categ_id=categ_id, tailSize=0.01) * average_risk_factor * average_exposure * len(categ_risks))
             print(self.inaccuracy)
             print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
@@ -167,7 +173,9 @@ class RiskModel():
                 expected_damage = percentage_value_at_risk * risk["value"] * risk["risk_factor"] \
                                                                            * self.inaccuracy[categ_id]
                 expected_claim = min(expected_damage, risk["excess"]) - risk["deductible"]
-                cash_left_by_categ[categ_id] -= expected_claim
+                
+                # record liquidity requirement and apply margin of safety for liquidity requirement
+                cash_left_by_categ[categ_id] -= expected_claim * self.margin_of_safety
             
             # compute additional liquidity requirements from newly offered contract
             if (offered_risk is not None) and (offered_risk.get("category") == categ_id):
@@ -175,7 +183,9 @@ class RiskModel():
                                                                       * self.inaccuracy[categ_id]
                 expected_claim_fraction = min(expected_damage_fraction, offered_risk["excess_fraction"]) - offered_risk["deductible_fraction"]
                 expected_claim_total = expected_claim_fraction * offered_risk["value"]
-                additional_required[categ_id] += expected_claim_total  
+                
+                # record liquidity requirement and apply margin of safety for liquidity requirement
+                additional_required[categ_id] += expected_claim_total * self.margin_of_safety
                 
         return cash_left_by_categ, additional_required
         

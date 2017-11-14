@@ -101,6 +101,7 @@ class InsuranceSimulation():
                                       "risk_value_mean": risk_value_mean,
                                       "risk_factor_mean": risk_factor_mean,
                                       "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
+                                      "margin_of_safety": self.simulation_parameters["riskmodel_margin_of_safety"],
                                       "inaccuracy_by_categ": inaccuracy[i]} \
                                       for i in range(self.simulation_parameters["no_riskmodels"])]
         
