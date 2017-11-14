@@ -4,6 +4,7 @@ import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
+from riskmodel import RiskModel
 import sys, pdb
 import uuid
 import numba as nb
@@ -25,7 +26,6 @@ class InsuranceFirm(GenericAgent):
         self.default_contract_payment_period = simulation_parameters["default_contract_payment_period"]
         self.id = agent_parameters['id']
         self.cash = agent_parameters['initial_cash']
-        self.riskmodel = agent_parameters['riskmodel']
         self.premium = agent_parameters["norm_premium"]
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
@@ -34,6 +34,35 @@ class InsuranceFirm(GenericAgent):
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
+        
+        rm_config = agent_parameters['riskmodel_config']
+        self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
+                                     expire_immediately=rm_config["expire_immediately"], \
+                                     cat_separation_distribution=rm_config["cat_separation_distribution"], \
+                                     norm_premium=rm_config["norm_premium"], \
+                                     category_number=rm_config["no_categories"], \
+                                     init_average_exposure=rm_config["risk_value_mean"], \
+                                     init_average_risk_factor=rm_config["risk_factor_mean"], \
+                                     init_profit_estimate=rm_config["norm_profit_markup"], \
+                                     inaccuracy=rm_config["inaccuracy_by_categ"])
+        #damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
+        #        category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, inaccuracy
+        #self.damage_distribution, self.simulation_parameters["expire_immediately"], \
+        #            self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
+        #            risk_value_mean, risk_factor_mean, \
+        #            self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
+        #            for i in range(self.simulation_parameters["no_riskmodels"])]
+        #risk_model_configurations = [{"damage_distribution": self.damage_distribution,
+        #                              "expire_immediately": self.simulation_parameters["expire_immediately"],
+        #                              "cat_separation_distribution": self.cat_separation_distribution,
+        #                              "norm_premium": self.norm_premium,
+        #                              "no_categories": self.simulation_parameters["no_categories"],
+        #                              "risk_value_mean": risk_value_mean,
+        #                              "risk_factor_mean": risk_factor_mean,
+        #                              "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
+        #                              "inaccuracy": inaccuracy[i]} \
+        
+        
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
             self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]

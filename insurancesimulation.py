@@ -1,6 +1,6 @@
 
 from insurancefirm import InsuranceFirm
-from riskmodel import RiskModel
+#from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 from distributiontruncated import TruncatedDistWrapper
 import numpy as np
@@ -89,29 +89,40 @@ class InsuranceSimulation():
 
         # set up risk models
         inaccuracy = [[(0.5 if (i+j)%2==0 else 2.) for i in range(self.simulation_parameters["no_categories"])] for j in range(self.simulation_parameters["no_riskmodels"])]
-        self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
-                    self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
-                    risk_value_mean, risk_factor_mean, \
-                    self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
-                    for i in range(self.simulation_parameters["no_riskmodels"])]
+        
+        #self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
+        #            self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
+        #            risk_value_mean, risk_factor_mean, \
+        #            self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
+        #            for i in range(self.simulation_parameters["no_riskmodels"])]
+        risk_model_configurations = [{"damage_distribution": self.damage_distribution,
+                                      "expire_immediately": self.simulation_parameters["expire_immediately"],
+                                      "cat_separation_distribution": self.cat_separation_distribution,
+                                      "norm_premium": self.norm_premium,
+                                      "no_categories": self.simulation_parameters["no_categories"],
+                                      "risk_value_mean": risk_value_mean,
+                                      "risk_factor_mean": risk_factor_mean,
+                                      "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
+                                      "inaccuracy_by_categ": inaccuracy[i]} \
+                                      for i in range(self.simulation_parameters["no_riskmodels"])]
         
         # prepare setting up agents (to be done from start.py)
         self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
 
         # TODO: collapse the following two loops into one generic one?
         for i in range(simulation_parameters["no_insurancefirms"]):
-            riskmodel = self.riskmodels[i % len(self.riskmodels)]
+            riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
             self.agent_parameters["insurancefirm"].append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
-                                     'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                     'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
                                      'profit_target': simulation_parameters["norm_profit_markup"],
                                      'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
                                      'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                      'reinsurance_limit': simulation_parameters["reinsurance_limit"],
                                      'interest_rate': simulation_parameters["interest_rate"]})
         for i in range(simulation_parameters["no_reinsurancefirms"]):
-            riskmodel = self.riskmodels[i % len(self.riskmodels)]
+            riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
             self.agent_parameters["reinsurance"].append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
-                                'riskmodel': riskmodel, 'norm_premium': self.norm_premium,
+                                'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
                                 'profit_target': simulation_parameters["norm_profit_markup"],
                                 'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
                                 'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
