@@ -271,7 +271,7 @@ class InsuranceSimulation():
         print("**** PERIL ", damage)
         damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
         uniformvalues = np.random.uniform(0, 1, size=no_affected)
-        [contract.explode(self.simulation_parameters["expire_immediately"], t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
+        [contract.explode(t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
     
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}

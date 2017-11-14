@@ -53,7 +53,8 @@ class RiskModel():
         risk_factors = []
         runtimes = []
         for risk in categ_risks:
-            exposures.append(risk["excess"]-risk["deductible"])
+            # TODO: factor in excess instead of value?
+            exposures.append(risk["value"]-risk["deductible"])
             risk_factors.append(risk["risk_factor"])
             runtimes.append(risk["runtime"])
         average_exposure = np.mean(exposures)
@@ -75,15 +76,20 @@ class RiskModel():
         
         return average_risk_factor, average_exposure, incr_expected_profits
             
-    def evaluate(self, risks, cash, offered_risk = None):
-        # sort current contracts
-        el_risks = [risk for risk in risks if risk["insurancetype"] == 'excess-of-loss']
-        risks = [risk for risk in risks if risk["insurancetype"] == 'proportional']
+    def evaluate_proportional(self, risks, cash):
         
+        # ensure cash is a sequence, defining remaining liquidity by category
+        if not isinstance(cash, (np.ndarray, list)):
+            cash = np.ones(self.category_number) * cash
+        
+        # prepare variables
         acceptable_by_category = []
         remaining_acceptable_by_category = []
+        cash_left_by_category = np.copy(cash)
         expected_profits = 0
         necessary_liquidity = 0
+        
+        # compute acceptable risks by category
         for categ_id in range(self.category_number):
             # compute number of acceptable risks of this category 
             
@@ -103,21 +109,23 @@ class RiskModel():
             expected_profits += incr_expected_profits
             var_per_risk = self.getPPF(self.var_tail_prob) * average_risk_factor * average_exposure
             necessary_liquidity += var_per_risk * len(categ_risks)
-            #print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.01) * average_risk_factor * average_exposure * len(categ_risks))
             print(self.inaccuracy)
-            print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
-            #print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
-            #print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))
-            #print("RISKMODEL: ", self.getPPF(0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.25) * average_risk_factor * average_exposure * len(categ_risks))
-            #print("RISKMODEL: ", self.getPPF(0.5) * average_risk_factor * average_exposure, " = PPF(0.5) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash, "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.5) * average_risk_factor * average_exposure * len(categ_risks))
+            print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.05) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.1) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.25) * average_risk_factor * average_exposure * len(categ_risks))
+            #print("RISKMODEL: ", self.getPPF(0.5) * average_risk_factor * average_exposure, " = PPF(0.5) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(0.5) * average_risk_factor * average_exposure * len(categ_risks))
             try:
-                acceptable = int(math.floor(cash / var_per_risk))
+                acceptable = int(math.floor(cash[categ_id] / var_per_risk))
                 remaining = acceptable - len(categ_risks)
+                cash_left = cash[categ_id] - len(categ_risks) * var_per_risk
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
             acceptable_by_category.append(acceptable)
             remaining_acceptable_by_category.append(remaining)
+            cash_left_by_category[categ_id] = cash_left
 
         # TODO: expected profits should only be returned once the expire_immediately == False case is fixed; the else-clause conditional statement should then be raised to unconditional
         if expected_profits < 0:
@@ -125,9 +133,63 @@ class RiskModel():
         else:
             if necessary_liquidity == 0:
                 assert expected_profits == 0
-                expected_profits = self.init_profit_estimate * cash
+                expected_profits = self.init_profit_estimate * cash[0]
             else:
                 expected_profits /= necessary_liquidity
 
         print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
-        return expected_profits, remaining_acceptable_by_category
+        return expected_profits, remaining_acceptable_by_category, cash_left_by_category
+
+    def evaluate_excess_of_loss(self, risks, cash, offered_risk = None):
+        
+        # ensure cash is a sequence, defining remaining liquidity by category
+        if not isinstance(cash, (np.ndarray, list)):
+            cash_left_by_categ = np.ones(self.category_number) * cash
+        else:
+            cash_left_by_categ = np.copy(cash)
+        assert len(cash_left_by_categ) == self.category_number
+        
+        # prepare variables
+        additional_required = np.zeros(self.category_number)
+        
+        # values at risk and liquidity requirements by category
+        for categ_id in range(self.category_number):
+            categ_risks = self.get_categ_risks(risks=risks, categ_id=categ_id)
+            
+            # TODO: allow for different risk distributions for different categories
+            # TODO: factor in risk_factors
+            percentage_value_at_risk = self.getPPF(self.var_tail_prob)
+            
+            # compute liquidity requirements from existing contracts
+            for risk in categ_risks:
+                expected_damage = percentage_value_at_risk * risk["value"]
+                expected_claim = min(expected_damage, risk["excess"]) - risk["deductible"]
+                cash_left_by_categ[categ_id] -= expected_claim
+            
+            # compute additional liquidity requirements from newly offered contract
+            if (offered_risk is not None) and (offered_risk.get("category") == categ_id):
+                expected_damage = percentage_value_at_risk * offered_risk["value"]
+                expected_claim = min(expected_damage, offered_risk["excess"]) - offered_risk["deductible"]
+                additional_required[categ_id] -= expected_claim                
+                
+        return cash_left_by_categ, additional_required
+        
+    def evaluate(self, risks, cash, offered_risk = None):
+        # ensure that any risk to be considered supplied directly as argument is non-proportional/excess-of-loss
+        assert (offered_risk is None) or offered_risk.get("insurancetype") == "excess-of-loss"
+        
+        # sort current contracts
+        el_risks = [risk for risk in risks if risk["insurancetype"] == 'excess-of-loss']
+        risks = [risk for risk in risks if risk["insurancetype"] == 'proportional']
+        
+        # compute liquidity requirements and acceptable risks from existing contract
+        cash_left_by_categ, additional_required = self.evaluate_excess_of_loss(el_risks, cash, offered_risk)
+        expected_profits_proportional, remaining_acceptable_by_categ, cash_left_by_categ = self.evaluate_proportional(risks, cash_left_by_categ)
+        
+        if offered_risk is None:
+            # return numbers of remaining acceptable risks by category
+            return expected_profits_proportional, remaining_acceptable_by_categ
+        else:       
+            # return boolean value whether the offered excess_of_loss risk can be accepted
+            return (cash_left_by_categ - additional_required > 0).all()
+        
