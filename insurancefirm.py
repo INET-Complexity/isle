@@ -65,8 +65,8 @@ class InsuranceFirm(GenericAgent):
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
-            self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]
-            self.np_reinsurance_excess = simulation_parameters["default_non-proportional_reinsurance_excess"]
+            self.np_reinsurance_deductible_percentage = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            self.np_reinsurance_excess_percentage = simulation_parameters["default_non-proportional_reinsurance_excess"]
             self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
@@ -267,7 +267,8 @@ class InsuranceFirm(GenericAgent):
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
                             "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible": self.np_reinsurance_deductible, "excess": self.np_reinsurance_excess,
+                            "deductible_percentage": self.np_reinsurance_deductible_percentage, 
+                            "excess_percentage": self.np_reinsurance_excess_percentage,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
