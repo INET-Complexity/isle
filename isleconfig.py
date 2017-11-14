@@ -7,6 +7,7 @@ simulation_parameters={"no_categories": 2,
                        "no_insurancefirms": 20,
                        "no_reinsurancefirms": 2,
                        "no_riskmodels": 2,
+                       "riskmodel_inaccuracy_parameter": 2., # values >=1; inaccuracy higher with higher values
                        "norm_profit_markup": 0.15,
                        "rein_norm_profit_markup": 0.15,
                        "mean_contract_runtime": 36,

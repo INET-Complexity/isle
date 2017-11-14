@@ -88,7 +88,10 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
 
         # set up risk models
-        inaccuracy = [[(0.5 if (i+j)%2==0 else 2.) for i in range(self.simulation_parameters["no_categories"])] for j in range(self.simulation_parameters["no_riskmodels"])]
+        inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
+                        else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
+                        for i in range(self.simulation_parameters["no_categories"])] \
+                        for j in range(self.simulation_parameters["no_riskmodels"])]
         
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
