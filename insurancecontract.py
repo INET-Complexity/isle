@@ -46,7 +46,7 @@ class InsuranceContract():
         #    self.deductible = deductible if deductible is not None else 0
         self.deductible = deductible
         
-        self.excess = excess if excess is not None else 1.
+        self.excess = excess if excess is not None else self.value
         
         self.reinsurance = reinsurance
         self.reinsurer = None
