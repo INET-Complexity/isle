@@ -45,23 +45,6 @@ class InsuranceFirm(GenericAgent):
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
-        #damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
-        #        category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, inaccuracy
-        #self.damage_distribution, self.simulation_parameters["expire_immediately"], \
-        #            self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
-        #            risk_value_mean, risk_factor_mean, \
-        #            self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
-        #            for i in range(self.simulation_parameters["no_riskmodels"])]
-        #risk_model_configurations = [{"damage_distribution": self.damage_distribution,
-        #                              "expire_immediately": self.simulation_parameters["expire_immediately"],
-        #                              "cat_separation_distribution": self.cat_separation_distribution,
-        #                              "norm_premium": self.norm_premium,
-        #                              "no_categories": self.simulation_parameters["no_categories"],
-        #                              "risk_value_mean": risk_value_mean,
-        #                              "risk_factor_mean": risk_factor_mean,
-        #                              "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
-        #                              "inaccuracy": inaccuracy[i]} \
-        
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':

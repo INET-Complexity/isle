@@ -90,11 +90,6 @@ class InsuranceSimulation():
         # set up risk models
         inaccuracy = [[(0.5 if (i+j)%2==0 else 2.) for i in range(self.simulation_parameters["no_categories"])] for j in range(self.simulation_parameters["no_riskmodels"])]
         
-        #self.riskmodels = [RiskModel(self.damage_distribution, self.simulation_parameters["expire_immediately"], \
-        #            self.cat_separation_distribution, self.norm_premium, self.simulation_parameters["no_categories"], \
-        #            risk_value_mean, risk_factor_mean, \
-        #            self.simulation_parameters["norm_profit_markup"], inaccuracy[i]) \
-        #            for i in range(self.simulation_parameters["no_riskmodels"])]
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
                                       "cat_separation_distribution": self.cat_separation_distribution,

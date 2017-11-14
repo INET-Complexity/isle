@@ -176,7 +176,6 @@ class RiskModel():
                 expected_claim_percentage = min(expected_damage_percentage, offered_risk["excess_percentage"]) - offered_risk["deductible_percentage"]
                 expected_claim_total = expected_claim_percentage * offered_risk["value"]
                 additional_required[categ_id] += expected_claim_total  
-                #pdb.set_trace()              
                 
         return cash_left_by_categ, additional_required
         
