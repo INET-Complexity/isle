@@ -48,8 +48,8 @@ class InsuranceFirm(GenericAgent):
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
-            self.np_reinsurance_deductible_percentage = simulation_parameters["default_non-proportional_reinsurance_deductible"]
-            self.np_reinsurance_excess_percentage = simulation_parameters["default_non-proportional_reinsurance_excess"]
+            self.np_reinsurance_deductible_fraction = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            self.np_reinsurance_excess_fraction = simulation_parameters["default_non-proportional_reinsurance_excess"]
             self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
@@ -250,8 +250,8 @@ class InsuranceFirm(GenericAgent):
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
                             "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible_percentage": self.np_reinsurance_deductible_percentage, 
-                            "excess_percentage": self.np_reinsurance_excess_percentage,
+                            "deductible_fraction": self.np_reinsurance_deductible_fraction, 
+                            "excess_fraction": self.np_reinsurance_excess_fraction,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
@@ -292,13 +292,13 @@ class InsuranceFirm(GenericAgent):
                 else:
                     break
 
-    def add_reinsurance(self, category, excess_percentage, deductible_percentage, contract):
-        self.riskmodel.add_reinsurance(category, excess_percentage, deductible_percentage, contract)
+    def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.add_reinsurance(category, excess_fraction, deductible_fraction, contract)
         self.category_reinsurance[category] = contract
         #pass
 
-    def delete_reinsurance(self, category, excess_percentage, deductible_percentage, contract):
-        self.riskmodel.delete_reinsurance(category, excess_percentage, deductible_percentage, contract)
+    def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.delete_reinsurance(category, excess_fraction, deductible_fraction, contract)
         self.category_reinsurance[category] = None
         #pass
 

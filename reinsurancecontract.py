@@ -9,14 +9,14 @@ class ReinsuranceContract(InsuranceContract):
         The signature of this class' constructor is the same as that of the InsuranceContract constructor.
         The class has two methods (explode, mature) that overwrite methods in InsuranceContract."""
     def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, \
-                 insurancetype="proportional", deductible_percentage=None, excess_percentage=None, reinsurance=0):
+                 insurancetype="proportional", deductible_fraction=None, excess_fraction=None, reinsurance=0):
         super(ReinsuranceContract, self).__init__(insurer, properties, time, premium, runtime, payment_period, \
-                        expire_immediately, insurancetype, deductible_percentage, excess_percentage, reinsurance)
+                        expire_immediately, insurancetype, deductible_fraction, excess_fraction, reinsurance)
         #self.is_reinsurancecontract = True
         
         if self.insurancetype == "excess-of-loss":
-            self.property_holder.add_reinsurance(category=self.category, excess_percentage=self.excess_percentage, \
-                                                    deductible_percentage=self.deductible_percentage, contract=self)
+            self.property_holder.add_reinsurance(category=self.category, excess_fraction=self.excess_fraction, \
+                                                    deductible_fraction=self.deductible_fraction, contract=self)
         else:
             assert self.contract is not None
         
@@ -55,8 +55,8 @@ class ReinsuranceContract(InsuranceContract):
         self.terminate_reinsurance(time)
         
         if self.insurancetype == "excess-of-loss":
-            self.property_holder.delete_reinsurance(category=self.category, excess_percentage=self.excess_percentage, \
-                                                        deductible_percentage=self.deductible_percentage, contract=self)
+            self.property_holder.delete_reinsurance(category=self.category, excess_fraction=self.excess_fraction, \
+                                                        deductible_fraction=self.deductible_fraction, contract=self)
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 

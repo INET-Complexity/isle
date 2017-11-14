@@ -171,10 +171,10 @@ class RiskModel():
             
             # compute additional liquidity requirements from newly offered contract
             if (offered_risk is not None) and (offered_risk.get("category") == categ_id):
-                expected_damage_percentage = percentage_value_at_risk * offered_risk["risk_factor"] \
+                expected_damage_fraction = percentage_value_at_risk * offered_risk["risk_factor"] \
                                                                       * self.inaccuracy[categ_id]
-                expected_claim_percentage = min(expected_damage_percentage, offered_risk["excess_percentage"]) - offered_risk["deductible_percentage"]
-                expected_claim_total = expected_claim_percentage * offered_risk["value"]
+                expected_claim_fraction = min(expected_damage_fraction, offered_risk["excess_fraction"]) - offered_risk["deductible_fraction"]
+                expected_claim_total = expected_claim_fraction * offered_risk["value"]
                 additional_required[categ_id] += expected_claim_total  
                 
         return cash_left_by_categ, additional_required
@@ -210,14 +210,14 @@ class RiskModel():
             #    pdb.set_trace()
             return (cash_left_by_categ - additional_required > 0).all()
         
-    def add_reinsurance(self, categ_id, excess_percentage, deductible_percentage, contract):
+    def add_reinsurance(self, categ_id, excess_fraction, deductible_fraction, contract):
         self.damage_distribution_stack[categ_id].append(self.damage_distribution[categ_id])
         self.reinsurance_contract_stack[categ_id].append(contract)
-        self.damage_distribution[categ_id] = ReinsuranceDistWrapper(lower_bound=deductible_percentage, \
-                                                                    upper_bound=excess_percentage, \
+        self.damage_distribution[categ_id] = ReinsuranceDistWrapper(lower_bound=deductible_fraction, \
+                                                                    upper_bound=excess_fraction, \
                                                                     dist=self.damage_distribution[categ_id])
 
-    def delete_reinsurance(self, categ_id, excess_percentage, deductible_percentage, contract):
+    def delete_reinsurance(self, categ_id, excess_fraction, deductible_fraction, contract):
         assert self.reinsurance_contract_stack[categ_id][-1] == contract
         self.reinsurance_contract_stack[categ_id].pop()
         self.damage_distribution[categ_id] = self.damage_distribution_stack[categ_id].pop()
