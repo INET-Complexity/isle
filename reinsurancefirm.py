@@ -1,7 +1,7 @@
 
-from insurancefirm import InsuranceFirm
+from firm import Firm
 
-class ReinsuranceFirm(InsuranceFirm):
+class ReinsuranceFirm(Firm):
     """ReinsuranceFirm class. 
        Inherits from InsuranceFirm."""
     def init(self, simulation_parameters, agent_parameters):
