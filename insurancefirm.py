@@ -4,6 +4,7 @@ import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
+from riskmodel import RiskModel
 import sys, pdb
 import uuid
 import numba as nb
@@ -25,7 +26,6 @@ class InsuranceFirm(GenericAgent):
         self.default_contract_payment_period = simulation_parameters["default_contract_payment_period"]
         self.id = agent_parameters['id']
         self.cash = agent_parameters['initial_cash']
-        self.riskmodel = agent_parameters['riskmodel']
         self.premium = agent_parameters["norm_premium"]
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
@@ -34,10 +34,23 @@ class InsuranceFirm(GenericAgent):
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
+        
+        rm_config = agent_parameters['riskmodel_config']
+        self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
+                                     expire_immediately=rm_config["expire_immediately"], \
+                                     cat_separation_distribution=rm_config["cat_separation_distribution"], \
+                                     norm_premium=rm_config["norm_premium"], \
+                                     category_number=rm_config["no_categories"], \
+                                     init_average_exposure=rm_config["risk_value_mean"], \
+                                     init_average_risk_factor=rm_config["risk_factor_mean"], \
+                                     init_profit_estimate=rm_config["norm_profit_markup"], \
+                                     margin_of_safety=rm_config["margin_of_safety"], \
+                                     inaccuracy=rm_config["inaccuracy_by_categ"])
+        
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
-            self.np_reinsurance_deductible = simulation_parameters["default_non-proportional_reinsurance_deductible"]
-            self.np_reinsurance_excess = simulation_parameters["default_non-proportional_reinsurance_excess"]
+            self.np_reinsurance_deductible_fraction = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            self.np_reinsurance_excess_fraction = simulation_parameters["default_non-proportional_reinsurance_excess"]
             self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
@@ -238,7 +251,8 @@ class InsuranceFirm(GenericAgent):
                 risk = {"value": total_value, "category": categ_id, "owner": self,
                             #"identifier": uuid.uuid1(),
                             "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible": self.np_reinsurance_deductible, "excess": self.np_reinsurance_excess,
+                            "deductible_fraction": self.np_reinsurance_deductible_fraction, 
+                            "excess_fraction": self.np_reinsurance_excess_fraction,
                             "periodized_total_premium": periodized_total_premium, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
@@ -279,11 +293,13 @@ class InsuranceFirm(GenericAgent):
                 else:
                     break
 
-    def add_reinsurance(self, category, excess, deductible, contract):
+    def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.add_reinsurance(category, excess_fraction, deductible_fraction, contract)
         self.category_reinsurance[category] = contract
         #pass
 
-    def delete_reinsurance(self, category, excess, deductible, contract):
+    def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.delete_reinsurance(category, excess_fraction, deductible_fraction, contract)
         self.category_reinsurance[category] = None
         #pass
 
