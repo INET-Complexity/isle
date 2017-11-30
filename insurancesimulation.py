@@ -340,7 +340,7 @@ class InsuranceSimulation():
         np.random.shuffle(self.risks)
 
     def adjust_market_premium(self, capital):
-        self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.norm_premium * self.simulation_parameters["no_risks"]))
+        self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
 

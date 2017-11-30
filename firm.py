@@ -16,7 +16,7 @@ else:
     from genericagent import GenericAgent
     #print("abce not imported")
 
-class InsuranceFirm(GenericAgent):
+class Firm(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
         self.simulation_parameters = simulation_parameters
@@ -45,7 +45,6 @@ class InsuranceFirm(GenericAgent):
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
                                      margin_of_safety=rm_config["margin_of_safety"], \
-                                     var_tail_prob=rm_config["var_tail_prob"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
@@ -67,17 +66,8 @@ class InsuranceFirm(GenericAgent):
         """realize due payments"""
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
-        
-        """collect and effect reinsurance claims"""
-        # TODO: reorganize this with risk category ledgers
-        claims_this_turn = np.zeros(self.simulation_no_risk_categories)
-        for contract in self.underwritten_contracts:
-            categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
-            if is_proportional:
-                claims_this_turn[categ_id] += claims
-        for categ_id in range(self.simulation_no_risk_categories):
-            if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
-                self.category_reinsurance[categ_id].check_if_liable(time, claims_this_turn[categ_id]) 
+
+        self.make_reinsurance_claims_np(time)
 
         """mature contracts"""
         print("Number of underwritten contracts ", len(self.underwritten_contracts))
@@ -105,8 +95,8 @@ class InsuranceFirm(GenericAgent):
                 print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(self.id, contracts_offered, 2*contracts_dissolved))
             #print(self.id, " has ", len(self.underwritten_contracts), " & receives ", contracts_offered, " & lost ", contracts_dissolved)
             
-            new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss']
-            new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None]]
+            new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss' and risk["owner"] is not self]
+            new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None] and risk["owner"] is not self]
 
             underwritten_risks = [{"value": contract.value, "category": contract.category, \
                             "risk_factor": contract.risk_factor, "deductible": contract.deductible, \
@@ -233,7 +223,8 @@ class InsuranceFirm(GenericAgent):
             self.ask_reinsurance_non_proportional(time)
         else:
             assert False, "Undefined reinsurance type"
-        
+
+    @nb.jit
     def ask_reinsurance_non_proportional(self, time):
         for categ_id in range(self.simulation_no_risk_categories):
             # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
@@ -326,3 +317,15 @@ class InsuranceFirm(GenericAgent):
     
     def get_pointer(self):
         return self
+
+    def make_reinsurance_claims_np(self,time):
+        """collect and effect reinsurance claims"""
+        # TODO: reorganize this with risk category ledgers
+        claims_this_turn = np.zeros(self.simulation_no_risk_categories)
+        for contract in self.underwritten_contracts:
+            categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
+            if is_proportional:
+                claims_this_turn[categ_id] += claims
+        for categ_id in range(self.simulation_no_risk_categories):
+            if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
+                self.category_reinsurance[categ_id].check_if_liable(time, claims_this_turn[categ_id])
