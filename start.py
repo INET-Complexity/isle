@@ -20,9 +20,14 @@ if (len(sys.argv) > 1):
         assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --abce"
         isleconfig.use_abce = True if int(sys.argv[argument_idx + 1]) == 1 else False 
     if "--oneriskmodel" in sys.argv:
-        # allow overriding the number of riskmodels from standard config
+        # allow overriding the number of riskmodels from standard config (with 1)
         isleconfig.oneriskmodel = True
-        override_no_riskmodels = True         
+        override_no_riskmodels = 1         
+    if "--riskmodels" in sys.argv:
+        # allow overriding the number of riskmodels from standard config (with 1 or other numbers)
+        argument_idx = sys.argv.index("--riskmodels")
+        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --riskmodels"
+        override_no_riskmodels = int(sys.argv[argument_idx + 1])         
     if "--replicid" in sys.argv:
         # if replication ID is given, pass this to the simulation so that the risk profile can be restored 
         argument_idx = sys.argv.index("--replicid")
