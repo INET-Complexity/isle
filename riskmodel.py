@@ -11,7 +11,7 @@ from distributionreinsurance import ReinsuranceDistWrapper
 class RiskModel():
     def __init__(self, damage_distribution, expire_immediately, cat_separation_distribution, norm_premium, \
                 category_number, init_average_exposure, init_average_risk_factor, init_profit_estimate, \
-                margin_of_safety, inaccuracy):
+                margin_of_safety, var_tail_prob, inaccuracy):
         self.cat_separation_distribution = cat_separation_distribution
         self.norm_premium = norm_premium
         self.var_tail_prob = 0.02
