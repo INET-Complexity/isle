@@ -45,6 +45,7 @@ class InsuranceFirm(GenericAgent):
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
                                      margin_of_safety=rm_config["margin_of_safety"], \
+                                     var_tail_prob=rm_config["var_tail_prob"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]

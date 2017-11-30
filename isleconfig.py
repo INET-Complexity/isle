@@ -5,16 +5,17 @@ force_foreground = False
 
 simulation_parameters={"no_categories": 2,
                        "no_insurancefirms": 20,
-                       "no_reinsurancefirms": 2,
+                       "no_reinsurancefirms": 4,
                        "no_riskmodels": 2,
                        "riskmodel_inaccuracy_parameter": 2., # values >=1; inaccuracy higher with higher values
                        "riskmodel_margin_of_safety": 2., # values >=1; factor of additional liquidity beyond value at risk
+                       "value_at_risk_tail_probability": 0.005, # values <1, >0, usually close to 0; tail probability at which the value at risk is taken by the risk models
                        "norm_profit_markup": 0.15,
                        "rein_norm_profit_markup": 0.15,
                        "mean_contract_runtime": 36,
                        "contract_runtime_halfspread": 10,
                        "default_contract_payment_period": 12,
-                       "max_time": 600,
+                       "max_time": 60,
                        "money_supply": 2000000000,
                        "event_time_mean_separation": 100 / 3.,
                        "expire_immediately": False,
@@ -28,7 +29,7 @@ simulation_parameters={"no_categories": 2,
                        "default_non-proportional_reinsurance_excess": 1.0,
                        "default_non-proportional_reinsurance_premium_share": 0.5,
                        "initial_agent_cash": 20000,
-                       "initial_reinagent_cash": 500000,
+                       "initial_reinagent_cash": 250000,
                        "interest_rate": 0,
                        "reinsurance_limit": 0.1,
                        "upper_price_limit": 1.2,
