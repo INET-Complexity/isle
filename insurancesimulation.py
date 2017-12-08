@@ -89,10 +89,12 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
 
         # set up risk models
-        inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
-                        else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
-                        for i in range(self.simulation_parameters["no_categories"])] \
-                        for j in range(self.simulation_parameters["no_riskmodels"])]
+        #inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
+        #                else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
+        #                for i in range(self.simulation_parameters["no_categories"])] \
+        #                for j in range(self.simulation_parameters["no_riskmodels"])]
+        inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
+        inaccuracy = inaccuracy[:self.simulation_parameters["no_riskmodels"]]
         
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
@@ -378,6 +380,26 @@ class InsuranceSimulation():
 
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
+    
+    def add_one_to_riskmodel_combination(self, pos_positions, n, k, rm_factor, riskmodels):
+        if len(pos_positions) == k:
+            rm = [1./rm_factor if (i in pos_positions) else rm_factor for i in range(n)]
+            if not rm in riskmodels:
+                riskmodels.append(rm)
+                if sum(rm)*2 == len(rm):
+                    rm = [rm_factor if (i in pos_positions) else 1/rm_factor for i in range(n)]
+                    riskmodels.append(rm)
+        else:
+            for i in range(n):
+                if not i in pos_positions:
+                    riskmodels = self.add_one_to_riskmodel_combination(pos_positions+[i], n, k, rm_factor, riskmodels)
+        return riskmodels
+
+    def get_all_riskmodel_combinations(self, n, rm_factor):
+        riskmodels = []
+        pos_number = math.ceil(n/2)
+        riskmodels = self.add_one_to_riskmodel_combination([], n, pos_number, rm_factor, riskmodels)
+        return riskmodels
 
     def setup_risk_categories(self):
         for i in self.riskcategories:
