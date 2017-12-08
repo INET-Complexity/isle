@@ -3,98 +3,157 @@ import numpy as np
 import pdb
 import os
 import time
+import glob
 
-# do not overwrite old pdf
-if os.path.exists("data/fig_one_and_two_rm_comp.pdf"):
-    os.rename("data/fig_one_and_two_rm_comp.pdf", "data/fig_one_and_two_rm_comp_old_" + time.strftime('%Y_%b_%d_%H_%M') + ".pdf")
+def read_data():
+    # do not overwrite old pdfs
+    #if os.path.exists("data/fig_one_and_two_rm_comp.pdf"):
+    #    os.rename("data/fig_one_and_two_rm_comp.pdf", "data/fig_one_and_two_rm_comp_old_" + time.strftime('%Y_%b_%d_%H_%M') + ".pdf")
+    #if os.path.exists("data/fig_three_and_four_rm_comp.pdf"):
+    #    os.rename("data/fig_three_and_four_rm_comp.pdf", "data/fig_three_and_four_rm_comp_old_" + time.strftime('%Y_%b_%d_%H_%M') + ".pdf")
 
-upper_bound = 75
-lower_bound = 25
+    upper_bound = 75
+    lower_bound = 25
 
-rfile = open("data/one_contracts.dat","r")
-contracts_one = [eval(k) for k in rfile]
-rfile.close()
+    timeseries_dict = {}
+    timeseries_dict["mean"] = {}
+    timeseries_dict["median"] = {}
+    timeseries_dict["quantile25"] = {}
+    timeseries_dict["quantile75"] = {}
 
-rfile = open("data/two_contracts.dat","r")
-contracts_two = [eval(k) for k in rfile]
-rfile.close()
+    filenames_ones = glob.glob("data/one*.dat")
+    filenames_twos = glob.glob("data/two*.dat")
+    filenames_threes = glob.glob("data/three*.dat")
+    filenames_fours = glob.glob("data/four*.dat")
+    filenames_ones.sort()
+    filenames_twos.sort()
+    filenames_threes.sort()
+    filenames_fours.sort()
 
-rfile = open("data/one_operational.dat","r")
-op_one = [eval(k) for k in rfile]
-rfile.close()
+    assert len(filenames_ones) == len(filenames_twos) == len(filenames_threes) == len(filenames_fours)
+    all_filenames = filenames_ones + filenames_twos + filenames_threes + filenames_fours
 
-rfile = open("data/two_operational.dat","r")
-op_two = [eval(k) for k in rfile]
-rfile.close()
-
-c_one = []
-c_two = []
-
-c_one_lo = []
-c_one_up = []
-c_two_lo = []
-c_two_up = []
-
-o_one = []
-o_two = []
-
-o_one_lo = []
-o_one_up = []
-o_two_lo = []
-o_two_up = []
-
-
-for i in range(len(contracts_one[0])):
-    c1 = np.mean([item[i] for item in contracts_one])
-    c2 = np.mean([item[i] for item in contracts_two])
-    c1_lo = np.percentile([item[i] for item in contracts_one], lower_bound)
-    c1_up = np.percentile([item[i] for item in contracts_one], upper_bound)
-    c2_lo = np.percentile([item[i] for item in contracts_two], lower_bound)
-    c2_up = np.percentile([item[i] for item in contracts_two], upper_bound)
-    #o1 = np.mean([item[i] for item in op_one])
-    #o2 = np.mean([item[i] for item in op_two])
-    #c1 = np.median([item[i] for item in contracts_one])
-    #c2 = np.median([item[i] for item in contracts_two])
-    o1 = np.median([item[i] for item in op_one])
-    o2 = np.median([item[i] for item in op_two])
-    o1_lo = np.percentile([item[i] for item in op_one], lower_bound)
-    o1_up = np.percentile([item[i] for item in op_one], upper_bound)
-    o2_lo = np.percentile([item[i] for item in op_two], lower_bound)
-    o2_up = np.percentile([item[i] for item in op_two], upper_bound)
-    c_one.append(c1)
-    c_two.append(c2)
-    c_one_up.append(c1_up)
-    c_one_lo.append(c1_lo)
-    c_two_up.append(c2_up)
-    c_two_lo.append(c2_lo)
-    o_one.append(o1)
-    o_two.append(o2)
-    o_one_up.append(o1_up)
-    o_one_lo.append(o1_lo)
-    o_two_up.append(o2_up)
-    o_two_lo.append(o2_lo)
+    for filename in all_filenames:
+        # read files
+        rfile = open(filename, "r")
+        data = [eval(k) for k in rfile]
+        rfile.close()
+        
+        # compute data series
+        data_means = []
+        data_medians = []
+        data_q25 = []
+        data_q75 = []
+        for i in range(len(data[0])):
+            data_means.append(np.mean([item[i] for item in data]))
+            data_q25.append(np.percentile([item[i] for item in data], lower_bound))
+            data_q75.append(np.percentile([item[i] for item in data], upper_bound))
+            data_medians.append(np.median([item[i] for item in data]))
+        data_means = np.array(data_means)
+        data_medians = np.array(data_medians)
+        data_q25 = np.array(data_q25)
+        data_q75 = np.array(data_q75)
+        
+        # record data series
+        timeseries_dict["mean"][filename] = data_means
+        timeseries_dict["median"][filename] = data_medians
+        timeseries_dict["quantile25"][filename] = data_q25
+        timeseries_dict["quantile75"][filename] = data_q75
+    return timeseries_dict
+        
     
-print(contracts_one)
-print(contracts_two)
-print(c_one)
-print(c_two)
-print(len(c_one), len(c_one_up))
-#pdb.set_trace()
 
-fig = plt.figure()
-ax0 = fig.add_subplot(211)
-ax0.plot(range(len(c_one)), c_one,"r", label="One riskmodel")
-ax0.plot(range(len(c_two)), c_two,"b", label="Two riskmodels")
-ax0.fill_between(range(len(c_one)), c_one_lo, c_one_up, facecolor='red', alpha=0.25)
-ax0.fill_between(range(len(c_two)), c_two_lo, c_two_up, facecolor='blue', alpha=0.25)
-ax0.set_ylabel("Contracts")
-ax0.legend(loc='best')
-ax1 = fig.add_subplot(212)
-ax1.plot(range(len(o_one)), o_one,"r")
-ax1.plot(range(len(o_two)), o_two,"b")
-ax1.fill_between(range(len(o_one)), o_one_lo, o_one_up, facecolor='red', alpha=0.25)
-ax1.fill_between(range(len(o_two)), o_two_lo, o_two_up, facecolor='blue', alpha=0.25)
-ax1.set_ylabel("Active firms")
-ax1.set_xlabel("Time")
-plt.savefig("data/fig_one_and_two_rm_comp.pdf")
-plt.show()
+def plotting(output_label, timeseries_dict, riskmodelsetting1, riskmodelsetting2, series1, series2=None, additionalriskmodelsetting3=None, additionalriskmodelsetting4=None, plottype1="mean", plottype2="mean"):
+    # dictionaries
+    colors = {"one": "red", "two": "blue", "three": "green", "four": "yellow"}
+    labels = {"contracts": "Contracts (Insurers)", "cash": "Liquidity (Insurers)", "operational": "Active Insurers", "premium": "Premium", "reincash": "Liquidity (Reinsurers)", "reincontracts": "Contracts (Reinsurers)", "reinoperational": "Active Reinsurers"}
+    
+    # prepare labels, timeseries, etc.
+    color1 = colors[riskmodelsetting1]
+    color2 = colors[riskmodelsetting2]
+    label1 = str.upper(riskmodelsetting1[0]) + riskmodelsetting1[1:] + " riskmodels"
+    label2 = str.upper(riskmodelsetting2[0]) + riskmodelsetting2[1:] + " riskmodels"
+    plot_1_1 = "data/" + riskmodelsetting1 + "_" + series1 + ".dat"
+    plot_1_2 = "data/" + riskmodelsetting2 + "_" + series1 + ".dat"
+    if series2 is not None:
+        plot_2_1 = "data/" + riskmodelsetting1 + "_" + series2 + ".dat"
+        plot_2_2 = "data/" + riskmodelsetting2 + "_" + series2 + ".dat"
+    if additionalriskmodelsetting3 is not None:
+        color3 = colors[additionalriskmodelsetting3]
+        label3 = str.upper(additionalriskmodelsetting3[0]) + additionalriskmodelsetting3[1:] + " riskmodels"
+        plot_1_3 = "data/" + additionalriskmodelsetting3 + "_" + series1 + ".dat"
+        if series2 is not None:
+            plot_2_3 = "data/" + additionalriskmodelsetting3 + "_" + series2 + ".dat"
+    if additionalriskmodelsetting4 is not None:
+        color4 = colors[additionalriskmodelsetting4]
+        label4 = str.upper(additionalriskmodelsetting4[0]) + additionalriskmodelsetting4[1:] + " riskmodels"
+        plot_1_4 = "data/" + additionalriskmodelsetting4 + "_" + series1 + ".dat"
+        if series2 is not None:
+            plot_2_4 = "data/" + additionalriskmodelsetting4 + "_" + series2 + ".dat"
+    
+    # Backup existing figures (so as not to overwrite them)
+    outputfilename = "data/" + output_label + ".pdf"
+    backupfilename = "data/" + output_label + "_old_" + time.strftime('%Y_%b_%d_%H_%M') + ".pdf"
+    if os.path.exists(outputfilename):
+        os.rename(outputfilename, backupfilename)
+    
+    # Plot and save
+    fig = plt.figure()
+    if series2 is not None:
+        ax0 = fig.add_subplot(211)
+    else:
+        ax0 = fig.add_subplot(111)
+    if additionalriskmodelsetting3 is not None:
+        ax0.plot(range(len(timeseries_dict[plottype1][plot_1_3])), timeseries_dict[plottype1][plot_1_3], color=color3, label=label3)
+    if additionalriskmodelsetting4 is not None:
+        ax0.plot(range(len(timeseries_dict[plottype1][plot_1_4])), timeseries_dict[plottype1][plot_1_4], color=color4, label=label4)   
+    ax0.plot(range(len(timeseries_dict[plottype1][plot_1_1])), timeseries_dict[plottype1][plot_1_1], color=color1, label=label1)
+    ax0.plot(range(len(timeseries_dict[plottype1][plot_1_2])), timeseries_dict[plottype1][plot_1_2], color=color2, label=label2)
+    ax0.fill_between(range(len(timeseries_dict["quantile25"][plot_1_1])), timeseries_dict["quantile25"][plot_1_1], timeseries_dict["quantile75"][plot_1_1], facecolor=color1, alpha=0.25)
+    ax0.fill_between(range(len(timeseries_dict["quantile25"][plot_1_1])), timeseries_dict["quantile25"][plot_1_2], timeseries_dict["quantile75"][plot_1_2], facecolor=color2, alpha=0.25)
+    ax0.set_ylabel(labels[series1])#"Contracts")
+    ax0.legend(loc='best')
+    if series2 is not None:
+        ax1 = fig.add_subplot(212)
+        if additionalriskmodelsetting3 is not None:
+            ax1.plot(range(len(timeseries_dict[plottype2][plot_2_3])), timeseries_dict[plottype2][plot_2_3], color=color3, label=label3)
+        if additionalriskmodelsetting4 is not None:
+            ax1.plot(range(len(timeseries_dict[plottype2][plot_2_4])), timeseries_dict[plottype2][plot_2_4], color=color4, label=label4)   
+        ax1.plot(range(len(timeseries_dict[plottype2][plot_2_1])), timeseries_dict[plottype2][plot_2_1], color=color1, label=label1)
+        ax1.plot(range(len(timeseries_dict[plottype2][plot_2_2])), timeseries_dict[plottype2][plot_2_2], color=color2, label=label2)
+        ax1.fill_between(range(len(timeseries_dict["quantile25"][plot_2_1])), timeseries_dict["quantile25"][plot_2_1], timeseries_dict["quantile75"][plot_2_1], facecolor=color1, alpha=0.25)
+        ax1.fill_between(range(len(timeseries_dict["quantile25"][plot_2_1])), timeseries_dict["quantile25"][plot_2_2], timeseries_dict["quantile75"][plot_2_2], facecolor=color2, alpha=0.25)
+        ax1.set_ylabel(labels[series2])
+        ax1.set_xlabel("Time")
+    plt.savefig(outputfilename)
+    plt.show()
+
+timeseries = read_data()
+
+# for just two different riskmodel settings
+plotting(output_label="fig_contracts_survival_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", \
+    riskmodelsetting2="two", series1="contracts", series2="operational", plottype1="mean", plottype2="median")
+plotting(output_label="fig_reinsurers_contracts_survival_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", \
+    riskmodelsetting2="two", series1="reincontracts", series2="reinoperational", plottype1="mean", plottype2="median")
+plotting(output_label="fig_premium_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", riskmodelsetting2="two", \
+    series1="premium", series2=None, plottype1="mean", plottype2=None)
+
+raise SystemExit
+# for four different riskmodel settings
+plotting(output_label="fig_contracts_survival_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", \
+        riskmodelsetting2="two", series1="contracts", series2="operational", additionalriskmodelsetting3="three", \
+        additionalriskmodelsetting4="four", plottype1="mean", plottype2="median")
+plotting(output_label="fig_contracts_survival_3_4", timeseries_dict=timeseries, riskmodelsetting1="three", \
+        riskmodelsetting2="four", series1="contracts", series2="operational",  additionalriskmodelsetting3="one", \
+        additionalriskmodelsetting4="two", plottype1="mean", plottype2="median")
+plotting(output_label="fig_reinsurers_contracts_survival_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", \
+        riskmodelsetting2="two", series1="reincontracts", series2="reinoperational", \
+        additionalriskmodelsetting3="three", additionalriskmodelsetting4="four", plottype1="mean", plottype2="median")
+plotting(output_label="fig_reinsurers_contracts_survival_3_4", timeseries_dict=timeseries, riskmodelsetting1="three", \
+        riskmodelsetting2="four", series1="reincontracts", series2="reinoperational", \
+        additionalriskmodelsetting3="one", additionalriskmodelsetting4="two", plottype1="mean", plottype2="median")
+plotting(output_label="fig_premium_1_2", timeseries_dict=timeseries, riskmodelsetting1="one", riskmodelsetting2="two", \
+        series1="premium", series2=None, additionalriskmodelsetting3="three", additionalriskmodelsetting4="four", \
+        plottype1="mean", plottype2=None)
+
+#pdb.set_trace()
