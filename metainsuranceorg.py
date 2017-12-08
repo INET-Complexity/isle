@@ -229,7 +229,7 @@ class MetaInsuranceOrg(GenericAgent):
     def ask_reinsurance_non_proportional(self, time):
         for categ_id in range(self.simulation_no_risk_categories):
             # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.1:
+            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.6:
                 total_value = 0
                 avg_risk_factor = 0
                 number_risks = 0
