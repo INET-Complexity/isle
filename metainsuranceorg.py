@@ -112,7 +112,7 @@ class MetaInsuranceOrg(GenericAgent):
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
-                                                  insurancetype=risk["insurancetype"], deductible_fraction = 0.25)        # TODO: implement excess of loss for reinsurance contracts
+                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
