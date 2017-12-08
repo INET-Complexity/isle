@@ -45,6 +45,7 @@ class MetaInsuranceOrg(GenericAgent):
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
                                      margin_of_safety=rm_config["margin_of_safety"], \
+                                     var_tail_prob=rm_config["var_tail_prob"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
@@ -111,7 +112,7 @@ class MetaInsuranceOrg(GenericAgent):
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
-                                                  insurancetype=risk["insurancetype"], deductible_fraction = 0.25)        # TODO: implement excess of loss for reinsurance contracts
+                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
