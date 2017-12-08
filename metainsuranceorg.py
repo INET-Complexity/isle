@@ -16,7 +16,7 @@ else:
     from genericagent import GenericAgent
     #print("abce not imported")
 
-class Firm(GenericAgent):
+class MetaInsuranceOrg(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
         self.simulation_parameters = simulation_parameters
@@ -67,7 +67,7 @@ class Firm(GenericAgent):
         self.effect_payments(time)
         print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
 
-        self.make_reinsurance_claims_np(time)
+        self.make_reinsurance_claims(time)
 
         """mature contracts"""
         print("Number of underwritten contracts ", len(self.underwritten_contracts))
@@ -111,7 +111,7 @@ class Firm(GenericAgent):
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
-                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
+                                                  insurancetype=risk["insurancetype"], deductible_fraction = 0.25)        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
@@ -228,7 +228,7 @@ class Firm(GenericAgent):
     def ask_reinsurance_non_proportional(self, time):
         for categ_id in range(self.simulation_no_risk_categories):
             # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.05:
+            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.1:
                 total_value = 0
                 avg_risk_factor = 0
                 number_risks = 0
@@ -318,14 +318,18 @@ class Firm(GenericAgent):
     def get_pointer(self):
         return self
 
-    def make_reinsurance_claims_np(self,time):
+    def make_reinsurance_claims(self,time):
         """collect and effect reinsurance claims"""
         # TODO: reorganize this with risk category ledgers
+        # TODO: Put facultative insurance claims here
         claims_this_turn = np.zeros(self.simulation_no_risk_categories)
         for contract in self.underwritten_contracts:
             categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
             if is_proportional:
                 claims_this_turn[categ_id] += claims
+            if (contract.reincontract != None):
+                contract.reincontract.explode(time, claims)
+
         for categ_id in range(self.simulation_no_risk_categories):
             if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
-                self.category_reinsurance[categ_id].check_if_liable(time, claims_this_turn[categ_id])
+                self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])

@@ -1,7 +1,7 @@
 
-from insurancecontract import InsuranceContract 
+from metainsurancecontract import MetaInsuranceContract 
 
-class ReinsuranceContract(InsuranceContract):
+class ReinsuranceContract(MetaInsuranceContract):
     """ReinsuranceContract class.
         Inherits from InsuranceContract.
         Constructor is not currently required but may be used in the future to distinguish InsuranceContract
@@ -20,7 +20,7 @@ class ReinsuranceContract(InsuranceContract):
         else:
             assert self.contract is not None
         
-    def explode(self, time, uniform_value=None, damage_extent=None):
+    def explode(self, time, damage_extent=None):
         """Explode method.
                Accepts agruments
                    time: Type integer. The current time.
@@ -30,12 +30,12 @@ class ReinsuranceContract(InsuranceContract):
                No return value.
            Method marks the contract for termination.
             """
+
         if self.insurancetype == "excess-of-loss" and damage_extent > self.deductible:
             claim = min(self.excess, damage_extent) - self.deductible
-            if (self.reincontract != None):
-                self.reinsurer.receive_obligation(claim, self.insurer, time)
-                self.reincontract.explode(True, time)
-            
+            self.insurer.receive_obligation(claim, self.property_holder, time)
+        else:
+            claim = min(self.excess, damage_extent) - self.deductible
             self.insurer.receive_obligation(claim, self.property_holder, time + 1)
             # Reinsurer pays as soon as possible.
         if self.expire_immediately:
@@ -60,5 +60,3 @@ class ReinsuranceContract(InsuranceContract):
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 
-    def check_if_liable(self, time, claim):
-        self.explode(False, time, damage_extent=claim)
