@@ -1,6 +1,6 @@
-from firm import Firm
+from metainsuranceorg import MetaInsuranceOrg
 
-class InsuranceFirm(Firm):
+class InsuranceFirm(MetaInsuranceOrg):
     """ReinsuranceFirm class.
        Inherits from InsuranceFirm."""
     def init(self, simulation_parameters, agent_parameters):
