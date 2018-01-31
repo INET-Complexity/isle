@@ -23,7 +23,8 @@ class InsuranceSimulation():
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
-
+        self.number_riskmodels = simulation_parameters["no_riskmodels"]
+        
         # save parameters
         if (replic_ID is None) or (isleconfig.force_foreground):
             self.background_run = False 
@@ -88,10 +89,12 @@ class InsuranceSimulation():
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
 
         # set up risk models
-        inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
-                        else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
-                        for i in range(self.simulation_parameters["no_categories"])] \
-                        for j in range(self.simulation_parameters["no_riskmodels"])]
+        #inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
+        #                else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
+        #                for i in range(self.simulation_parameters["no_categories"])] \
+        #                for j in range(self.simulation_parameters["no_riskmodels"])]
+        inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
+        inaccuracy = inaccuracy[:self.simulation_parameters["no_riskmodels"]]
         
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
@@ -102,6 +105,7 @@ class InsuranceSimulation():
                                       "risk_factor_mean": risk_factor_mean,
                                       "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
                                       "margin_of_safety": self.simulation_parameters["riskmodel_margin_of_safety"],
+                                      "var_tail_prob": self.simulation_parameters["value_at_risk_tail_probability"],
                                       "inaccuracy_by_categ": inaccuracy[i]} \
                                       for i in range(self.simulation_parameters["no_riskmodels"])]
         
@@ -376,6 +380,26 @@ class InsuranceSimulation():
 
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
+    
+    def add_one_to_riskmodel_combination(self, pos_positions, n, k, rm_factor, riskmodels):
+        if len(pos_positions) == k:
+            rm = [1./rm_factor if (i in pos_positions) else rm_factor for i in range(n)]
+            if not rm in riskmodels:
+                riskmodels.append(rm)
+                if sum(rm)*2 == len(rm):
+                    rm = [rm_factor if (i in pos_positions) else 1/rm_factor for i in range(n)]
+                    riskmodels.append(rm)
+        else:
+            for i in range(n):
+                if not i in pos_positions:
+                    riskmodels = self.add_one_to_riskmodel_combination(pos_positions+[i], n, k, rm_factor, riskmodels)
+        return riskmodels
+
+    def get_all_riskmodel_combinations(self, n, rm_factor):
+        riskmodels = []
+        pos_number = math.ceil(n/2)
+        riskmodels = self.add_one_to_riskmodel_combination([], n, pos_number, rm_factor, riskmodels)
+        return riskmodels
 
     def setup_risk_categories(self):
         for i in self.riskcategories:
@@ -447,18 +471,23 @@ class InsuranceSimulation():
             wfile.close()
     
     def replication_log_prepare(self):
+        filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
+        fpf = filename_prefix[self.number_riskmodels]
         to_log = []
-        to_log.append(("data/two_operational.dat", self.history_total_operational, "a"))
-        to_log.append(("data/two_contracts.dat", self.history_total_contracts, "a"))
-        to_log.append(("data/two_cash.dat", self.history_total_cash, "a"))
-        to_log.append(("data/two_reinoperational.dat", self.history_total_reinoperational, "a"))
-        to_log.append(("data/two_reincontracts.dat", self.history_total_reincontracts, "a"))
-        to_log.append(("data/two_reincash.dat", self.history_total_reincash, "a"))
-        to_log.append(("data/two_premium.dat", self.history_market_premium, "a"))
+        to_log.append(("data/" + fpf + "_operational.dat", self.history_total_operational, "a"))
+        to_log.append(("data/" + fpf + "_contracts.dat", self.history_total_contracts, "a"))
+        to_log.append(("data/" + fpf + "_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_total_reinoperational, "a"))
+        to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_total_reincontracts, "a"))
+        to_log.append(("data/" + fpf + "_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
 
         return to_log
 
     def replication_log_prepare_oneriskmodel(self):
+        return self.replication_log_prepare()
+        assert False, "Error: script should never reach this point"
+        
         to_log = []
         to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
         to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))

@@ -45,6 +45,7 @@ class MetaInsuranceOrg(GenericAgent):
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
                                      margin_of_safety=rm_config["margin_of_safety"], \
+                                     var_tail_prob=rm_config["var_tail_prob"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
@@ -111,7 +112,7 @@ class MetaInsuranceOrg(GenericAgent):
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
-                                                  insurancetype=risk["insurancetype"], deductible_fraction = 0.25)        # TODO: implement excess of loss for reinsurance contracts
+                                                  insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
@@ -226,8 +227,17 @@ class MetaInsuranceOrg(GenericAgent):
 
     @nb.jit
     def ask_reinsurance_non_proportional(self, time):
+        """ Method for requesting excess of loss reinsurance for all underwritten contracts by category.
+            The method calculates the combined valur at risk. With a probability it then creates a combined 
+            reinsurance risk that may then be underwritten by a reinsurance firm.
+            Arguments: 
+                time: integer
+            Returns None.
+            
+        """
+        """Evaluate by risk category"""
         for categ_id in range(self.simulation_no_risk_categories):
-            # with probability 5% if not reinsured ...      # TODO: find a more generic way to decide whether to request reinsurance for category in this period
+            """Seek reinsurance only with probability 10% if not already reinsured"""  # TODO: find a more generic way to decide whether to request reinsurance for category in this period
             if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.1:
                 total_value = 0
                 avg_risk_factor = 0
@@ -239,16 +249,18 @@ class MetaInsuranceOrg(GenericAgent):
                         avg_risk_factor += contract.risk_factor
                         number_risks += 1
                         periodized_total_premium += contract.periodized_premium
-                avg_risk_factor /= number_risks
-                risk = {"value": total_value, "category": categ_id, "owner": self,
-                            #"identifier": uuid.uuid1(),
-                            "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                            "deductible_fraction": self.np_reinsurance_deductible_fraction, 
-                            "excess_fraction": self.np_reinsurance_excess_fraction,
-                            "periodized_total_premium": periodized_total_premium, "runtime": 12,
-                            "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
+                """Proceed with creation of reinsurance risk only if category is not empty."""
+                if number_risks > 0:    
+                    avg_risk_factor /= number_risks
+                    risk = {"value": total_value, "category": categ_id, "owner": self,
+                                #"identifier": uuid.uuid1(),
+                                "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
+                                "deductible_fraction": self.np_reinsurance_deductible_fraction, 
+                                "excess_fraction": self.np_reinsurance_excess_fraction,
+                                "periodized_total_premium": periodized_total_premium, "runtime": 12,
+                                "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
 
-                self.simulation.append_reinrisks(risk)
+                    self.simulation.append_reinrisks(risk)
 
     @nb.jit
     def ask_reinsurance_proportional(self):
