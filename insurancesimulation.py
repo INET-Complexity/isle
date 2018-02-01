@@ -162,6 +162,8 @@ class InsuranceSimulation():
         self.history_total_reinoperational = []
 
         self.history_market_premium = []
+        self.history_market_diffvar = []
+
             
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
@@ -266,6 +268,7 @@ class InsuranceSimulation():
         self.history_total_reincontracts.append(total_reincontracts_no)
         self.history_total_reinoperational.append(reinoperational_no)
         self.history_market_premium.append(self.market_premium)
+        self.log_vars()
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
@@ -481,6 +484,8 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/" + fpf + "_reincash.dat", self.history_total_reincash, "a"))
         to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
+        to_log.append(("data/" + fpf + "_diffvar.dat", self.history_market_diffvar, "a"))
+
 
         return to_log
 
@@ -496,6 +501,8 @@ class InsuranceSimulation():
         to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
         to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
+        to_log.append(("data/one_diffvar.dat", self.history_market_diffvar, "a"))
+
 
         return to_log
 
@@ -508,8 +515,40 @@ class InsuranceSimulation():
         to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
         to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
         to_log.append(("data/premium.dat", self.history_market_premium, "w"))
+        to_log.append(("data/diffvar.dat", self.history_market_diffvar, "w"))
+
 
         return to_log
+
+    def log_vars(self):
+
+        varsfirms = []
+        for firm in self.insurancefirms:
+            if firm.operational:
+                varsfirms.append(firm.var)
+        totalina = sum(varsfirms)
+
+        varsfirms = []
+        for firm in self.insurancefirms:
+            if firm.operational:
+                varsfirms.append(1)
+        totalreal = sum(varsfirms)
+
+        varsreinfirms = []
+        for reinfirm in self.reinsurancefirms:
+            if reinfirm.operational:
+                varsreinfirms.append(reinfirm.var)
+        totalina = totalina + sum(varsreinfirms)
+
+        varsreinfirms = []
+        for reinfirm in self.reinsurancefirms:
+            if reinfirm.operational:
+                varsreinfirms.append(1)
+        totalreal = totalreal + sum(varsreinfirms)
+
+        totaldiff = totalina - totalreal
+        self.history_market_diffvar.append(totaldiff)
+
 
 #if __name__ == "__main__":
 #    arg = None
