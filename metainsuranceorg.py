@@ -59,6 +59,8 @@ class MetaInsuranceOrg(GenericAgent):
         self.operational = True
         self.is_insurer = True
         self.is_reinsurer = False
+        self.var = 0
+
 
     def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
@@ -179,6 +181,8 @@ class MetaInsuranceOrg(GenericAgent):
             #not implemented
             #"""adjust liquidity, borrow or invest"""
             #pass
+
+        self.estimated_var()
 
     def enter_illiquidity(self, time):
         self.enter_bankruptcy(time)
@@ -345,3 +349,22 @@ class MetaInsuranceOrg(GenericAgent):
         for categ_id in range(self.simulation_no_risk_categories):
             if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
                 self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
+
+    def estimated_var(self):
+
+        self.counter_category = np.zeros(self.simulation_no_risk_categories)
+
+        self.var = 0
+
+        if self.operational:
+
+            for contract in self.underwritten_contracts:
+                self.counter_category[contract.category] = self.counter_category[contract.category] + 1
+
+            for category in range(len(self.counter_category)):
+                self.var = self.var + self.counter_category[category] * self.riskmodel.inaccuracy[category]
+
+            if not sum(self.counter_category) == 0:
+                self.var = self.var / sum(self.counter_category)
+            else:
+                self.var = 0
