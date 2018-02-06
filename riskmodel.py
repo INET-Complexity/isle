@@ -95,6 +95,8 @@ class RiskModel():
         expected_profits = 0
         necessary_liquidity = 0
         
+        var_per_risk_per_categ = np.zeros(self.category_number)
+        
         # compute acceptable risks by category
         for categ_id in range(self.category_number):
             # compute number of acceptable risks of this category 
@@ -138,6 +140,7 @@ class RiskModel():
             acceptable_by_category.append(acceptable)
             remaining_acceptable_by_category.append(remaining)
             cash_left_by_category[categ_id] = cash_left
+            var_per_risk_per_categ[categ_id] = var_per_risk
 
         # TODO: expected profits should only be returned once the expire_immediately == False case is fixed; the else-clause conditional statement should then be raised to unconditional
         if expected_profits < 0:
@@ -150,7 +153,7 @@ class RiskModel():
                 expected_profits /= necessary_liquidity
 
         print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
-        return expected_profits, remaining_acceptable_by_category, cash_left_by_category
+        return expected_profits, remaining_acceptable_by_category, cash_left_by_category, var_per_risk_per_categ
 
     def evaluate_excess_of_loss(self, risks, cash, offered_risk = None):
         
@@ -159,7 +162,8 @@ class RiskModel():
         
         # prepare variables
         additional_required = np.zeros(self.category_number)
-        
+        additional_var_per_categ = np.zeros(self.category_number)
+
         # values at risk and liquidity requirements by category
         for categ_id in range(self.category_number):
             categ_risks = self.get_categ_risks(risks=risks, categ_id=categ_id)
@@ -186,8 +190,13 @@ class RiskModel():
                 
                 # record liquidity requirement and apply margin of safety for liquidity requirement
                 additional_required[categ_id] += expected_claim_total * self.margin_of_safety
-                
-        return cash_left_by_categ, additional_required
+                additional_var_per_categ[categ_id] += expected_claim_total
+        
+        # Additional value at risk should only occur in one category. Assert that this is the case.
+        assert sum(additional_var_per_categ > 0) <= 1   
+        var_this_risk = max(additional_var_per_categ)
+        
+        return cash_left_by_categ, additional_required, var_this_risk
         
     def evaluate(self, risks, cash, offered_risk = None):
         # ensure that any risk to be considered supplied directly as argument is non-proportional/excess-of-loss
@@ -206,19 +215,19 @@ class RiskModel():
         
         # compute liquidity requirements and acceptable risks from existing contract
         if (offered_risk is not None) or (len(el_risks) > 0):
-            cash_left_by_categ, additional_required = self.evaluate_excess_of_loss(el_risks, cash_left_by_categ, offered_risk)
+            cash_left_by_categ, additional_required, var_this_risk = self.evaluate_excess_of_loss(el_risks, cash_left_by_categ, offered_risk)
         if (offered_risk is None) or (len(risks) > 0):
-            expected_profits_proportional, remaining_acceptable_by_categ, cash_left_by_categ = self.evaluate_proportional(risks, cash_left_by_categ)
+            expected_profits_proportional, remaining_acceptable_by_categ, cash_left_by_categ, var_per_risk_per_categ = self.evaluate_proportional(risks, cash_left_by_categ)
         
         if offered_risk is None:
             # return numbers of remaining acceptable risks by category
-            return expected_profits_proportional, remaining_acceptable_by_categ
+            return expected_profits_proportional, remaining_acceptable_by_categ, var_per_risk_per_categ
         else:       
             # return boolean value whether the offered excess_of_loss risk can be accepted
             print ("REINSURANCE RISKMODEL", cash, cash_left_by_categ, (cash_left_by_categ - additional_required > 0).all())
             #if not (cash_left_by_categ - additional_required > 0).all():
             #    pdb.set_trace()
-            return (cash_left_by_categ - additional_required > 0).all()
+            return (cash_left_by_categ - additional_required > 0).all(), var_this_risk
         
     def add_reinsurance(self, categ_id, excess_fraction, deductible_fraction, contract):
         self.damage_distribution_stack[categ_id].append(self.damage_distribution[categ_id])
