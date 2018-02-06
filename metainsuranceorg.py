@@ -59,8 +59,13 @@ class MetaInsuranceOrg(GenericAgent):
         self.operational = True
         self.is_insurer = True
         self.is_reinsurer = False
-        self.var = 0
-
+        
+        """set up risk value estimate variables"""
+        self.var_counter = 0                # sum over risk model inaccuracies for all contracts
+        self.var_counter_per_risk = 0       # average risk model inaccuracy across contracts
+        self.var_sum = 0                    # sum over initial VaR for all contracts
+        self.counter_category = np.zeros(self.simulation_no_risk_categories)    # var_counter disaggregated by category
+        self.var_category = np.zeros(self.simulation_no_risk_categories)        # var_sum disaggregated by category
 
     def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
@@ -108,19 +113,20 @@ class MetaInsuranceOrg(GenericAgent):
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                accept = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                accept, var_this_risk = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
                 if accept:
                     per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
+                                                  initial_VaR=var_this_risk, \
                                                   insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
             """make underwriting decisions, category-wise"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
-            expected_profit, acceptable_by_category = self.riskmodel.evaluate(underwritten_risks, self.cash)
+            expected_profit, acceptable_by_category, var_per_risk_per_categ = self.riskmodel.evaluate(underwritten_risks, self.cash)
 
             #if expected_profit * 1./self.cash < self.profit_target:
             #    self.acceptance_threshold = ((self.acceptance_threshold - .4) * 5. * self.acceptance_threshold_friction) / 5. + .4
@@ -161,7 +167,8 @@ class MetaInsuranceOrg(GenericAgent):
                         contract = InsuranceContract(self, categ_risks[i], time, self.simulation.get_market_premium(), \
                                                      self.contract_runtime_dist.rvs(), \
                                                      self.default_contract_payment_period, \
-                                                     expire_immediately=self.simulation_parameters["expire_immediately"])
+                                                     expire_immediately=self.simulation_parameters["expire_immediately"], \
+                                                     initial_VaR = var_per_risk_per_categ[categ_id])
                         self.underwritten_contracts.append(contract)
                     acceptable_by_category[categ_id] -= 1   # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
                     i += 1
@@ -353,18 +360,23 @@ class MetaInsuranceOrg(GenericAgent):
     def estimated_var(self):
 
         self.counter_category = np.zeros(self.simulation_no_risk_categories)
+        self.var_category = np.zeros(self.simulation_no_risk_categories)
 
-        self.var = 0
-
+        self.var_counter = 0
+        self.var_counter_per_risk = 0
+        self.var_sum = 0
+        
         if self.operational:
 
             for contract in self.underwritten_contracts:
                 self.counter_category[contract.category] = self.counter_category[contract.category] + 1
+                self.var_category[contract.category] = self.var_category[contract.category] + contract.initial_VaR
 
             for category in range(len(self.counter_category)):
-                self.var = self.var + self.counter_category[category] * self.riskmodel.inaccuracy[category]
+                self.var_counter = self.var_counter + self.counter_category[category] * self.riskmodel.inaccuracy[category]
+                self.var_sum = self.var_sum + self.var_category[category]
 
             if not sum(self.counter_category) == 0:
-                self.var = self.var / sum(self.counter_category)
+                self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
             else:
-                self.var = 0
+                self.var_counter_per_risk = 0
