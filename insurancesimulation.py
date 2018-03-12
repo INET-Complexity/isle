@@ -19,8 +19,11 @@ if isleconfig.use_abce:
 
 
 class InsuranceSimulation():
-    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters):
+    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters, seed):
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
+
+        np.random.RandomState(seed)
+
         if override_no_riskmodels:
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
         self.number_riskmodels = simulation_parameters["no_riskmodels"]
