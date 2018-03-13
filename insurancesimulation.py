@@ -16,10 +16,11 @@ if isleconfig.use_abce:
 #else:
 #    print("abce not imported")
 
-
-
 class InsuranceSimulation():
-    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters):
+    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters, seed):
+
+        np.random.RandomState(seed)
+
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
