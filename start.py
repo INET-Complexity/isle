@@ -89,8 +89,6 @@ if not isleconfig.use_abce:
 def main(simulation_parameters,seed):
 
     np.random.seed(seed)
-    replic_ID = None
-    override_no_riskmodels = False
 
     # create simulation and world objects (identical in non-abce mode)
     if isleconfig.use_abce:
@@ -149,6 +147,4 @@ def main(simulation_parameters,seed):
 
 # main entry point
 if __name__ == "__main__":
-
-    simulation_parameters = isleconfig.simulation_parameters
     main(simulation_parameters, seed)
