@@ -8,10 +8,10 @@ class ReinsuranceContract(MetaInsuranceContract):
             and ReinsuranceContract objects.
         The signature of this class' constructor is the same as that of the InsuranceContract constructor.
         The class has two methods (explode, mature) that overwrite methods in InsuranceContract."""
-    def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, \
+    def __init__(self, insurer, properties, time, premium, runtime, payment_period, expire_immediately, initial_VaR=0.,\
                  insurancetype="proportional", deductible_fraction=None, excess_fraction=None, reinsurance=0):
         super(ReinsuranceContract, self).__init__(insurer, properties, time, premium, runtime, payment_period, \
-                        expire_immediately, insurancetype, deductible_fraction, excess_fraction, reinsurance)
+                        expire_immediately, initial_VaR, insurancetype, deductible_fraction, excess_fraction, reinsurance)
         #self.is_reinsurancecontract = True
         
         if self.insurancetype == "excess-of-loss":

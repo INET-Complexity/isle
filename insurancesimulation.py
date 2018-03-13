@@ -525,7 +525,7 @@ class InsuranceSimulation():
         varsfirms = []
         for firm in self.insurancefirms:
             if firm.operational:
-                varsfirms.append(firm.var)
+                varsfirms.append(firm.var_counter_per_risk)
         totalina = sum(varsfirms)
 
         varsfirms = []
@@ -537,7 +537,7 @@ class InsuranceSimulation():
         varsreinfirms = []
         for reinfirm in self.reinsurancefirms:
             if reinfirm.operational:
-                varsreinfirms.append(reinfirm.var)
+                varsreinfirms.append(reinfirm.var_counter_per_risk)
         totalina = totalina + sum(varsreinfirms)
 
         varsreinfirms = []
@@ -548,6 +548,22 @@ class InsuranceSimulation():
 
         totaldiff = totalina - totalreal
         self.history_market_diffvar.append(totaldiff)
+
+    def count_underwritten_and_reinsured_risks_by_category(self):
+        underwritten_risks = 0
+        reinsured_risks = 0
+        underwritten_per_category = np.zeros(self.simulation_parameters["no_categories"])
+        reinsured_per_category = np.zeros(self.simulation_parameters["no_categories"])
+        for firm in self.insurancefirms:
+            if firm.operational:
+                underwritten_by_category += firm.counter_category
+                if self.simulation_parameters["simulation_reinsurance_type"] == "non-proportional":
+                    reinsured_per_category += firm.counter_category * firm.category_reinsurance 
+        if self.simulation_parameters["simulation_reinsurance_type"] == "proportional":
+            for firm in self.insurancefirms:
+                if firm.operational:
+                    reinsured_per_category += firm.counter_category            
+        
 
 
 #if __name__ == "__main__":
