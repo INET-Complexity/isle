@@ -228,6 +228,16 @@ class MetaInsuranceOrg(GenericAgent):
         amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
     
+    def increase_capacity(self):
+        '''get prices'''
+        reinsurance_price = self.simulation.get_reinsurance_price(self.np_reinsurance_deductible_fraction )
+        cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
+        '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
+        if reinsurance_price > cat_bond_price:
+            self.issue_cat_bond()
+        else:
+            self.ask_reinsurance()
+    
     def ask_reinsurance(self, time):
         if self.simulation_reinsurance_type == 'proportional':
             self.ask_reinsurance_proportional()
@@ -317,6 +327,9 @@ class MetaInsuranceOrg(GenericAgent):
         self.riskmodel.delete_reinsurance(category, excess_fraction, deductible_fraction, contract)
         self.category_reinsurance[category] = None
         #pass
+    
+    def issue_cat_bond(self):
+        pass
 
     def get_cash(self):
         return self.cash

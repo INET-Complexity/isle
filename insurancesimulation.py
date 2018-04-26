@@ -348,10 +348,16 @@ class InsuranceSimulation():
         self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
+    
+    def adjust_reinsurance_market_premium(self):
+         self.reinsurance_market_premium = self.market_premium
 
     def get_market_premium(self):
         return self.market_premium
 
+    def get_reinsurance_premium(self):
+        return self.reinsurance_market_premium        # TODO: cut this out of the insurance market premium 
+        
     def append_reinrisks(self, item):
         if(len(item) > 0):
             self.reinrisks.append(item)
