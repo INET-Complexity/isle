@@ -12,24 +12,24 @@ simulation_parameters = isleconfig.simulation_parameters
 replic_ID = None
 override_no_riskmodels = False
 
-# handle command line arguments 
+# handle command line arguments
 if (len(sys.argv) > 1):
     if "--abce" in sys.argv:
         # if command line argument --abce is given, override use_abce from config file
         argument_idx = sys.argv.index("--abce")
         assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --abce"
-        isleconfig.use_abce = True if int(sys.argv[argument_idx + 1]) == 1 else False 
+        isleconfig.use_abce = True if int(sys.argv[argument_idx + 1]) == 1 else False
     if "--oneriskmodel" in sys.argv:
         # allow overriding the number of riskmodels from standard config (with 1)
         isleconfig.oneriskmodel = True
-        override_no_riskmodels = 1         
+        override_no_riskmodels = 1
     if "--riskmodels" in sys.argv:
         # allow overriding the number of riskmodels from standard config (with 1 or other numbers)
         argument_idx = sys.argv.index("--riskmodels")
         assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --riskmodels"
-        override_no_riskmodels = int(sys.argv[argument_idx + 1])         
+        override_no_riskmodels = int(sys.argv[argument_idx + 1])
     if "--replicid" in sys.argv:
-        # if replication ID is given, pass this to the simulation so that the risk profile can be restored 
+        # if replication ID is given, pass this to the simulation so that the risk profile can be restored
         argument_idx = sys.argv.index("--replicid")
         assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --replicid"
         replic_ID = int(sys.argv[argument_idx + 1])
@@ -42,12 +42,21 @@ if (len(sys.argv) > 1):
         argument_idx = sys.argv.index("--randomseed")
         assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --randomseed"
         randomseed = float(sys.argv[argument_idx + 1])
-        np.random.seed(randomseed)
+        seed = int(randomseed)
+    else:
+        # allow setting of numpy random seed
+        np.random.seed()
+        seed = np.random.randint(0, 2 ** 31 - 1)
     if "--foreground" in sys.argv:
         # force foreground runs even if replication ID is given (which defaults to background runs)
         isleconfig.force_foreground = True
+else:
+    # allow setting of numpy random seed
+    np.random.seed()
+    seed = np.random.randint(0, 2 ** 31 - 1)
 
-# import isle and abce modules 
+
+# import isle and abce modules
 if isleconfig.use_abce:
     #print("Importing abce")
     import abce
@@ -66,7 +75,7 @@ def conditionally(decorator_function, condition):
         return decorator_function(target_function)
     return wrapper
 
-# create non-abce placeholder gui decorator 
+# create non-abce placeholder gui decorator
 # TODO: replace this with more elegant solution if possible. Currently required since script will otherwise crash at the conditional decorator below since gui is then undefined
 if not isleconfig.use_abce:
     def gui(*args, **kwargs):
@@ -77,12 +86,14 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters):
-    
+def main(simulation_parameters,seed):
+
+    np.random.seed(seed)
+
     # create simulation and world objects (identical in non-abce mode)
     if isleconfig.use_abce:
-        simulation = abce.Simulation(processes=1)
-    
+        simulation = abce.Simulation(processes=1,random_seed = seed)
+
     simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
 
     if not isleconfig.use_abce:
@@ -136,4 +147,4 @@ def main(simulation_parameters):
 
 # main entry point
 if __name__ == "__main__":
-    main(simulation_parameters)
+    main(simulation_parameters, seed)
