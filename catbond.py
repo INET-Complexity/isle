@@ -9,15 +9,14 @@ import sys, pdb
 import uuid
 import numba as nb
 
-if isleconfig.use_abce:
-    from genericagentabce import GenericAgent
-    #print("abce imported")
-else:
-    from genericagent import GenericAgent
-    #print("abce not imported")
-
-class MetaInsuranceOrg(GenericAgent):
-    def init(self, simulation_parameters, agent_parameters):
+class CatBond(MetaInsuranceOrg):
+    def init(self, simulation_parameters):   # do we need simulation parameters
+        self.simulation = simulation_parameters['simulation']
+        pass
+    
+    #old parent class init, cat bond class should be much smaller
+    def parent_init(self, simulation_parameters, agent_parameters):
+        #def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
         self.simulation_parameters = simulation_parameters
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
@@ -67,7 +66,38 @@ class MetaInsuranceOrg(GenericAgent):
         self.counter_category = np.zeros(self.simulation_no_risk_categories)    # var_counter disaggregated by category
         self.var_category = np.zeros(self.simulation_no_risk_categories)        # var_sum disaggregated by category
 
-    def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
+    def iterate(self, time):
+        """obtain investments yield"""
+        self.obtain_yield(time)
+
+        """realize due payments"""
+        self.effect_payments(time)
+        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+
+        self.make_reinsurance_claims(time)
+
+        """mature contracts"""
+        print("Number of underwritten contracts ", len(self.underwritten_contracts))
+        maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
+        for contract in maturing:
+            self.underwritten_contracts.remove(contract)
+            contract.mature(time)
+        contracts_dissolved = len(maturing)
+
+        """effect payments from contracts"""
+        [contract.check_payment_due(time) for contract in self.underwritten_contracts]
+        
+        if self.underwritten_contracts == []:
+            self.mature_bond()  #TODO: mature_bond method should check if operational
+            
+        else:   #TODO: dividend should only be payed according to pre-arranged schedule, and only if no risk events have materialized so far
+            if self.operational:
+                self.pay_dividend()
+
+        self.estimated_var()
+    
+    #old parent class iterate, cat bond class should be much smaller
+    def parent_iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
         self.obtain_yield(time)
 
@@ -191,6 +221,7 @@ class MetaInsuranceOrg(GenericAgent):
 
         self.estimated_var()
 
+    #these classes should be largely the same as in parent and should be deleted from here
     def enter_illiquidity(self, time):
         self.enter_bankruptcy(time)
 
@@ -225,9 +256,65 @@ class MetaInsuranceOrg(GenericAgent):
         self.cash += amount
 
     def obtain_yield(self, time):
-        amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
+        amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
+
+    def get_cash(self):
+        return self.cash
+
+    def logme(self):
+        self.log('cash', self.cash)
+        self.log('underwritten_contracts', self.underwritten_contracts)
+        self.log('operational', self.operational)
+
+    #def zeros(self):
+    #    return 0
+
+    def len_underwritten_contracts(self):
+        return len(self.underwritten_contracts)
+
+    def get_operational(self):
+        return self.operational
+
+    def get_underwritten_contracts(self):
+        return self.underwritten_contracts
     
+    def get_pointer(self):
+        return self
+
+    def estimated_var(self):
+
+        self.counter_category = np.zeros(self.simulation_no_risk_categories)
+        self.var_category = np.zeros(self.simulation_no_risk_categories)
+
+        self.var_counter = 0
+        self.var_counter_per_risk = 0
+        self.var_sum = 0
+        
+        if self.operational:
+
+            for contract in self.underwritten_contracts:
+                self.counter_category[contract.category] = self.counter_category[contract.category] + 1
+                self.var_category[contract.category] = self.var_category[contract.category] + contract.initial_VaR
+
+            for category in range(len(self.counter_category)):
+                self.var_counter = self.var_counter + self.counter_category[category] * self.riskmodel.inaccuracy[category]
+                self.var_sum = self.var_sum + self.var_category[category]
+
+            if not sum(self.counter_category) == 0:
+                self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
+            else:
+                self.var_counter_per_risk = 0
+
+
+
+
+
+
+
+
+
+    #remaining classes cannot be used, should be masked    
     def increase_capacity(self):
         '''get prices'''
         reinsurance_price = self.simulation.get_reinsurance_price(self.np_reinsurance_deductible_fraction )
@@ -331,29 +418,6 @@ class MetaInsuranceOrg(GenericAgent):
     def issue_cat_bond(self):
         pass
 
-    def get_cash(self):
-        return self.cash
-
-    def logme(self):
-        self.log('cash', self.cash)
-        self.log('underwritten_contracts', self.underwritten_contracts)
-        self.log('operational', self.operational)
-
-    #def zeros(self):
-    #    return 0
-
-    def len_underwritten_contracts(self):
-        return len(self.underwritten_contracts)
-
-    def get_operational(self):
-        return self.operational
-
-    def get_underwritten_contracts(self):
-        return self.underwritten_contracts
-    
-    def get_pointer(self):
-        return self
-
     def make_reinsurance_claims(self,time):
         """collect and effect reinsurance claims"""
         # TODO: reorganize this with risk category ledgers
@@ -370,26 +434,3 @@ class MetaInsuranceOrg(GenericAgent):
             if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
                 self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
 
-    def estimated_var(self):
-
-        self.counter_category = np.zeros(self.simulation_no_risk_categories)
-        self.var_category = np.zeros(self.simulation_no_risk_categories)
-
-        self.var_counter = 0
-        self.var_counter_per_risk = 0
-        self.var_sum = 0
-        
-        if self.operational:
-
-            for contract in self.underwritten_contracts:
-                self.counter_category[contract.category] = self.counter_category[contract.category] + 1
-                self.var_category[contract.category] = self.var_category[contract.category] + contract.initial_VaR
-
-            for category in range(len(self.counter_category)):
-                self.var_counter = self.var_counter + self.counter_category[category] * self.riskmodel.inaccuracy[category]
-                self.var_sum = self.var_sum + self.var_category[category]
-
-            if not sum(self.counter_category) == 0:
-                self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
-            else:
-                self.var_counter_per_risk = 0
