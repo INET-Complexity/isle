@@ -68,6 +68,7 @@ class InsuranceSimulation():
                         (1 + self.simulation_parameters["norm_profit_markup"])
 
         self.market_premium = self.norm_premium
+        self.reinsurance_market_premium = self.market_premium       # TODO: is this problematic as initial value? (later it is recomputed in every iteration)
         self.total_no_risks = simulation_parameters["no_risks"]
 
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
@@ -201,8 +202,9 @@ class InsuranceSimulation():
         print(t, ": ", len(self.risks))
 
         # adjust market premiums
-        sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])
+        sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
         self.adjust_market_premium(capital=sum_capital)
+        self.adjust_reinsurance_market_premium(capital=sum_capital)
 
         # pay obligations
         self.effect_payments(t)
@@ -312,9 +314,6 @@ class InsuranceSimulation():
         recipient.receive(amount)
 
     def receive(self, amount):
-        ## Not necessary in ABCE style
-        #pass
-        # Non-ABCE style
         """Method to accept cash payments."""
         self.money_supply += amount
 
@@ -349,15 +348,21 @@ class InsuranceSimulation():
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
     
-    def adjust_reinsurance_market_premium(self):
+    def adjust_reinsurance_market_premium(self, capital):
          self.reinsurance_market_premium = self.market_premium
 
     def get_market_premium(self):
         return self.market_premium
 
-    def get_reinsurance_premium(self):
-        return self.reinsurance_market_premium        # TODO: cut this out of the insurance market premium 
+    def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
+        # TODO: cut this out of the insurance market premium 
+        # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction)
+        return self.reinsurance_market_premium        
         
+    def get_cat_bond_price(self, np_reinsurance_deductible_fraction):
+        #return self.reinsurance_market_premium        
+        return self.reinsurance_market_premium*0.999    #ensure this is used for testing
+    
     def append_reinrisks(self, item):
         if(len(item) > 0):
             self.reinrisks.append(item)

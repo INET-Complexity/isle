@@ -4,16 +4,21 @@ import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
+from metainsuranceorg import MetaInsuranceOrg
 from riskmodel import RiskModel
 import sys, pdb
 import uuid
 import numba as nb
 
 class CatBond(MetaInsuranceOrg):
-    def init(self, simulation_parameters):   # do we need simulation parameters
-        self.simulation = simulation_parameters['simulation']
-        pass
+    def init(self, simulation):   # do we need simulation parameters
+        self.simulation = simulation
+        self.underwritten_contracts = []
+        self.cash = 0
+        self.obligations = []
+        self.operational = True
     
+    # TODO: change start and InsuranceSimulation so that it iterates CatBonds
     #old parent class init, cat bond class should be much smaller
     def parent_init(self, simulation_parameters, agent_parameters):
         #def init(self, simulation_parameters, agent_parameters):
@@ -221,98 +226,35 @@ class CatBond(MetaInsuranceOrg):
 
         self.estimated_var()
 
-    #these classes should be largely the same as in parent and should be deleted from here
-    def enter_illiquidity(self, time):
-        self.enter_bankruptcy(time)
+    def set_contract(self, contract):
+        self.underwritten_contracts.append(contract)
 
-    def enter_bankruptcy(self, time):
-        [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
-        self.simulation.receive(self.cash)
-        self.cash = 0
-        self.operational = False
-
-    def receive_obligation(self, amount, recipient, due_time):
-        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
-        self.obligations.append(obligation)
-
-    def effect_payments(self, time):
-        due = [item for item in self.obligations if item["due_time"]<=time]
-        self.obligations = [item for item in self.obligations if item["due_time"]>time]
-        sum_due = sum([item["amount"] for item in due])
-        if sum_due > self.cash:
-            self.obligations += due
-            self.enter_illiquidity(time)
-        else:
-            for obligation in due:
-                self.pay(obligation["amount"], obligation["recipient"])
-
-
-    def pay(self, amount, recipient):
-        self.cash -= amount
-        recipient.receive(amount)
-
-    def receive(self, amount):
-        """Method to accept cash payments."""
-        self.cash += amount
-
-    def obtain_yield(self, time):
-        amount = self.cash * self.interest_rate
-        self.simulation.receive_obligation(amount, self, time)
-
-    def get_cash(self):
-        return self.cash
-
-    def logme(self):
-        self.log('cash', self.cash)
-        self.log('underwritten_contracts', self.underwritten_contracts)
-        self.log('operational', self.operational)
-
-    #def zeros(self):
-    #    return 0
-
-    def len_underwritten_contracts(self):
-        return len(self.underwritten_contracts)
-
-    def get_operational(self):
-        return self.operational
-
-    def get_underwritten_contracts(self):
-        return self.underwritten_contracts
-    
-    def get_pointer(self):
-        return self
-
-    def estimated_var(self):
-
-        self.counter_category = np.zeros(self.simulation_no_risk_categories)
-        self.var_category = np.zeros(self.simulation_no_risk_categories)
-
-        self.var_counter = 0
-        self.var_counter_per_risk = 0
-        self.var_sum = 0
-        
-        if self.operational:
-
-            for contract in self.underwritten_contracts:
-                self.counter_category[contract.category] = self.counter_category[contract.category] + 1
-                self.var_category[contract.category] = self.var_category[contract.category] + contract.initial_VaR
-
-            for category in range(len(self.counter_category)):
-                self.var_counter = self.var_counter + self.counter_category[category] * self.riskmodel.inaccuracy[category]
-                self.var_sum = self.var_sum + self.var_category[category]
-
-            if not sum(self.counter_category) == 0:
-                self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
-            else:
-                self.var_counter_per_risk = 0
+    #def increase_capacity(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance(self, time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance_non_proportional(self, time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance_proportional(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def issue_cat_bond(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def make_reinsurance_claims(self,time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
 
 
-
-
-
-
-
-
+if False:
 
     #remaining classes cannot be used, should be masked    
     def increase_capacity(self):
@@ -433,4 +375,94 @@ class CatBond(MetaInsuranceOrg):
         for categ_id in range(self.simulation_no_risk_categories):
             if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
                 self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
+
+
+if False:
+
+    #these classes should be largely the same as in parent and should be deleted from here
+    def enter_illiquidity(self, time):
+        self.enter_bankruptcy(time)
+
+    def enter_bankruptcy(self, time):
+        [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
+        self.simulation.receive(self.cash)
+        self.cash = 0
+        self.operational = False
+
+    def receive_obligation(self, amount, recipient, due_time):
+        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
+        self.obligations.append(obligation)
+
+    def effect_payments(self, time):
+        due = [item for item in self.obligations if item["due_time"]<=time]
+        self.obligations = [item for item in self.obligations if item["due_time"]>time]
+        sum_due = sum([item["amount"] for item in due])
+        if sum_due > self.cash:
+            self.obligations += due
+            self.enter_illiquidity(time)
+        else:
+            for obligation in due:
+                self.pay(obligation["amount"], obligation["recipient"])
+
+
+    def pay(self, amount, recipient):
+        self.cash -= amount
+        recipient.receive(amount)
+
+    def receive(self, amount):
+        """Method to accept cash payments."""
+        self.cash += amount
+
+    def obtain_yield(self, time):
+        amount = self.cash * self.interest_rate
+        self.simulation.receive_obligation(amount, self, time)
+
+    def get_cash(self):
+        return self.cash
+
+    def logme(self):
+        self.log('cash', self.cash)
+        self.log('underwritten_contracts', self.underwritten_contracts)
+        self.log('operational', self.operational)
+
+    #def zeros(self):
+    #    return 0
+
+    def len_underwritten_contracts(self):
+        return len(self.underwritten_contracts)
+
+    def get_operational(self):
+        return self.operational
+
+    def get_underwritten_contracts(self):
+        return self.underwritten_contracts
+    
+    def get_pointer(self):
+        return self
+
+    def estimated_var(self):
+
+        self.counter_category = np.zeros(self.simulation_no_risk_categories)
+        self.var_category = np.zeros(self.simulation_no_risk_categories)
+
+        self.var_counter = 0
+        self.var_counter_per_risk = 0
+        self.var_sum = 0
+        
+        if self.operational:
+
+            for contract in self.underwritten_contracts:
+                self.counter_category[contract.category] = self.counter_category[contract.category] + 1
+                self.var_category[contract.category] = self.var_category[contract.category] + contract.initial_VaR
+
+            for category in range(len(self.counter_category)):
+                self.var_counter = self.var_counter + self.counter_category[category] * self.riskmodel.inaccuracy[category]
+                self.var_sum = self.var_sum + self.var_category[category]
+
+            if not sum(self.counter_category) == 0:
+                self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
+            else:
+                self.var_counter_per_risk = 0
+
+
 

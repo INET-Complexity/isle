@@ -178,8 +178,10 @@ class MetaInsuranceOrg(GenericAgent):
 
             # seek reinsurance
             if self.is_insurer:
-                # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
-                self.ask_reinsurance(time)
+                # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
+                #self.ask_reinsurance(time)
+                # TODO: make independent of insurer/reinsurer, but change this to different deductable values
+                self.increase_capacity(time)
 
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
@@ -229,108 +231,8 @@ class MetaInsuranceOrg(GenericAgent):
         self.simulation.receive_obligation(amount, self, time)
     
     def increase_capacity(self):
-        '''get prices'''
-        reinsurance_price = self.simulation.get_reinsurance_price(self.np_reinsurance_deductible_fraction )
-        cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
-        '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
-        if reinsurance_price > cat_bond_price:
-            self.issue_cat_bond()
-        else:
-            self.ask_reinsurance()
-    
-    def ask_reinsurance(self, time):
-        if self.simulation_reinsurance_type == 'proportional':
-            self.ask_reinsurance_proportional()
-        elif self.simulation_reinsurance_type == 'non-proportional':
-            self.ask_reinsurance_non_proportional(time)
-        else:
-            assert False, "Undefined reinsurance type"
-
-    @nb.jit
-    def ask_reinsurance_non_proportional(self, time):
-        """ Method for requesting excess of loss reinsurance for all underwritten contracts by category.
-            The method calculates the combined valur at risk. With a probability it then creates a combined 
-            reinsurance risk that may then be underwritten by a reinsurance firm.
-            Arguments: 
-                time: integer
-            Returns None.
-            
-        """
-        """Evaluate by risk category"""
-        for categ_id in range(self.simulation_no_risk_categories):
-            """Seek reinsurance only with probability 10% if not already reinsured"""  # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.1:
-                total_value = 0
-                avg_risk_factor = 0
-                number_risks = 0
-                periodized_total_premium = 0
-                for contract in self.underwritten_contracts:
-                    if contract.category == categ_id:
-                        total_value += contract.value
-                        avg_risk_factor += contract.risk_factor
-                        number_risks += 1
-                        periodized_total_premium += contract.periodized_premium
-                """Proceed with creation of reinsurance risk only if category is not empty."""
-                if number_risks > 0:    
-                    avg_risk_factor /= number_risks
-                    risk = {"value": total_value, "category": categ_id, "owner": self,
-                                #"identifier": uuid.uuid1(),
-                                "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                                "deductible_fraction": self.np_reinsurance_deductible_fraction, 
-                                "excess_fraction": self.np_reinsurance_excess_fraction,
-                                "periodized_total_premium": periodized_total_premium, "runtime": 12,
-                                "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
-
-                    self.simulation.append_reinrisks(risk)
-
-    @nb.jit
-    def ask_reinsurance_proportional(self):
-        nonreinsured = []
-        for contract in self.underwritten_contracts:
-            if contract.reincontract == None:
-                nonreinsured.append(contract)
-
-        #nonreinsured_b = [contract
-        #                for contract in self.underwritten_contracts
-        #                if contract.reincontract == None]
-        #
-        #try:
-        #    assert nonreinsured == nonreinsured_b
-        #except:
-        #    pdb.set_trace()
-
-        nonreinsured.reverse()
-
-        if len(nonreinsured) >= (1 - self.reinsurance_limit) * len(self.underwritten_contracts):
-            counter = 0
-            limitrein = len(nonreinsured) - (1 - self.reinsurance_limit) * len(self.underwritten_contracts)
-            for contract in nonreinsured:
-                if counter < limitrein:
-                    risk = {"value": contract.value, "category": contract.category, "owner": self,
-                            #"identifier": uuid.uuid1(),
-                            "reinsurance_share": 1.,
-                            "expiration": contract.expiration, "contract": contract,
-                            "risk_factor": contract.risk_factor}
-
-                    #print("CREATING", risk["expiration"], contract.expiration, risk["contract"].expiration, risk["identifier"])
-                    self.simulation.append_reinrisks(risk)
-                    counter += 1
-                else:
-                    break
-
-    def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
-        self.riskmodel.add_reinsurance(category, excess_fraction, deductible_fraction, contract)
-        self.category_reinsurance[category] = contract
-        #pass
-
-    def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
-        self.riskmodel.delete_reinsurance(category, excess_fraction, deductible_fraction, contract)
-        self.category_reinsurance[category] = None
-        #pass
-    
-    def issue_cat_bond(self):
-        pass
-
+        raise AttributeError( "Method is not implemented in MetaInsuranceOrg, just in inheriting InsuranceFirm instances" )
+        
     def get_cash(self):
         return self.cash
 
@@ -353,22 +255,6 @@ class MetaInsuranceOrg(GenericAgent):
     
     def get_pointer(self):
         return self
-
-    def make_reinsurance_claims(self,time):
-        """collect and effect reinsurance claims"""
-        # TODO: reorganize this with risk category ledgers
-        # TODO: Put facultative insurance claims here
-        claims_this_turn = np.zeros(self.simulation_no_risk_categories)
-        for contract in self.underwritten_contracts:
-            categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
-            if is_proportional:
-                claims_this_turn[categ_id] += claims
-            if (contract.reincontract != None):
-                contract.reincontract.explode(time, claims)
-
-        for categ_id in range(self.simulation_no_risk_categories):
-            if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
-                self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
 
     def estimated_var(self):
 
