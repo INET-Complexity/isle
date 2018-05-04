@@ -138,6 +138,7 @@ class InsuranceSimulation():
         # agent lists
         self.reinsurancefirms = []
         self.insurancefirms = []
+        self.catbonds = []
         
         # lists of agent weights 
         self.insurancefirm_weights = []
@@ -193,6 +194,12 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
+        elif agent_class_string == "catbond":
+            try:
+                self.catbonds += agents
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()            
         else:
             assert False, "Error: Unexpected agent class used"
 
