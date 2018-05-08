@@ -175,7 +175,8 @@ class InsuranceSimulation():
             agents.append(agent_class(parameters, ap))
         return agents
         
-    def accept_agents(self, agent_class_string, agents, agent_group, time=0):
+    def accept_agents(self, agent_class_string, agents, agent_group=None, time=0):
+        # TODO: fix agent id's for late entrants (both firms and catbonds)
         if agent_class_string == "insurancefirm":
             try:
                 self.insurancefirms += agents
@@ -187,6 +188,9 @@ class InsuranceSimulation():
                 pdb.set_trace()
             # fix self.history_individual_contracts list
             self.history_individual_contracts.append(list(np.zeros(len(self.history_individual_contracts[0]), dtype=int)))
+            # remove new agent cash from simulation cash to ensure stock flow consistency
+            new_agent_cash = sum([agent.cash for agent in agents])
+            self.reduce_money_supply(new_agent_cash)
         elif agent_class_string == "reinsurance":
             try:
                 self.reinsurancefirms += agents
@@ -196,6 +200,9 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
+            # remove new agent cash from simulation cash to ensure stock flow consistency
+            new_agent_cash = sum([agent.cash for agent in agents])
+            self.reduce_money_supply(new_agent_cash)
         elif agent_class_string == "catbond":
             try:
                 self.catbonds += agents
@@ -203,8 +210,14 @@ class InsuranceSimulation():
                 print(sys.exc_info())
                 pdb.set_trace()            
         else:
-            assert False, "Error: Unexpected agent class used"
+            assert False, "Error: Unexpected agent class used {0:s}".format(agent_class_string)
 
+    def delete_agents(self, agent_class_string, agents):
+        if agent_class_string == "catbond":
+            for agent in agents:
+                self.catbonds.remove(agent)
+        else:
+            assert False, "Trying to remove unremovable agent, type: {0:s}".format(agent_class_string)
     
     def iterate(self, t):
         print()
@@ -263,6 +276,11 @@ class InsuranceSimulation():
         #else:
         #    for agent in self.insurancefirms:
         #        agent.iterate(t)
+        
+        # iterate catbonds 
+        for agent in self.catbonds:
+            agent.iterate(t)
+        
         
     def save_data(self):
         # collect data
@@ -330,6 +348,11 @@ class InsuranceSimulation():
         """Method to accept cash payments."""
         self.money_supply += amount
 
+    def reduce_money_supply(self, amount):
+        """Method to reduce money supply immediately and without payment recipient (used to adjust money supply to compensate for agent endowment)."""
+        self.money_supply -= amount
+        assert self.money_supply >= 0
+        
     @nb.jit
     def reset_reinsurance_weights(self):
         self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / \
@@ -373,8 +396,9 @@ class InsuranceSimulation():
         return self.reinsurance_market_premium        
         
     def get_cat_bond_price(self, np_reinsurance_deductible_fraction):
-        #return self.reinsurance_market_premium        
-        return self.reinsurance_market_premium*0.999    #ensure this is used for testing
+        #TODO: implement function dependent on total capital in cat bonds and on deductible        
+        return self.reinsurance_market_premium * 0.999    #ensure catbond class is used for testing
+        #return self.reinsurance_market_premium
     
     def append_reinrisks(self, item):
         if(len(item) > 0):

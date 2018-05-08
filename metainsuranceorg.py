@@ -35,6 +35,10 @@ class MetaInsuranceOrg(GenericAgent):
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
         
+        self.owner = self.simulation # TODO: Make this into agent_parameter value?
+        self.per_period_dividend = 0
+        self.cash_last_periods = list(np.zeros(4, dtype=int))
+        
         rm_config = agent_parameters['riskmodel_config']
         self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
                                      expire_immediately=rm_config["expire_immediately"], \
@@ -176,13 +180,18 @@ class MetaInsuranceOrg(GenericAgent):
                 not_accepted_risks += categ_risks[i:]
                 not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
 
+            """handle capital market interactions: capital history, dividends, capacity"""
+            self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
+            self.adjust_dividends(time)
+            self.pay_dividends(time)
+            
             # seek reinsurance
-            if self.is_insurer:
-                # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
-                #self.ask_reinsurance(time)
-                # TODO: make independent of insurer/reinsurer, but change this to different deductable values
-                self.increase_capacity(time)
-
+            #if self.is_insurer:
+            #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
+            #    self.ask_reinsurance(time)
+            #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
+            self.increase_capacity(time)
+            
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
             self.simulation.return_risks(not_accepted_risks)
@@ -190,7 +199,7 @@ class MetaInsuranceOrg(GenericAgent):
             #not implemented
             #"""adjust liquidity, borrow or invest"""
             #pass
-
+            
         self.estimated_var()
 
     def enter_illiquidity(self, time):
@@ -226,6 +235,9 @@ class MetaInsuranceOrg(GenericAgent):
         """Method to accept cash payments."""
         self.cash += amount
 
+    def pay_dividends(self, time):
+        self.receive_obligation(self.per_period_dividend, self.simulation, time)
+    
     def obtain_yield(self, time):
         amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
         self.simulation.receive_obligation(amount, self, time)
@@ -279,3 +291,10 @@ class MetaInsuranceOrg(GenericAgent):
                 self.var_counter_per_risk = self.var_counter / sum(self.counter_category)
             else:
                 self.var_counter_per_risk = 0
+
+    def increase_capacity(self, time):
+        assert False, "Method not implemented. increase_capacity method should be implemented in inheriting classes"
+
+    def adjust_dividend(self, time):
+        assert False, "Method not implemented. adjust_dividend method should be implemented in inheriting classes"
+        

@@ -17,6 +17,14 @@ class InsuranceFirm(MetaInsuranceOrg):
         self.is_insurer = True
         self.is_reinsurer = False
 
+    def adjust_dividends(self, time):
+        #TODO: Implement algorithm from flowchart (capital target missing
+        self.per_period_dividend = max(0, 0.005 * self.cash)
+        if self.cash_last_periods[0] - self.cash_last_periods[1] < 0:     # no dividends if firm made losses
+            self.per_period_dividend = 0
+        #if :                                                   # no dividends if firm misses capital target
+        #    self.per_period_dividend = 0
+            
 
     def increase_capacity(self, time):
         '''This is implemented for non-proportional reinsurance only. Otherwise the price comparison is not meaningful. Assert non-proportional mode.'''
@@ -138,7 +146,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         self.category_reinsurance[category] = None
         #pass
     
-    def issue_cat_bond(self, time, categ_id, per_value_reinsurance_premium = 0):
+    def issue_cat_bond(self, time, categ_id, per_value_per_period_premium = 0):
         # premium is for usual reinsurance contracts paid using per value market premium
         # for the quasi-contract for the cat bond, nothing is paid, everything is already paid at the beginning.
         #per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
@@ -149,21 +157,29 @@ class InsuranceFirm(MetaInsuranceOrg):
                         "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
                         "deductible_fraction": self.np_reinsurance_deductible_fraction, 
                         "excess_fraction": self.np_reinsurance_excess_fraction,
-                        "periodized_total_premium": periodized_total_premium, "runtime": 12,
+                        "periodized_total_premium": 0, "runtime": 12,
                         "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
         _, var_this_risk = self.riskmodel.evaluate([], self.cash, risk)
-        catbond = CatBond(self.simulation)
+        per_period_premium = per_value_per_period_premium * risk["value"]
+        total_premium = sum([per_period_premium * ((1/(1+self.interest_rate))**i) for i in range(risk["runtime"])])                # TODO: or is it range(1, risk["runtime"]+1)?
+        #catbond = CatBond(self.simulation, per_period_premium)
+        catbond = CatBond(self.simulation, per_period_premium, self.interest_rate)  # TODO: shift obtain_yield method to insurancesimulation, thereby making it unnecessary to drag parameters like self.interest_rate from instance to instance and from class to class
+
         """add contract; contract is a quasi-reinsurance contract"""
-        contract = ReinsuranceContract(catbond, risk, time, per_value_reinsurance_premium, risk["runtime"], \
+        contract = ReinsuranceContract(catbond, risk, time, 0, risk["runtime"], \
                                                   self.default_contract_payment_period, \
                                                   expire_immediately=self.simulation_parameters["expire_immediately"], \
                                                   initial_VaR=var_this_risk, \
                                                   insurancetype=risk["insurancetype"])
+        # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
+        
         catbond.set_contract(contract)
         """sell cat bond """
         pass
         """hand cash over to cat bond such that var_this_risk is covered"""
-        self.pay(var_this_risk, catbond)    #TODO: is var_this_risk the correct amount?
+        self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
+        """register catbond"""
+        self.simulation.accept_agents("catbond", [catbond], time=time)
 
     def make_reinsurance_claims(self,time):
         """collect and effect reinsurance claims"""
