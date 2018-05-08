@@ -169,13 +169,13 @@ class InsuranceSimulation():
             
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
-        assert agent_parameters == self.agent_parameters[agent_class_string]
+        #assert agent_parameters == self.agent_parameters[agent_class_string]       #assert fits only the initial creation of agents, not later additions   # TODO: fix
         agents = []
         for ap in agent_parameters:
             agents.append(agent_class(parameters, ap))
         return agents
         
-    def accept_agents(self, agent_class_string, agents, agent_group):
+    def accept_agents(self, agent_class_string, agents, agent_group, time=0):
         if agent_class_string == "insurancefirm":
             try:
                 self.insurancefirms += agents
@@ -185,6 +185,8 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
+            # fix self.history_individual_contracts list
+            self.history_individual_contracts.append(list(np.zeros(len(self.history_individual_contracts[0]), dtype=int)))
         elif agent_class_string == "reinsurance":
             try:
                 self.reinsurancefirms += agents
@@ -281,7 +283,11 @@ class InsuranceSimulation():
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
-            self.history_individual_contracts[i].append(individual_contracts_no[i])
+            try:
+                self.history_individual_contracts[i].append(individual_contracts_no[i])
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()
     
     def advance_round(self, *args):
         pass
@@ -476,6 +482,19 @@ class InsuranceSimulation():
         rfile.close()
         np.random.set_state(mersennetwister_randomseed)
         assert found, "mersennetwister randomseed for current replication ID number {0:d} not found in data file. Exiting.".format(self.replic_ID)
+
+    def insurance_firm_market_entry(self, prob=-1, agent_type="InsuranceFirm"):             # TODO: replace method name with a more descriptive one
+        if prob == -1:
+            if agent_type == "InsuranceFirm":
+                prob = self.simulation_parameters["insurance_firm_market_entry_probability"]
+            elif agent_type == "ReinsuranceFirm":
+                prob = self.simulation_parameters["reinsurance_firm_market_entry_probability"]
+            else:
+                assert False, "Unknown agent type. Simulation requested to create agent of type {0:s}".format(agent_type)
+        if np.random.random() < prob:
+            return True
+        else:
+            return False
 
     def log(self):
         if self.background_run:
