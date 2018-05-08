@@ -174,8 +174,9 @@ class InsuranceFirm(MetaInsuranceOrg):
         # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
         
         catbond.set_contract(contract)
-        """sell cat bond """
-        pass
+        """sell cat bond (to self.simulation)"""
+        self.simulation.receive_obligation(var_this_risk, self, time)
+        catbond.set_owner(self.simulation)
         """hand cash over to cat bond such that var_this_risk is covered"""
         self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
         """register catbond"""

@@ -11,13 +11,14 @@ import uuid
 import numba as nb
 
 class CatBond(MetaInsuranceOrg):
-    def init(self, simulation, per_period_premium, interest_rate = 0):   # do we need simulation parameters
+    def init(self, simulation, per_period_premium, owner, interest_rate = 0):   # do we need simulation parameters
         self.simulation = simulation
         self.id = 0
         self.underwritten_contracts = []
         self.cash = 0
         self.obligations = []
         self.operational = True
+        self.owner = owner
         self.per_period_dividend = per_period_premium
         self.interest_rate = interest_rate  # TODO: shift obtain_yield method to insurancesimulation, thereby making it unnecessary to drag parameters like self.interest_rate from instance to instance and from class to class
         #self.simulation_no_risk_categories = self.simulation.simulation_parameters["no_categories"]
@@ -227,7 +228,12 @@ class CatBond(MetaInsuranceOrg):
             #pass
 
         self.estimated_var()
-
+    
+    def set_owner(self, owner):
+        self.owner = owner
+        print("SOLD")
+        pdb.set_trace()
+    
     def set_contract(self, contract):
         self.underwritten_contracts.append(contract)
     

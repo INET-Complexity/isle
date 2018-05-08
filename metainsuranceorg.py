@@ -236,7 +236,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.cash += amount
 
     def pay_dividends(self, time):
-        self.receive_obligation(self.per_period_dividend, self.simulation, time)
+        self.receive_obligation(self.per_period_dividend, self.owner, time)
     
     def obtain_yield(self, time):
         amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
