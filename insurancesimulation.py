@@ -113,15 +113,14 @@ class InsuranceSimulation():
         # prepare setting up agents (to be done from start.py)
         self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
 
-        if simulation_parameters['static_non-proportional_reinsurance_levels']
-            insurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
-            reinsurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
-        else:
-            insurance_reinsurance_level = np.random.uniform(simulation_parameters["insurance_reinsurance_levels_lower_bound"], simulation_parameters["insurance_reinsurance_levels_upper_bound"])
-            reinsurance_reinsurance_level = np.random.uniform(simulation_parameters["reinsurance_reinsurance_levels_lower_bound"], simulation_parameters["reinsurance_reinsurance_levels_upper_bound"])
         
         # TODO: collapse the following two loops into one generic one?
         for i in range(simulation_parameters["no_insurancefirms"]):
+            if simulation_parameters['static_non-proportional_reinsurance_levels']
+                insurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            else:
+                insurance_reinsurance_level = np.random.uniform(simulation_parameters["insurance_reinsurance_levels_lower_bound"], simulation_parameters["insurance_reinsurance_levels_upper_bound"])
+
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
             self.agent_parameters["insurancefirm"].append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
                                      'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
@@ -132,6 +131,11 @@ class InsuranceSimulation():
                                      'non-proportional_reinsurance_level': insurance_reinsurance_level,
                                      'interest_rate': simulation_parameters["interest_rate"]})
         for i in range(simulation_parameters["no_reinsurancefirms"]):
+            if simulation_parameters['static_non-proportional_reinsurance_levels']
+                reinsurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            else:
+                reinsurance_reinsurance_level = np.random.uniform(simulation_parameters["reinsurance_reinsurance_levels_lower_bound"], simulation_parameters["reinsurance_reinsurance_levels_upper_bound"])
+
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
             self.agent_parameters["reinsurance"].append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
                                 'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
