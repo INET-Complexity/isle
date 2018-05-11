@@ -113,6 +113,13 @@ class InsuranceSimulation():
         # prepare setting up agents (to be done from start.py)
         self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
 
+        if simulation_parameters['static_non-proportional_reinsurance_levels']
+            insurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            reinsurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+        else:
+            insurance_reinsurance_level = np.random.uniform(simulation_parameters["insurance_reinsurance_levels_lower_bound"], simulation_parameters["insurance_reinsurance_levels_upper_bound"])
+            reinsurance_reinsurance_level = np.random.uniform(simulation_parameters["reinsurance_reinsurance_levels_lower_bound"], simulation_parameters["reinsurance_reinsurance_levels_upper_bound"])
+        
         # TODO: collapse the following two loops into one generic one?
         for i in range(simulation_parameters["no_insurancefirms"]):
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
@@ -122,6 +129,7 @@ class InsuranceSimulation():
                                      'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
                                      'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                      'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                     'non-proportional_reinsurance_level': insurance_reinsurance_level,
                                      'interest_rate': simulation_parameters["interest_rate"]})
         for i in range(simulation_parameters["no_reinsurancefirms"]):
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
@@ -131,6 +139,7 @@ class InsuranceSimulation():
                                 'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
                                 'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                 'reinsurance_limit': simulation_parameters["reinsurance_limit"],
+                                'non-proportional_reinsurance_level': reinsurance_reinsurance_level,
                                 'interest_rate': simulation_parameters["interest_rate"]})
                                 
         # set up remaining list variables

@@ -54,7 +54,10 @@ class MetaInsuranceOrg(GenericAgent):
         
         self.category_reinsurance = [None for i in range(self.simulation_no_risk_categories)]
         if self.simulation_reinsurance_type == 'non-proportional':
-            self.np_reinsurance_deductible_fraction = simulation_parameters["default_non-proportional_reinsurance_deductible"]
+            if agent_parameters['non-proportional_reinsurance_level'] is not None:
+                self.np_reinsurance_deductible_fraction = agent_parameters['non-proportional_reinsurance_level']
+            else:
+                self.np_reinsurance_deductible_fraction = simulation_parameters["default_non-proportional_reinsurance_deductible"]
             self.np_reinsurance_excess_fraction = simulation_parameters["default_non-proportional_reinsurance_excess"]
             self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
