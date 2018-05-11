@@ -68,6 +68,7 @@ class InsuranceSimulation():
                         (1 + self.simulation_parameters["norm_profit_markup"])
 
         self.market_premium = self.norm_premium
+        self.reinsurance_market_premium = self.market_premium       # TODO: is this problematic as initial value? (later it is recomputed in every iteration)
         self.total_no_risks = simulation_parameters["no_risks"]
 
         # set up monetary system (should instead be with the customers, if customers are modeled explicitly)
@@ -137,6 +138,7 @@ class InsuranceSimulation():
         # agent lists
         self.reinsurancefirms = []
         self.insurancefirms = []
+        self.catbonds = []
         
         # lists of agent weights 
         self.insurancefirm_weights = []
@@ -167,13 +169,14 @@ class InsuranceSimulation():
             
     
     def build_agents(self, agent_class, agent_class_string, parameters, agent_parameters):
-        assert agent_parameters == self.agent_parameters[agent_class_string]
+        #assert agent_parameters == self.agent_parameters[agent_class_string]       #assert fits only the initial creation of agents, not later additions   # TODO: fix
         agents = []
         for ap in agent_parameters:
             agents.append(agent_class(parameters, ap))
         return agents
         
-    def accept_agents(self, agent_class_string, agents, agent_group):
+    def accept_agents(self, agent_class_string, agents, agent_group=None, time=0):
+        # TODO: fix agent id's for late entrants (both firms and catbonds)
         if agent_class_string == "insurancefirm":
             try:
                 self.insurancefirms += agents
@@ -183,6 +186,11 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
+            # fix self.history_individual_contracts list
+            self.history_individual_contracts.append(list(np.zeros(len(self.history_individual_contracts[0]), dtype=int)))
+            # remove new agent cash from simulation cash to ensure stock flow consistency
+            new_agent_cash = sum([agent.cash for agent in agents])
+            self.reduce_money_supply(new_agent_cash)
         elif agent_class_string == "reinsurance":
             try:
                 self.reinsurancefirms += agents
@@ -192,17 +200,33 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
+            # remove new agent cash from simulation cash to ensure stock flow consistency
+            new_agent_cash = sum([agent.cash for agent in agents])
+            self.reduce_money_supply(new_agent_cash)
+        elif agent_class_string == "catbond":
+            try:
+                self.catbonds += agents
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()            
         else:
-            assert False, "Error: Unexpected agent class used"
+            assert False, "Error: Unexpected agent class used {0:s}".format(agent_class_string)
 
+    def delete_agents(self, agent_class_string, agents):
+        if agent_class_string == "catbond":
+            for agent in agents:
+                self.catbonds.remove(agent)
+        else:
+            assert False, "Trying to remove unremovable agent, type: {0:s}".format(agent_class_string)
     
     def iterate(self, t):
         print()
         print(t, ": ", len(self.risks))
 
         # adjust market premiums
-        sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])
+        sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
         self.adjust_market_premium(capital=sum_capital)
+        self.adjust_reinsurance_market_premium(capital=sum_capital)
 
         # pay obligations
         self.effect_payments(t)
@@ -253,6 +277,11 @@ class InsuranceSimulation():
         #    for agent in self.insurancefirms:
         #        agent.iterate(t)
         
+        # iterate catbonds 
+        for agent in self.catbonds:
+            agent.iterate(t)
+        
+        
     def save_data(self):
         # collect data
         total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
@@ -272,7 +301,11 @@ class InsuranceSimulation():
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
-            self.history_individual_contracts[i].append(individual_contracts_no[i])
+            try:
+                self.history_individual_contracts[i].append(individual_contracts_no[i])
+            except:
+                print(sys.exc_info())
+                pdb.set_trace()
     
     def advance_round(self, *args):
         pass
@@ -312,12 +345,14 @@ class InsuranceSimulation():
         recipient.receive(amount)
 
     def receive(self, amount):
-        ## Not necessary in ABCE style
-        #pass
-        # Non-ABCE style
         """Method to accept cash payments."""
         self.money_supply += amount
 
+    def reduce_money_supply(self, amount):
+        """Method to reduce money supply immediately and without payment recipient (used to adjust money supply to compensate for agent endowment)."""
+        self.money_supply -= amount
+        assert self.money_supply >= 0
+        
     @nb.jit
     def reset_reinsurance_weights(self):
         self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / \
@@ -348,10 +383,23 @@ class InsuranceSimulation():
         self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
+    
+    def adjust_reinsurance_market_premium(self, capital):
+         self.reinsurance_market_premium = self.market_premium
 
     def get_market_premium(self):
         return self.market_premium
 
+    def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
+        # TODO: cut this out of the insurance market premium 
+        # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction)
+        return self.reinsurance_market_premium        
+        
+    def get_cat_bond_price(self, np_reinsurance_deductible_fraction):
+        #TODO: implement function dependent on total capital in cat bonds and on deductible        
+        return self.reinsurance_market_premium * 0.999    #ensure catbond class is used for testing
+        #return self.reinsurance_market_premium
+    
     def append_reinrisks(self, item):
         if(len(item) > 0):
             self.reinrisks.append(item)
@@ -458,6 +506,19 @@ class InsuranceSimulation():
         rfile.close()
         np.random.set_state(mersennetwister_randomseed)
         assert found, "mersennetwister randomseed for current replication ID number {0:d} not found in data file. Exiting.".format(self.replic_ID)
+
+    def insurance_firm_market_entry(self, prob=-1, agent_type="InsuranceFirm"):             # TODO: replace method name with a more descriptive one
+        if prob == -1:
+            if agent_type == "InsuranceFirm":
+                prob = self.simulation_parameters["insurance_firm_market_entry_probability"]
+            elif agent_type == "ReinsuranceFirm":
+                prob = self.simulation_parameters["reinsurance_firm_market_entry_probability"]
+            else:
+                assert False, "Unknown agent type. Simulation requested to create agent of type {0:s}".format(agent_type)
+        if np.random.random() < prob:
+            return True
+        else:
+            return False
 
     def log(self):
         if self.background_run:
