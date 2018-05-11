@@ -4,20 +4,29 @@ import numpy as np
 import scipy.stats
 from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
+from metainsuranceorg import MetaInsuranceOrg
 from riskmodel import RiskModel
 import sys, pdb
 import uuid
 import numba as nb
 
-if isleconfig.use_abce:
-    from genericagentabce import GenericAgent
-    #print("abce imported")
-else:
-    from genericagent import GenericAgent
-    #print("abce not imported")
-
-class MetaInsuranceOrg(GenericAgent):
-    def init(self, simulation_parameters, agent_parameters):
+class CatBond(MetaInsuranceOrg):
+    def init(self, simulation, per_period_premium, owner, interest_rate = 0):   # do we need simulation parameters
+        self.simulation = simulation
+        self.id = 0
+        self.underwritten_contracts = []
+        self.cash = 0
+        self.obligations = []
+        self.operational = True
+        self.owner = owner
+        self.per_period_dividend = per_period_premium
+        self.interest_rate = interest_rate  # TODO: shift obtain_yield method to insurancesimulation, thereby making it unnecessary to drag parameters like self.interest_rate from instance to instance and from class to class
+        #self.simulation_no_risk_categories = self.simulation.simulation_parameters["no_categories"]
+    
+    # TODO: change start and InsuranceSimulation so that it iterates CatBonds
+    #old parent class init, cat bond class should be much smaller
+    def parent_init(self, simulation_parameters, agent_parameters):
+        #def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
         self.simulation_parameters = simulation_parameters
         self.contract_runtime_dist = scipy.stats.randint(simulation_parameters["mean_contract_runtime"] - \
@@ -34,10 +43,6 @@ class MetaInsuranceOrg(GenericAgent):
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
-        
-        self.owner = self.simulation # TODO: Make this into agent_parameter value?
-        self.per_period_dividend = 0
-        self.cash_last_periods = list(np.zeros(4, dtype=int))
         
         rm_config = agent_parameters['riskmodel_config']
         self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
@@ -71,7 +76,36 @@ class MetaInsuranceOrg(GenericAgent):
         self.counter_category = np.zeros(self.simulation_no_risk_categories)    # var_counter disaggregated by category
         self.var_category = np.zeros(self.simulation_no_risk_categories)        # var_sum disaggregated by category
 
-    def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
+    def iterate(self, time):
+        """obtain investments yield"""
+        self.obtain_yield(time)
+
+        """realize due payments"""
+        self.effect_payments(time)
+        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+
+        """mature contracts"""
+        print("Number of underwritten contracts ", len(self.underwritten_contracts))
+        maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
+        for contract in maturing:
+            self.underwritten_contracts.remove(contract)
+            contract.mature(time)
+        contracts_dissolved = len(maturing)
+
+        """effect payments from contracts"""
+        [contract.check_payment_due(time) for contract in self.underwritten_contracts]
+        
+        if self.underwritten_contracts == []:
+            self.mature_bond()  #TODO: mature_bond method should check if operational
+            
+        else:   #TODO: dividend should only be payed according to pre-arranged schedule, and only if no risk events have materialized so far
+            if self.operational:
+                self.pay_dividends(time)
+
+        #self.estimated_var()   # cannot compute VaR for catbond as catbond does not have a riskmodel
+    
+    #old parent class iterate, cat bond class should be much smaller
+    def parent_iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
         self.obtain_yield(time)
 
@@ -180,18 +214,11 @@ class MetaInsuranceOrg(GenericAgent):
                 not_accepted_risks += categ_risks[i:]
                 not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
 
-            """handle capital market interactions: capital history, dividends, capacity"""
-            self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
-            self.adjust_dividends(time)
-            self.pay_dividends(time)
-            
             # seek reinsurance
-            #if self.is_insurer:
-            #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
-            #    self.ask_reinsurance(time)
-            #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
-            self.increase_capacity(time)
-            
+            if self.is_insurer:
+                # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work)
+                self.ask_reinsurance(time)
+
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
             self.simulation.return_risks(not_accepted_risks)
@@ -199,9 +226,173 @@ class MetaInsuranceOrg(GenericAgent):
             #not implemented
             #"""adjust liquidity, borrow or invest"""
             #pass
-            
-        self.estimated_var()
 
+        self.estimated_var()
+    
+    def set_owner(self, owner):
+        self.owner = owner
+        print("SOLD")
+        pdb.set_trace()
+    
+    def set_contract(self, contract):
+        self.underwritten_contracts.append(contract)
+    
+    def mature_bond(self):
+        self.pay(self.cash, self.simulation)
+        self.simulation.delete_agents("catbond", [self])
+        self.operational = False
+    
+    #def increase_capacity(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance(self, time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance_non_proportional(self, time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def ask_reinsurance_proportional(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def issue_cat_bond(self):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+    #
+    #def make_reinsurance_claims(self,time):
+    #    raise AttributeError( "Method may not be used in CatBond instance" )
+
+
+if False:
+
+    #remaining classes cannot be used, should be masked    
+    def increase_capacity(self):
+        '''get prices'''
+        reinsurance_price = self.simulation.get_reinsurance_price(self.np_reinsurance_deductible_fraction )
+        cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
+        '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
+        if reinsurance_price > cat_bond_price:
+            self.issue_cat_bond()
+        else:
+            self.ask_reinsurance()
+    
+    def ask_reinsurance(self, time):
+        if self.simulation_reinsurance_type == 'proportional':
+            self.ask_reinsurance_proportional()
+        elif self.simulation_reinsurance_type == 'non-proportional':
+            self.ask_reinsurance_non_proportional(time)
+        else:
+            assert False, "Undefined reinsurance type"
+
+    @nb.jit
+    def ask_reinsurance_non_proportional(self, time):
+        """ Method for requesting excess of loss reinsurance for all underwritten contracts by category.
+            The method calculates the combined valur at risk. With a probability it then creates a combined 
+            reinsurance risk that may then be underwritten by a reinsurance firm.
+            Arguments: 
+                time: integer
+            Returns None.
+            
+        """
+        """Evaluate by risk category"""
+        for categ_id in range(self.simulation_no_risk_categories):
+            """Seek reinsurance only with probability 10% if not already reinsured"""  # TODO: find a more generic way to decide whether to request reinsurance for category in this period
+            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 0.1:
+                total_value = 0
+                avg_risk_factor = 0
+                number_risks = 0
+                periodized_total_premium = 0
+                for contract in self.underwritten_contracts:
+                    if contract.category == categ_id:
+                        total_value += contract.value
+                        avg_risk_factor += contract.risk_factor
+                        number_risks += 1
+                        periodized_total_premium += contract.periodized_premium
+                """Proceed with creation of reinsurance risk only if category is not empty."""
+                if number_risks > 0:    
+                    avg_risk_factor /= number_risks
+                    risk = {"value": total_value, "category": categ_id, "owner": self,
+                                #"identifier": uuid.uuid1(),
+                                "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
+                                "deductible_fraction": self.np_reinsurance_deductible_fraction, 
+                                "excess_fraction": self.np_reinsurance_excess_fraction,
+                                "periodized_total_premium": periodized_total_premium, "runtime": 12,
+                                "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
+
+                    self.simulation.append_reinrisks(risk)
+
+    @nb.jit
+    def ask_reinsurance_proportional(self):
+        nonreinsured = []
+        for contract in self.underwritten_contracts:
+            if contract.reincontract == None:
+                nonreinsured.append(contract)
+
+        #nonreinsured_b = [contract
+        #                for contract in self.underwritten_contracts
+        #                if contract.reincontract == None]
+        #
+        #try:
+        #    assert nonreinsured == nonreinsured_b
+        #except:
+        #    pdb.set_trace()
+
+        nonreinsured.reverse()
+
+        if len(nonreinsured) >= (1 - self.reinsurance_limit) * len(self.underwritten_contracts):
+            counter = 0
+            limitrein = len(nonreinsured) - (1 - self.reinsurance_limit) * len(self.underwritten_contracts)
+            for contract in nonreinsured:
+                if counter < limitrein:
+                    risk = {"value": contract.value, "category": contract.category, "owner": self,
+                            #"identifier": uuid.uuid1(),
+                            "reinsurance_share": 1.,
+                            "expiration": contract.expiration, "contract": contract,
+                            "risk_factor": contract.risk_factor}
+
+                    #print("CREATING", risk["expiration"], contract.expiration, risk["contract"].expiration, risk["identifier"])
+                    self.simulation.append_reinrisks(risk)
+                    counter += 1
+                else:
+                    break
+
+    def add_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.add_reinsurance(category, excess_fraction, deductible_fraction, contract)
+        self.category_reinsurance[category] = contract
+        #pass
+
+    def delete_reinsurance(self, category, excess_fraction, deductible_fraction, contract):
+        self.riskmodel.delete_reinsurance(category, excess_fraction, deductible_fraction, contract)
+        self.category_reinsurance[category] = None
+        #pass
+    
+    def issue_cat_bond(self):
+        pass
+
+    def make_reinsurance_claims(self,time):
+        """collect and effect reinsurance claims"""
+        # TODO: reorganize this with risk category ledgers
+        # TODO: Put facultative insurance claims here
+        claims_this_turn = np.zeros(self.simulation_no_risk_categories)
+        for contract in self.underwritten_contracts:
+            categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
+            if is_proportional:
+                claims_this_turn[categ_id] += claims
+            if (contract.reincontract != None):
+                contract.reincontract.explode(time, claims)
+
+        for categ_id in range(self.simulation_no_risk_categories):
+            if claims_this_turn[categ_id] > 0 and self.category_reinsurance[categ_id] is not None:
+                self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
+
+
+if False:
+
+    #these classes should be largely the same as in parent and should be deleted from here
     def enter_illiquidity(self, time):
         self.enter_bankruptcy(time)
 
@@ -235,16 +426,10 @@ class MetaInsuranceOrg(GenericAgent):
         """Method to accept cash payments."""
         self.cash += amount
 
-    def pay_dividends(self, time):
-        self.receive_obligation(self.per_period_dividend, self.owner, time)
-    
     def obtain_yield(self, time):
-        amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
+        amount = self.cash * self.interest_rate
         self.simulation.receive_obligation(amount, self, time)
-    
-    def increase_capacity(self):
-        raise AttributeError( "Method is not implemented in MetaInsuranceOrg, just in inheriting InsuranceFirm instances" )
-        
+
     def get_cash(self):
         return self.cash
 
@@ -292,9 +477,5 @@ class MetaInsuranceOrg(GenericAgent):
             else:
                 self.var_counter_per_risk = 0
 
-    def increase_capacity(self, time):
-        assert False, "Method not implemented. increase_capacity method should be implemented in inheriting classes"
 
-    def adjust_dividend(self, time):
-        assert False, "Method not implemented. adjust_dividend method should be implemented in inheriting classes"
-        
+

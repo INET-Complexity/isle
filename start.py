@@ -128,6 +128,37 @@ def main(simulation_parameters,seed):
         # abce time step
         simulation.advance_round(t)
         
+        # create new agents             # TODO: write method for this; this code block is executed almost identically 4 times
+        if world.insurance_firm_market_entry(agent_type="InsuranceFirm"):
+            new_insurance_firm = simulation.build_agents(InsuranceFirm,
+                                             'insurancefirm',
+                                             parameters=simulation_parameters,
+                                             agent_parameters=[np.random.choice(world.agent_parameters["insurancefirm"])])
+            insurancefirms_group += new_insurance_firm
+            if isleconfig.use_abce:
+                # TODO: fix abce
+                # may fail in abce because addressing individual agents may not be allowed
+                # may also fail because agent methods may not be callable directly
+                new_insurancefirm_pointer = [new_insurance_firm[0].get_pointer()]        # index 0 because this is a list with just 1 object
+            else:
+                new_insurancefirm_pointer = new_insurance_firm
+            world.accept_agents("insurancefirm", new_insurancefirm_pointer, new_insurance_firm, time=t)
+        
+        if world.insurance_firm_market_entry(agent_type="ReinsuranceFirm"):
+            new_reinsurance_firm = simulation.build_agents(ReinsuranceFirm,
+                                             'reinsurance',
+                                             parameters=simulation_parameters,
+                                             agent_parameters=[np.random.choice(world.agent_parameters["reinsurance"])])
+            reinsurancefirms_group += new_reinsurance_firm
+            if isleconfig.use_abce:
+                # TODO: fix abce
+                # may fail in abce because addressing individual agents may not be allowed
+                # may also fail because agent methods may not be callable directly
+                new_reinsurancefirm_pointer = [new_reinsurance_firm[0].get_pointer()]        # index 0 because this is a list with just 1 object
+            else:
+                new_reinsurancefirm_pointer = new_reinsurance_firm
+            world.accept_agents("reinsurance", new_reinsurancefirm_pointer, new_reinsurance_firm, time=t)
+        
         # iterate simulation
         world.iterate(t)
         
