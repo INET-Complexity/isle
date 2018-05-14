@@ -116,7 +116,7 @@ class InsuranceSimulation():
         
         # TODO: collapse the following two loops into one generic one?
         for i in range(simulation_parameters["no_insurancefirms"]):
-            if simulation_parameters['static_non-proportional_reinsurance_levels']
+            if simulation_parameters['static_non-proportional_reinsurance_levels']:
                 insurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
             else:
                 insurance_reinsurance_level = np.random.uniform(simulation_parameters["insurance_reinsurance_levels_lower_bound"], simulation_parameters["insurance_reinsurance_levels_upper_bound"])
@@ -131,7 +131,7 @@ class InsuranceSimulation():
                                      'non-proportional_reinsurance_level': insurance_reinsurance_level,
                                      'interest_rate': simulation_parameters["interest_rate"]})
         for i in range(simulation_parameters["no_reinsurancefirms"]):
-            if simulation_parameters['static_non-proportional_reinsurance_levels']
+            if simulation_parameters['static_non-proportional_reinsurance_levels']:
                 reinsurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
             else:
                 reinsurance_reinsurance_level = np.random.uniform(simulation_parameters["reinsurance_reinsurance_levels_lower_bound"], simulation_parameters["reinsurance_reinsurance_levels_upper_bound"])
@@ -404,15 +404,19 @@ class InsuranceSimulation():
         return self.market_premium
 
     def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
-        # TODO: cut this out of the insurance market premium 
-        # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction)
-        return self.reinsurance_market_premium        
+        # TODO: cut this out of the insurance market premium -> OBSOLETE??
+        # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction) -> DONE.
+        # TODO: make max_reduction into simulation_parameter ?
+        max_reduction = 0.1
+        return self.reinsurance_market_premium * (1. - max_reduction * np_reinsurance_deductible_fraction)
         
     def get_cat_bond_price(self, np_reinsurance_deductible_fraction):
-        #TODO: implement function dependent on total capital in cat bonds and on deductible        
-        return self.reinsurance_market_premium * 0.999    #ensure catbond class is used for testing
-        #return self.reinsurance_market_premium
-    
+        # TODO: implement function dependent on total capital in cat bonds and on deductible ()
+        # TODO: make max_reduction and max_CB_surcharge into simulation_parameters ?
+        max_reduction = 0.9
+        max_CB_surcharge = 0.5 
+        return self.reinsurance_market_premium * (1. + max_CB_surcharge - max_reduction * np_reinsurance_deductible_fraction)
+        
     def append_reinrisks(self, item):
         if(len(item) > 0):
             self.reinrisks.append(item)

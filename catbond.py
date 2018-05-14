@@ -232,7 +232,7 @@ class CatBond(MetaInsuranceOrg):
     def set_owner(self, owner):
         self.owner = owner
         print("SOLD")
-        pdb.set_trace()
+        #pdb.set_trace()
     
     def set_contract(self, contract):
         self.underwritten_contracts.append(contract)

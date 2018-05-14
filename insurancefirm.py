@@ -38,10 +38,13 @@ class InsuranceFirm(MetaInsuranceOrg):
             np.random.shuffle(categ_ids)
         while len(categ_ids) > 1:       # and ...
             categ_id = categ_ids.pop()
+            print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))
             if reinsurance_price > cat_bond_price:
+                print("IF {0:d} issuing Cat bond in period {1:d}".format(self.id, time))
                 self.issue_cat_bond(time, categ_id)
             else:
-                self.ask_reinsurance_non_proportional_category(time, categ_id)
+                print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
+                self.ask_reinsurance_non_proportional_by_category(time, categ_id)
             if True:                    # just one per iteration, unless capital target is unmatched
                 categ_ids = []
     
