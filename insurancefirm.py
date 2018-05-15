@@ -17,14 +17,15 @@ class InsuranceFirm(MetaInsuranceOrg):
         self.is_insurer = True
         self.is_reinsurer = False
 
-    def adjust_dividends(self, time):
+    def adjust_dividends(self, time, actual_capacity):
         #TODO: Implement algorithm from flowchart (capital target missing
         self.per_period_dividend = max(0, 0.005 * self.cash)
         if self.cash_last_periods[0] - self.cash_last_periods[1] < 0:     # no dividends if firm made losses
             self.per_period_dividend = 0
-        #if :                                                   # no dividends if firm misses capital target
-        #    self.per_period_dividend = 0
-        
+        if actual_capacity < self.capacity_target:                        # no dividends if firm misses capital target
+            self.per_period_dividend = 0
+    
+    #@nb.jit    
     def get_reinsurance_VaR_estimate(self, max_var):
         reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
                                 if (self.category_reinsurance[categ_id] is None)]) \
@@ -40,6 +41,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             self.capacity_target *= self.capacity_target_increment_factor
         elif capacity_target_var_ratio_estimate < self.capacity_target_decrement_threshold:
             self.capacity_target *= self.capacity_target_decrement_factor
+        return 
 
     def get_capacity(self, max_var):
         if max_var < self.cash:     # ensure presence of sufficiently much cash to cover VaR
@@ -54,18 +56,19 @@ class InsuranceFirm(MetaInsuranceOrg):
         '''get prices'''
         reinsurance_price = self.simulation.get_reinsurance_premium(self.np_reinsurance_deductible_fraction)
         cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
-        capacity = self.get_capacity(max_var)
         '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
         categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
         if len(categ_ids) > 1:
             np.random.shuffle(categ_ids)
-        while len(categ_ids) > 1:       # and ...
+        while len(categ_ids) > 1:       
             categ_id = categ_ids.pop()
+            capacity = self.get_capacity(max_var)
             if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
                 if self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=False):
                     categ_ids = []
             else:
                 self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=True)
+        return capacity # do not recompute more often than necessary
 
     def increase_capacity_by_category(self, time, categ_id, reinsurance_price, cat_bond_price, force=False):
         print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))

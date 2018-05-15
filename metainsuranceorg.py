@@ -145,12 +145,16 @@ class MetaInsuranceOrg(GenericAgent):
             """handle adjusting capacity target and capacity"""
             max_var_by_categ = self.cash - min_cash_left_by_categ
             self.adjust_capacity_target(max_var_by_categ)
-            self.increase_capacity(time, max_var_by_categ)
+            actual_capacity = self.increase_capacity(time, max_var_by_categ)
             # seek reinsurance
             #if self.is_insurer:
             #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
             #    self.ask_reinsurance(time)
             #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
+            """handle capital market interactions: capital history, dividends"""
+            self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
+            self.adjust_dividends(time, actual_capacity)
+            self.pay_dividends(time)
 
             """make underwriting decisions, category-wise"""
             #if expected_profit * 1./self.cash < self.profit_target:
@@ -201,11 +205,6 @@ class MetaInsuranceOrg(GenericAgent):
                 not_accepted_risks += categ_risks[i:]
                 not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
 
-            """handle capital market interactions: capital history, dividends"""
-            self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
-            self.adjust_dividends(time)
-            self.pay_dividends(time)
-                        
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
             self.simulation.return_risks(not_accepted_risks)
