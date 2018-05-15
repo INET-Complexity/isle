@@ -129,6 +129,10 @@ class InsuranceSimulation():
                                      'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                      'reinsurance_limit': simulation_parameters["reinsurance_limit"],
                                      'non-proportional_reinsurance_level': insurance_reinsurance_level,
+                                     'capacity_target_decrement_threshold': simulation_parameters['capacity_target_decrement_threshold'],
+                                     'capacity_target_increment_threshold': simulation_parameters['capacity_target_increment_threshold'],
+                                     'capacity_target_decrement_factor': simulation_parameters['capacity_target_decrement_factor'],
+                                     'capacity_target_increment_factor': simulation_parameters['capacity_target_increment_factor'],
                                      'interest_rate': simulation_parameters["interest_rate"]})
         for i in range(simulation_parameters["no_reinsurancefirms"]):
             if simulation_parameters['static_non-proportional_reinsurance_levels']:
@@ -144,6 +148,10 @@ class InsuranceSimulation():
                                 'acceptance_threshold_friction': simulation_parameters["acceptance_threshold_friction"],
                                 'reinsurance_limit': simulation_parameters["reinsurance_limit"],
                                 'non-proportional_reinsurance_level': reinsurance_reinsurance_level,
+                                'capacity_target_decrement_threshold': simulation_parameters['capacity_target_decrement_threshold'],
+                                'capacity_target_increment_threshold': simulation_parameters['capacity_target_increment_threshold'],
+                                'capacity_target_decrement_factor': simulation_parameters['capacity_target_decrement_factor'],
+                                'capacity_target_increment_factor': simulation_parameters['capacity_target_increment_factor'],
                                 'interest_rate': simulation_parameters["interest_rate"]})
                                 
         # set up remaining list variables

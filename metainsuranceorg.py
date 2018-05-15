@@ -26,6 +26,11 @@ class MetaInsuranceOrg(GenericAgent):
         self.default_contract_payment_period = simulation_parameters["default_contract_payment_period"]
         self.id = agent_parameters['id']
         self.cash = agent_parameters['initial_cash']
+        self.capacity_target = self.cash * 0.9
+        self.capacity_target_decrement_threshold = agent_parameters['capacity_target_decrement_threshold']
+        self.capacity_target_increment_threshold = agent_parameters['capacity_target_increment_threshold']
+        self.capacity_target_decrement_factor = agent_parameters['capacity_target_decrement_factor']
+        self.capacity_target_increment_factor = agent_parameters['capacity_target_increment_factor']
         self.premium = agent_parameters["norm_premium"]
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
@@ -120,7 +125,7 @@ class MetaInsuranceOrg(GenericAgent):
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                accept, var_this_risk = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                accept, var_this_risk, min_cash_left_by_categ = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
                 if accept:
                     per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
@@ -131,10 +136,23 @@ class MetaInsuranceOrg(GenericAgent):
                     self.underwritten_contracts.append(contract)
                 #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
-            """make underwriting decisions, category-wise"""
+            """obtain risk model evaluation (VaR) for underwriting decisions and for capacity specific decisions"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
-            expected_profit, acceptable_by_category, var_per_risk_per_categ = self.riskmodel.evaluate(underwritten_risks, self.cash)
+            expected_profit, acceptable_by_category, var_per_risk_per_categ, min_cash_left_by_categ = self.riskmodel.evaluate(underwritten_risks, self.cash)
+            
+            # TODO: resolve insurance reinsurance inconsistency (insurer underwrite after capacity decisions, reinsurers before). 
+            #                        This is currently so because it minimizes the number of times we need to run self.riskmodel.evaluate().
+            """handle adjusting capacity target and capacity"""
+            max_var_by_categ = self.cash - min_cash_left_by_categ
+            self.adjust_capacity_target(max_var_by_categ)
+            self.increase_capacity(time, max_var_by_categ)
+            # seek reinsurance
+            #if self.is_insurer:
+            #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
+            #    self.ask_reinsurance(time)
+            #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
 
+            """make underwriting decisions, category-wise"""
             #if expected_profit * 1./self.cash < self.profit_target:
             #    self.acceptance_threshold = ((self.acceptance_threshold - .4) * 5. * self.acceptance_threshold_friction) / 5. + .4
             #else:
@@ -183,18 +201,11 @@ class MetaInsuranceOrg(GenericAgent):
                 not_accepted_risks += categ_risks[i:]
                 not_accepted_risks = [risk for risk in not_accepted_risks if risk.get("contract") is None]
 
-            """handle capital market interactions: capital history, dividends, capacity"""
+            """handle capital market interactions: capital history, dividends"""
             self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
             self.adjust_dividends(time)
             self.pay_dividends(time)
-            
-            # seek reinsurance
-            #if self.is_insurer:
-            #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
-            #    self.ask_reinsurance(time)
-            #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
-            self.increase_capacity(time)
-            
+                        
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
             self.simulation.return_risks(not_accepted_risks)
@@ -301,3 +312,6 @@ class MetaInsuranceOrg(GenericAgent):
     def adjust_dividend(self, time):
         assert False, "Method not implemented. adjust_dividend method should be implemented in inheriting classes"
         
+    def adjust_capacity_target(self, time):
+        assert False, "Method not implemented. adjust_dividend method should be implemented in inheriting classes"
+            
