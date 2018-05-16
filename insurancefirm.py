@@ -60,6 +60,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
         if len(categ_ids) > 1:
             np.random.shuffle(categ_ids)
+        capacity = None
         while len(categ_ids) > 1:       
             categ_id = categ_ids.pop()
             capacity = self.get_capacity(max_var)
@@ -68,7 +69,10 @@ class InsuranceFirm(MetaInsuranceOrg):
                     categ_ids = []
             else:
                 self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=True)
-        return capacity # do not recompute more often than necessary
+        # capacity is returned in order not to recompute more often than necessary
+        if capacity is None: 
+            capacity = self.get_capacity(max_var)
+        return capacity 
 
     def increase_capacity_by_category(self, time, categ_id, reinsurance_price, cat_bond_price, force=False):
         print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))
