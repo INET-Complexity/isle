@@ -56,19 +56,19 @@ class InsuranceFirm(MetaInsuranceOrg):
         '''get prices'''
         reinsurance_price = self.simulation.get_reinsurance_premium(self.np_reinsurance_deductible_fraction)
         cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
-        '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
-        categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
-        if len(categ_ids) > 1:
-            np.random.shuffle(categ_ids)
         capacity = None
-        while len(categ_ids) > 1:       
-            categ_id = categ_ids.pop()
-            capacity = self.get_capacity(max_var)
-            if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
-                if self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=False):
-                    categ_ids = []
-            else:
-                self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=True)
+        if not reinsurance_price == cat_bond_price == float('inf'):
+            categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
+            if len(categ_ids) > 1:
+                np.random.shuffle(categ_ids)
+            while len(categ_ids) > 1:       
+                categ_id = categ_ids.pop()
+                capacity = self.get_capacity(max_var)
+                if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
+                    if self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=False):
+                        categ_ids = []
+                else:
+                    self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=True)
         # capacity is returned in order not to recompute more often than necessary
         if capacity is None: 
             capacity = self.get_capacity(max_var)
@@ -81,6 +81,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             possible_premium = self.simulation.get_market_premium()
             if actual_premium >= possible_premium:
                 return False
+        '''on the basis of prices decide for obtaining reinsurance or for issuing cat bond'''
         if reinsurance_price > cat_bond_price:
             print("IF {0:d} issuing Cat bond in period {1:d}".format(self.id, time))
             self.issue_cat_bond(time, categ_id)

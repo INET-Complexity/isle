@@ -42,6 +42,8 @@ class InsuranceSimulation():
         self.damage_distribution = TruncatedDistWrapper(lower_bound=0.25, upper_bound=1., dist=non_truncated)
         
         # remaining parameters
+        self.catbonds_off = simulation_parameters["catbonds_off"]
+        self.reinsurance_off = simulation_parameters["reinsurance_off"]
         self.cat_separation_distribution = scipy.stats.expon(0, simulation_parameters["event_time_mean_separation"])
         self.risk_factor_lower_bound = simulation_parameters["risk_factor_lower_bound"]
         self.risk_factor_spread = simulation_parameters["risk_factor_upper_bound"] - simulation_parameters["risk_factor_lower_bound"]
@@ -183,6 +185,8 @@ class InsuranceSimulation():
         self.history_total_reincash = []
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
+        
+        self.history_total_catbondsoperational = []
 
         self.history_market_premium = []
         self.history_market_diffvar = []
@@ -311,12 +315,14 @@ class InsuranceSimulation():
         total_reincontracts_no = sum([len(reinsurancefirm.underwritten_contracts) for reinsurancefirm in self.reinsurancefirms])
         operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
         reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
+        catbondsoperational_no = sum([catbond.operational for catbond in self.catbonds])
         self.history_total_cash.append(total_cash_no)
         self.history_total_contracts.append(total_contracts_no)
         self.history_total_operational.append(operational_no)
         self.history_total_reincash.append(total_reincash_no)
         self.history_total_reincontracts.append(total_reincontracts_no)
         self.history_total_reinoperational.append(reinoperational_no)
+        self.history_total_catbondsoperational.append(catbondsoperational_no)
         self.history_market_premium.append(self.market_premium)
         self.log_vars()
         
@@ -415,12 +421,16 @@ class InsuranceSimulation():
         # TODO: cut this out of the insurance market premium -> OBSOLETE??
         # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction) -> DONE.
         # TODO: make max_reduction into simulation_parameter ?
+        if self.reinsurance_off:
+            return float('inf')
         max_reduction = 0.1
         return self.reinsurance_market_premium * (1. - max_reduction * np_reinsurance_deductible_fraction)
         
     def get_cat_bond_price(self, np_reinsurance_deductible_fraction):
         # TODO: implement function dependent on total capital in cat bonds and on deductible ()
         # TODO: make max_reduction and max_CB_surcharge into simulation_parameters ?
+        if self.catbonds_off:
+            return float('inf')
         max_reduction = 0.9
         max_CB_surcharge = 0.5 
         return self.reinsurance_market_premium * (1. + max_CB_surcharge - max_reduction * np_reinsurance_deductible_fraction)
@@ -569,6 +579,7 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/" + fpf + "_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/" + fpf + "_diffvar.dat", self.history_market_diffvar, "a"))
 
@@ -586,6 +597,7 @@ class InsuranceSimulation():
         to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/one_diffvar.dat", self.history_market_diffvar, "a"))
 
@@ -600,6 +612,7 @@ class InsuranceSimulation():
         to_log.append(("data/reinoperational.dat", self.history_total_reinoperational, "w"))
         to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
         to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
+        to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "w"))
         to_log.append(("data/premium.dat", self.history_market_premium, "w"))
         to_log.append(("data/diffvar.dat", self.history_market_diffvar, "w"))
 
