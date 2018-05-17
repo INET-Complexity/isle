@@ -221,13 +221,13 @@ class RiskModel():
         
         if offered_risk is None:
             # return numbers of remaining acceptable risks by category
-            return expected_profits_proportional, remaining_acceptable_by_categ, var_per_risk_per_categ
+            return expected_profits_proportional, remaining_acceptable_by_categ, var_per_risk_per_categ, min(cash_left_by_categ)
         else:       
             # return boolean value whether the offered excess_of_loss risk can be accepted
             print ("REINSURANCE RISKMODEL", cash, cash_left_by_categ, (cash_left_by_categ - additional_required > 0).all())
             #if not (cash_left_by_categ - additional_required > 0).all():
             #    pdb.set_trace()
-            return (cash_left_by_categ - additional_required > 0).all(), var_this_risk
+            return (cash_left_by_categ - additional_required > 0).all(), var_this_risk, min(cash_left_by_categ)
         
     def add_reinsurance(self, categ_id, excess_fraction, deductible_fraction, contract):
         self.damage_distribution_stack[categ_id].append(self.damage_distribution[categ_id])

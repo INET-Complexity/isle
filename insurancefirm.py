@@ -17,33 +17,90 @@ class InsuranceFirm(MetaInsuranceOrg):
         self.is_insurer = True
         self.is_reinsurer = False
 
-    def adjust_dividends(self, time):
+    def adjust_dividends(self, time, actual_capacity):
         #TODO: Implement algorithm from flowchart (capital target missing
         self.per_period_dividend = max(0, 0.005 * self.cash)
         if self.cash_last_periods[0] - self.cash_last_periods[1] < 0:     # no dividends if firm made losses
             self.per_period_dividend = 0
-        #if :                                                   # no dividends if firm misses capital target
-        #    self.per_period_dividend = 0
-            
+        if actual_capacity < self.capacity_target:                        # no dividends if firm misses capital target
+            self.per_period_dividend = 0
+    
+    #@nb.jit    
+    def get_reinsurance_VaR_estimate(self, max_var):
+        reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
+                                if (self.category_reinsurance[categ_id] is None)]) \
+                                        * 1. / self.simulation_no_risk_categories) \
+                                        * (1. - self.np_reinsurance_deductible_fraction)
+        reinsurance_VaR_estimate = max_var * (1. + reinsurance_factor_estimate)
+        return reinsurance_VaR_estimate
+    
+    def adjust_capacity_target(self, max_var):
+        reinsurance_VaR_estimate = self.get_reinsurance_VaR_estimate(max_var)
+        capacity_target_var_ratio_estimate = (self.capacity_target + reinsurance_VaR_estimate) * 1. / (max_var + reinsurance_VaR_estimate)
+        if capacity_target_var_ratio_estimate > self.capacity_target_increment_threshold:
+            self.capacity_target *= self.capacity_target_increment_factor
+        elif capacity_target_var_ratio_estimate < self.capacity_target_decrement_threshold:
+            self.capacity_target *= self.capacity_target_decrement_factor
+        return 
 
-    def increase_capacity(self, time):
+    def get_capacity(self, max_var):
+        if max_var < self.cash:     # ensure presence of sufficiently much cash to cover VaR
+            reinsurance_VaR_estimate = self.get_reinsurance_VaR_estimate(max_var)
+            return self.cash + reinsurance_VaR_estimate
+        # else: # (This point is only reached when insurer is in severe financial difficulty. Ensure insurer recovers complete coverage.)
+        return self.cash
+        
+    def increase_capacity(self, time, max_var):
         '''This is implemented for non-proportional reinsurance only. Otherwise the price comparison is not meaningful. Assert non-proportional mode.'''
         assert self.simulation_reinsurance_type == 'non-proportional'
         '''get prices'''
-        reinsurance_price = self.simulation.get_reinsurance_premium(self.np_reinsurance_deductible_fraction )
+        reinsurance_price = self.simulation.get_reinsurance_premium(self.np_reinsurance_deductible_fraction)
         cat_bond_price = self.simulation.get_cat_bond_price(self.np_reinsurance_deductible_fraction)
         '''on this basis decide for obtaining reinsurance or for issuing cat bond'''
         categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
         if len(categ_ids) > 1:
             np.random.shuffle(categ_ids)
-        while len(categ_ids) > 1:       # and ...
+        capacity = None
+        while len(categ_ids) > 1:       
             categ_id = categ_ids.pop()
-            if reinsurance_price > cat_bond_price:
-                self.issue_cat_bond(time, categ_id)
+            capacity = self.get_capacity(max_var)
+            if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
+                if self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=False):
+                    categ_ids = []
             else:
-                self.ask_reinsurance_non_proportional_category(time, categ_id)
-            if True:                    # just one per iteration, unless capital target is unmatched
-                categ_ids = []
+                self.increase_capacity_by_category(time, categ_id, reinsurance_price=reinsurance_price, cat_bond_price=cat_bond_price, force=True)
+        # capacity is returned in order not to recompute more often than necessary
+        if capacity is None: 
+            capacity = self.get_capacity(max_var)
+        return capacity 
+
+    def increase_capacity_by_category(self, time, categ_id, reinsurance_price, cat_bond_price, force=False):
+        print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))
+        if not force:
+            actual_premium = self.get_average_premium(categ_id)
+            possible_premium = self.simulation.get_market_premium()
+            if actual_premium >= possible_premium:
+                return False
+        if reinsurance_price > cat_bond_price:
+            print("IF {0:d} issuing Cat bond in period {1:d}".format(self.id, time))
+            self.issue_cat_bond(time, categ_id)
+        else:
+            print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
+            self.ask_reinsurance_non_proportional_by_category(time, categ_id)
+        return True
+    
+    @nb.jit
+    def get_average_premium(self, categ_id):
+        weighted_premium_sum = 0
+        total_weight = 0
+        for contract in self.underwritten_contracts:
+            if contract.category == categ_id:
+                total_weight += contract.value
+                contract_premium = contract.periodized_premium * contract.runtime
+                weighted_premium_sum += contract_premium
+        if total_weight == 0:
+            return 0    # will prevent any attempt to reinsure empty categories
+        return weighted_premium_sum * 1.0 / total_weight
     
     def ask_reinsurance(self, time):
         if self.simulation_reinsurance_type == 'proportional':
@@ -152,35 +209,36 @@ class InsuranceFirm(MetaInsuranceOrg):
         #per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
         """ create catbond """
         total_value, avg_risk_factor, number_risks, periodized_total_premium = self.characterize_underwritten_risks_by_category(time, categ_id)
-        risk = {"value": total_value, "category": categ_id, "owner": self,
-                        #"identifier": uuid.uuid1(),
-                        "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
-                        "deductible_fraction": self.np_reinsurance_deductible_fraction, 
-                        "excess_fraction": self.np_reinsurance_excess_fraction,
-                        "periodized_total_premium": 0, "runtime": 12,
-                        "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
-        _, var_this_risk = self.riskmodel.evaluate([], self.cash, risk)
-        per_period_premium = per_value_per_period_premium * risk["value"]
-        total_premium = sum([per_period_premium * ((1/(1+self.interest_rate))**i) for i in range(risk["runtime"])])                # TODO: or is it range(1, risk["runtime"]+1)?
-        #catbond = CatBond(self.simulation, per_period_premium)
-        catbond = CatBond(self.simulation, per_period_premium, self.interest_rate)  # TODO: shift obtain_yield method to insurancesimulation, thereby making it unnecessary to drag parameters like self.interest_rate from instance to instance and from class to class
+        if number_risks > 0:
+            risk = {"value": total_value, "category": categ_id, "owner": self,
+                            #"identifier": uuid.uuid1(),
+                            "insurancetype": 'excess-of-loss', "number_risks": number_risks, 
+                            "deductible_fraction": self.np_reinsurance_deductible_fraction, 
+                            "excess_fraction": self.np_reinsurance_excess_fraction,
+                            "periodized_total_premium": 0, "runtime": 12,
+                            "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
+            _, var_this_risk, _ = self.riskmodel.evaluate([], self.cash, risk)
+            per_period_premium = per_value_per_period_premium * risk["value"]
+            total_premium = sum([per_period_premium * ((1/(1+self.interest_rate))**i) for i in range(risk["runtime"])])                # TODO: or is it range(1, risk["runtime"]+1)?
+            #catbond = CatBond(self.simulation, per_period_premium)
+            catbond = CatBond(self.simulation, per_period_premium, self.interest_rate)  # TODO: shift obtain_yield method to insurancesimulation, thereby making it unnecessary to drag parameters like self.interest_rate from instance to instance and from class to class
 
-        """add contract; contract is a quasi-reinsurance contract"""
-        contract = ReinsuranceContract(catbond, risk, time, 0, risk["runtime"], \
-                                                  self.default_contract_payment_period, \
-                                                  expire_immediately=self.simulation_parameters["expire_immediately"], \
-                                                  initial_VaR=var_this_risk, \
-                                                  insurancetype=risk["insurancetype"])
-        # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
-        
-        catbond.set_contract(contract)
-        """sell cat bond (to self.simulation)"""
-        self.simulation.receive_obligation(var_this_risk, self, time)
-        catbond.set_owner(self.simulation)
-        """hand cash over to cat bond such that var_this_risk is covered"""
-        self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
-        """register catbond"""
-        self.simulation.accept_agents("catbond", [catbond], time=time)
+            """add contract; contract is a quasi-reinsurance contract"""
+            contract = ReinsuranceContract(catbond, risk, time, 0, risk["runtime"], \
+                                                      self.default_contract_payment_period, \
+                                                      expire_immediately=self.simulation_parameters["expire_immediately"], \
+                                                      initial_VaR=var_this_risk, \
+                                                      insurancetype=risk["insurancetype"])
+            # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
+            
+            catbond.set_contract(contract)
+            """sell cat bond (to self.simulation)"""
+            self.simulation.receive_obligation(var_this_risk, self, time)
+            catbond.set_owner(self.simulation)
+            """hand cash over to cat bond such that var_this_risk is covered"""
+            self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
+            """register catbond"""
+            self.simulation.accept_agents("catbond", [catbond], time=time)
 
     def make_reinsurance_claims(self,time):
         """collect and effect reinsurance claims"""
