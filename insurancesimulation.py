@@ -176,6 +176,7 @@ class InsuranceSimulation():
         
         # sum insurance firms
         self.history_total_cash = []
+        self.history_total_profitslosses = []
         self.history_total_contracts = []
         self.history_total_operational = []
         # individual insurance firms
@@ -183,6 +184,7 @@ class InsuranceSimulation():
         
         # sum reinsurance firms
         self.history_total_reincash = []
+        self.history_total_reinprofitslosses = []
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
         
@@ -310,16 +312,20 @@ class InsuranceSimulation():
     def save_data(self):
         # collect data
         total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
+        total_profitslosses =  sum([insurancefirm.get_profitslosses() for insurancefirm in self.insurancefirms])
         total_contracts_no = sum([len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms])
         total_reincash_no = sum([reinsurancefirm.cash for reinsurancefirm in self.reinsurancefirms])
+        total_reinprofitslosses =  sum([reinsurancefirm.get_profitslosses() for reinsurancefirm in self.reinsurancefirms])
         total_reincontracts_no = sum([len(reinsurancefirm.underwritten_contracts) for reinsurancefirm in self.reinsurancefirms])
         operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
         reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
         catbondsoperational_no = sum([catbond.operational for catbond in self.catbonds])
         self.history_total_cash.append(total_cash_no)
+        self.history_total_profitslosses.append(total_profitslosses)
         self.history_total_contracts.append(total_contracts_no)
         self.history_total_operational.append(operational_no)
         self.history_total_reincash.append(total_reincash_no)
+        self.history_total_reinprofitslosses.append(total_reinprofitslosses)
         self.history_total_reincontracts.append(total_reincontracts_no)
         self.history_total_reinoperational.append(reinoperational_no)
         self.history_total_catbondsoperational.append(catbondsoperational_no)
@@ -576,9 +582,11 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_operational.dat", self.history_total_operational, "a"))
         to_log.append(("data/" + fpf + "_contracts.dat", self.history_total_contracts, "a"))
         to_log.append(("data/" + fpf + "_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/" + fpf + "_profitslosses.dat", self.history_total_profitslosses, "a"))
         to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/" + fpf + "_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/" + fpf + "_reinprofitslosses.dat", self.history_total_reinprofitslosses, "a"))
         to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/" + fpf + "_diffvar.dat", self.history_market_diffvar, "a"))
@@ -594,9 +602,11 @@ class InsuranceSimulation():
         to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
         to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))
         to_log.append(("data/one_cash.dat", self.history_total_cash, "a"))
+        to_log.append(("data/one_profitslosses.dat", self.history_total_profitslosses, "a"))
         to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
         to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
         to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
+        to_log.append(("data/one_reinprofitslosses.dat", self.history_total_reinprofitslosses, "a"))
         to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/one_diffvar.dat", self.history_market_diffvar, "a"))
@@ -609,9 +619,11 @@ class InsuranceSimulation():
         to_log.append(("data/operational.dat", self.history_total_operational, "w"))
         to_log.append(("data/contracts.dat", self.history_total_contracts, "w"))
         to_log.append(("data/cash.dat", self.history_total_cash, "w"))
+        to_log.append(("data/profitslosses.dat", self.history_total_profitslosses, "w"))
         to_log.append(("data/reinoperational.dat", self.history_total_reinoperational, "w"))
         to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
         to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
+        to_log.append(("data/reinprofitslosses.dat", self.history_total_reinprofitslosses, "w"))
         to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "w"))
         to_log.append(("data/premium.dat", self.history_market_premium, "w"))
         to_log.append(("data/diffvar.dat", self.history_market_diffvar, "w"))

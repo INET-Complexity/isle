@@ -25,6 +25,9 @@ class InsuranceFirm(MetaInsuranceOrg):
         if actual_capacity < self.capacity_target:                        # no dividends if firm misses capital target
             self.per_period_dividend = 0
     
+    def get_profitslosses(self):
+        return self.cash_last_periods[0] - self.cash_last_periods[1]
+    
     #@nb.jit    
     def get_reinsurance_VaR_estimate(self, max_var):
         reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
