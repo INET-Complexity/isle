@@ -117,7 +117,7 @@ class RiskModel():
             expected_profits += incr_expected_profits
             
             # compute value at risk
-            var_per_risk = self.getPPF(categ_id=categ_id, tailSize=self.var_tail_prob) * average_risk_factor * average_exposure
+            var_per_risk = self.getPPF(categ_id=categ_id, tailSize=self.var_tail_prob) * average_risk_factor * average_exposure * self.margin_of_safety
             
             # record liquidity requirement and apply margin of safety for liquidity requirement
             necessary_liquidity += var_per_risk * self.margin_of_safety * len(categ_risks)
