@@ -42,7 +42,7 @@ class MetaInsuranceOrg(GenericAgent):
         
         self.owner = self.simulation # TODO: Make this into agent_parameter value?
         self.per_period_dividend = 0
-        self.cash_last_periods = list(np.zeros(4, dtype=int))
+        self.cash_last_periods = list(np.zeros(4, dtype=int)*self.cash)
         
         rm_config = agent_parameters['riskmodel_config']
         self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
