@@ -96,8 +96,10 @@ class InsuranceSimulation():
         #                else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
         #                for i in range(self.simulation_parameters["no_categories"])] \
         #                for j in range(self.simulation_parameters["no_riskmodels"])]
+
         inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
-        inaccuracy = inaccuracy[:self.simulation_parameters["no_riskmodels"]]
+
+        inaccuracy = self.get_risk_models(inaccuracy)
         
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
@@ -472,26 +474,27 @@ class InsuranceSimulation():
 
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
-    
-    def add_one_to_riskmodel_combination(self, pos_positions, n, k, rm_factor, riskmodels):
-        if len(pos_positions) == k:
-            rm = [1./rm_factor if (i in pos_positions) else rm_factor for i in range(n)]
-            if not rm in riskmodels:
-                riskmodels.append(rm)
-                if sum(rm)*2 == len(rm):
-                    rm = [rm_factor if (i in pos_positions) else 1/rm_factor for i in range(n)]
-                    riskmodels.append(rm)
-        else:
-            for i in range(n):
-                if not i in pos_positions:
-                    riskmodels = self.add_one_to_riskmodel_combination(pos_positions+[i], n, k, rm_factor, riskmodels)
-        return riskmodels
 
     def get_all_riskmodel_combinations(self, n, rm_factor):
         riskmodels = []
-        pos_number = math.ceil(n/2)
-        riskmodels = self.add_one_to_riskmodel_combination([], n, pos_number, rm_factor, riskmodels)
+        for i in range(self.simulation_parameters["no_categories"]):
+            riskmodel_combination = rm_factor * np.ones(self.simulation_parameters["no_categories"])
+            riskmodel_combination[i] = 1/rm_factor
+            riskmodels.append(riskmodel_combination.tolist())
         return riskmodels
+
+    def get_risk_models(self, inaccuracy):
+
+        for i in range(self.simulation_parameters["no_riskmodels"]):
+            inaccuracy_try = []
+            inaccuracy_store = inaccuracy[:]
+            for i in range(self.simulation_parameters["no_riskmodels"]):
+                s = int(np.random.randint(0, len(inaccuracy_store), 1))
+                add_try = inaccuracy_store[s]
+                inaccuracy_try.append(add_try)
+                inaccuracy_store.remove(add_try)
+
+            return inaccuracy_try
 
     def setup_risk_categories(self):
         for i in self.riskcategories:
