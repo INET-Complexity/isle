@@ -9,6 +9,7 @@ import math
 import sys, pdb
 import numba as nb
 import isleconfig
+import random
 
 if isleconfig.use_abce:
     import abce
@@ -99,8 +100,8 @@ class InsuranceSimulation():
 
         inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
 
-        inaccuracy = self.get_risk_models(inaccuracy)
-        
+        inaccuracy = random.sample(inaccuracy, self.simulation_parameters["no_riskmodels"])
+
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
                                       "cat_separation_distribution": self.cat_separation_distribution,
@@ -482,19 +483,6 @@ class InsuranceSimulation():
             riskmodel_combination[i] = 1/rm_factor
             riskmodels.append(riskmodel_combination.tolist())
         return riskmodels
-
-    def get_risk_models(self, inaccuracy):
-
-        for i in range(self.simulation_parameters["no_riskmodels"]):
-            inaccuracy_try = []
-            inaccuracy_store = inaccuracy[:]
-            for i in range(self.simulation_parameters["no_riskmodels"]):
-                s = int(np.random.randint(0, len(inaccuracy_store), 1))
-                add_try = inaccuracy_store[s]
-                inaccuracy_try.append(add_try)
-                inaccuracy_store.remove(add_try)
-
-            return inaccuracy_try
 
     def setup_risk_categories(self):
         for i in self.riskcategories:
