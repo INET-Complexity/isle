@@ -9,6 +9,7 @@ import math
 import sys, pdb
 import numba as nb
 import isleconfig
+import random
 
 if isleconfig.use_abce:
     import abce
@@ -96,9 +97,11 @@ class InsuranceSimulation():
         #                else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
         #                for i in range(self.simulation_parameters["no_categories"])] \
         #                for j in range(self.simulation_parameters["no_riskmodels"])]
+
         inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
-        inaccuracy = inaccuracy[:self.simulation_parameters["no_riskmodels"]]
-        
+
+        inaccuracy = random.sample(inaccuracy, self.simulation_parameters["no_riskmodels"])
+
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
                                       "cat_separation_distribution": self.cat_separation_distribution,
@@ -115,7 +118,7 @@ class InsuranceSimulation():
         # prepare setting up agents (to be done from start.py)
         self.agent_parameters = {"insurancefirm": [], "reinsurance": []}    # TODO: rename reinsurance -> reinsurancefirm (also in start.py and below in method accept_agents
 
-        
+        self.insurer_id_counter = 0
         # TODO: collapse the following two loops into one generic one?
         for i in range(simulation_parameters["no_insurancefirms"]):
             if simulation_parameters['static_non-proportional_reinsurance_levels']:
@@ -124,7 +127,7 @@ class InsuranceSimulation():
                 insurance_reinsurance_level = np.random.uniform(simulation_parameters["insurance_reinsurance_levels_lower_bound"], simulation_parameters["insurance_reinsurance_levels_upper_bound"])
 
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
-            self.agent_parameters["insurancefirm"].append({'id': i, 'initial_cash': simulation_parameters["initial_agent_cash"],
+            self.agent_parameters["insurancefirm"].append({'id': self.get_unique_insurer_id(), 'initial_cash': simulation_parameters["initial_agent_cash"],
                                      'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
                                      'profit_target': simulation_parameters["norm_profit_markup"],
                                      'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
@@ -136,6 +139,8 @@ class InsuranceSimulation():
                                      'capacity_target_decrement_factor': simulation_parameters['capacity_target_decrement_factor'],
                                      'capacity_target_increment_factor': simulation_parameters['capacity_target_increment_factor'],
                                      'interest_rate': simulation_parameters["interest_rate"]})
+
+        self.reinsurer_id_counter = 0
         for i in range(simulation_parameters["no_reinsurancefirms"]):
             if simulation_parameters['static_non-proportional_reinsurance_levels']:
                 reinsurance_reinsurance_level = simulation_parameters["default_non-proportional_reinsurance_deductible"]
@@ -143,7 +148,7 @@ class InsuranceSimulation():
                 reinsurance_reinsurance_level = np.random.uniform(simulation_parameters["reinsurance_reinsurance_levels_lower_bound"], simulation_parameters["reinsurance_reinsurance_levels_upper_bound"])
 
             riskmodel_config = risk_model_configurations[i % len(risk_model_configurations)]
-            self.agent_parameters["reinsurance"].append({'id': i, 'initial_cash': simulation_parameters["initial_reinagent_cash"],
+            self.agent_parameters["reinsurance"].append({'id': self.get_unique_reinsurer_id(), 'initial_cash': simulation_parameters["initial_reinagent_cash"],
                                 'riskmodel_config': riskmodel_config, 'norm_premium': self.norm_premium,
                                 'profit_target': simulation_parameters["norm_profit_markup"],
                                 'initial_acceptance_threshold': simulation_parameters["initial_acceptance_threshold"],
@@ -472,25 +477,13 @@ class InsuranceSimulation():
 
     def return_reinrisks(self, not_accepted_risks):
         self.reinrisks += not_accepted_risks
-    
-    def add_one_to_riskmodel_combination(self, pos_positions, n, k, rm_factor, riskmodels):
-        if len(pos_positions) == k:
-            rm = [1./rm_factor if (i in pos_positions) else rm_factor for i in range(n)]
-            if not rm in riskmodels:
-                riskmodels.append(rm)
-                if sum(rm)*2 == len(rm):
-                    rm = [rm_factor if (i in pos_positions) else 1/rm_factor for i in range(n)]
-                    riskmodels.append(rm)
-        else:
-            for i in range(n):
-                if not i in pos_positions:
-                    riskmodels = self.add_one_to_riskmodel_combination(pos_positions+[i], n, k, rm_factor, riskmodels)
-        return riskmodels
 
     def get_all_riskmodel_combinations(self, n, rm_factor):
         riskmodels = []
-        pos_number = math.ceil(n/2)
-        riskmodels = self.add_one_to_riskmodel_combination([], n, pos_number, rm_factor, riskmodels)
+        for i in range(self.simulation_parameters["no_categories"]):
+            riskmodel_combination = rm_factor * np.ones(self.simulation_parameters["no_categories"])
+            riskmodel_combination[i] = 1/rm_factor
+            riskmodels.append(riskmodel_combination.tolist())
         return riskmodels
 
     def setup_risk_categories(self):
@@ -673,7 +666,18 @@ class InsuranceSimulation():
         if self.simulation_parameters["simulation_reinsurance_type"] == "proportional":
             for firm in self.insurancefirms:
                 if firm.operational:
-                    reinsured_per_category += firm.counter_category            
+                    reinsured_per_category += firm.counter_category
+
+    def get_unique_insurer_id(self):
+        current_id = self.insurer_id_counter
+        self.insurer_id_counter += 1
+        return current_id
+
+    def get_unique_reinsurer_id(self):
+        current_id = self.reinsurer_id_counter
+        self.reinsurer_id_counter += 1
+        return current_id
+
         
 
 

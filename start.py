@@ -130,10 +130,12 @@ def main(simulation_parameters,seed):
         
         # create new agents             # TODO: write method for this; this code block is executed almost identically 4 times
         if world.insurance_firm_market_entry(agent_type="InsuranceFirm"):
+            parameters = [np.random.choice(world.agent_parameters["insurancefirm"])]
+            parameters[0]["id"] = world.get_unique_insurer_id()
             new_insurance_firm = simulation.build_agents(InsuranceFirm,
                                              'insurancefirm',
                                              parameters=simulation_parameters,
-                                             agent_parameters=[np.random.choice(world.agent_parameters["insurancefirm"])])
+                                             agent_parameters=parameters)
             insurancefirms_group += new_insurance_firm
             if isleconfig.use_abce:
                 # TODO: fix abce
@@ -145,10 +147,12 @@ def main(simulation_parameters,seed):
             world.accept_agents("insurancefirm", new_insurancefirm_pointer, new_insurance_firm, time=t)
         
         if world.insurance_firm_market_entry(agent_type="ReinsuranceFirm"):
+            parameters = [np.random.choice(world.agent_parameters["reinsurance"])]
+            parameters[0]["id"] = world.get_unique_reinsurer_id()
             new_reinsurance_firm = simulation.build_agents(ReinsuranceFirm,
                                              'reinsurance',
                                              parameters=simulation_parameters,
-                                             agent_parameters=[np.random.choice(world.agent_parameters["reinsurance"])])
+                                             agent_parameters=parameters)
             reinsurancefirms_group += new_reinsurance_firm
             if isleconfig.use_abce:
                 # TODO: fix abce
