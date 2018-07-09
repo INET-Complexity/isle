@@ -177,6 +177,10 @@ class InsuranceSimulation():
         # list of reinsurance risks offered for underwriting
         self.reinrisks = []
         
+        # cumulative variables for history and logging
+        self.cumulative_bankruptcies = 0
+        self.cumulative_unrecovered_claims = 0.0
+        
         # lists for logging history
         
         # TODO: Make history logging abstact; use a dict of variables instead
@@ -197,6 +201,9 @@ class InsuranceSimulation():
         self.history_total_reincontracts = []
         self.history_total_reinoperational = []
         
+        self.history_cumulative_bankruptcies = []
+        self.history_cumulative_unrecovered_claims = []
+
         self.history_total_catbondsoperational = []
 
         self.history_market_premium = []
@@ -343,6 +350,8 @@ class InsuranceSimulation():
         self.history_total_reinoperational.append(reinoperational_no)
         self.history_total_catbondsoperational.append(catbondsoperational_no)
         self.history_market_premium.append(self.market_premium)
+        self.history_cumulative_bankruptcies.append(self.cumulative_bankruptcies)
+        self.history_cumulative_unrecovered_claims.append(self.cumulative_unrecovered_claims)
         self.log_vars()
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
@@ -562,6 +571,12 @@ class InsuranceSimulation():
         else:
             return False
 
+    def record_bankruptcy(self):
+        self.cumulative_bankruptcies += 1
+
+    def record_unrecovered_claims(self, loss):
+        self.cumulative_unrecovered_claims += loss
+
     def log(self):
         if self.background_run:
             if isleconfig.oneriskmodel:
@@ -593,7 +608,8 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/" + fpf + "_diffvar.dat", self.history_market_diffvar, "a"))
-
+        to_log.append(("data/" + fpf + "_cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "a"))
+        to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "a"))
 
         return to_log
 
@@ -615,7 +631,8 @@ class InsuranceSimulation():
         to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "a"))
         to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
         to_log.append(("data/one_diffvar.dat", self.history_market_diffvar, "a"))
-
+        to_log.append(("data/one_cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "a"))
+        to_log.append(("data/one_cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "a"))
 
         return to_log
 
@@ -634,6 +651,8 @@ class InsuranceSimulation():
         to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "w"))
         to_log.append(("data/premium.dat", self.history_market_premium, "w"))
         to_log.append(("data/diffvar.dat", self.history_market_diffvar, "w"))
+        to_log.append(("data/cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "w"))
+        to_log.append(("data/cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "w"))
 
         return to_log
 

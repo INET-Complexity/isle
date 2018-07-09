@@ -226,6 +226,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.simulation.receive(self.cash)
         self.cash = 0
         self.operational = False
+        self.simulation.record_bankruptcy()
 
     def receive_obligation(self, amount, recipient, due_time):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
@@ -238,6 +239,9 @@ class MetaInsuranceOrg(GenericAgent):
         if sum_due > self.cash:
             self.obligations += due
             self.enter_illiquidity(time)
+            self.simulation.record_unrecovered_claims(sum_due - self.cash)
+            # TODO: is this record of uncovered claims correct or should it be sum_due (since the company is impounded and self.cash will also not be paid out for quite some time)?
+            # TODO: effect partial payment
         else:
             for obligation in due:
                 self.pay(obligation["amount"], obligation["recipient"])
