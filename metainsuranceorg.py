@@ -31,6 +31,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.capacity_target_increment_threshold = agent_parameters['capacity_target_increment_threshold']
         self.capacity_target_decrement_factor = agent_parameters['capacity_target_decrement_factor']
         self.capacity_target_increment_factor = agent_parameters['capacity_target_increment_factor']
+        self.excess_capital = self.cash
         self.premium = agent_parameters["norm_premium"]
         self.profit_target = agent_parameters['profit_target']
         self.acceptance_threshold = agent_parameters['initial_acceptance_threshold']  # 0.5
@@ -126,7 +127,7 @@ class MetaInsuranceOrg(GenericAgent):
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                accept, var_this_risk, min_cash_left_by_categ = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                accept, var_this_risk, self.excess_capital = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
                 if accept:
                     per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
@@ -139,12 +140,13 @@ class MetaInsuranceOrg(GenericAgent):
             
             """obtain risk model evaluation (VaR) for underwriting decisions and for capacity specific decisions"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
-            expected_profit, acceptable_by_category, var_per_risk_per_categ, min_cash_left_by_categ = self.riskmodel.evaluate(underwritten_risks, self.cash)
+            expected_profit, acceptable_by_category, var_per_risk_per_categ, self.excess_capital = self.riskmodel.evaluate(underwritten_risks, self.cash)
             
             # TODO: resolve insurance reinsurance inconsistency (insurer underwrite after capacity decisions, reinsurers before). 
             #                        This is currently so because it minimizes the number of times we need to run self.riskmodel.evaluate().
+            #                        It would also be more consistent if excess capital would be updated at the end of the iteration.
             """handle adjusting capacity target and capacity"""
-            max_var_by_categ = self.cash - min_cash_left_by_categ
+            max_var_by_categ = self.cash - self.excess_capital
             self.adjust_capacity_target(max_var_by_categ)
             actual_capacity = self.increase_capacity(time, max_var_by_categ)
             # seek reinsurance
@@ -261,6 +263,9 @@ class MetaInsuranceOrg(GenericAgent):
         
     def get_cash(self):
         return self.cash
+
+    def get_excess_capital(self):
+        return self.excess_capital
 
     def logme(self):
         self.log('cash', self.cash)
