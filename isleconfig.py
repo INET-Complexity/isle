@@ -12,6 +12,7 @@ simulation_parameters={"no_categories": 4,
                        "value_at_risk_tail_probability": 0.005, # values <1, >0, usually close to 0; tail probability at which the value at risk is taken by the risk models
                        "norm_profit_markup": 0.15,
                        "rein_norm_profit_markup": 0.15,
+                       "dividend_share_of_profits": 0.4,
                        "mean_contract_runtime": 36,
                        "contract_runtime_halfspread": 10,
                        "default_contract_payment_period": 12,

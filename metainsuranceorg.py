@@ -39,6 +39,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.reinsurance_limit = agent_parameters["reinsurance_limit"]
         self.simulation_no_risk_categories = simulation_parameters["no_categories"]
         self.simulation_reinsurance_type = simulation_parameters["simulation_reinsurance_type"]
+        self.dividend_share_of_profits = simulation_parameters["dividend_share_of_profits"]
         
         self.owner = self.simulation # TODO: Make this into agent_parameter value?
         self.per_period_dividend = 0
