@@ -18,13 +18,14 @@ class InsuranceFirm(MetaInsuranceOrg):
         self.is_reinsurer = False
 
     def adjust_dividends(self, time, actual_capacity):
-        #TODO: Implement algorithm from flowchart (capital target missing
-        self.per_period_dividend = max(0, 0.005 * self.cash)
-        if self.cash_last_periods[0] - self.cash_last_periods[1] < 0:     # no dividends if firm made losses
+        #TODO: Implement algorithm from flowchart
+        profits = self.get_profitslosses()
+        self.per_period_dividend = max(0, self.dividend_share_of_profits * profits) # max function ensures that no negative dividends are paid
+        #if profits < 0:                                                             # no dividends when losses are written
+        #    self.per_period_dividend = 0
+        if actual_capacity < self.capacity_target:                                  # no dividends if firm misses capital target
             self.per_period_dividend = 0
-        if actual_capacity < self.capacity_target:                        # no dividends if firm misses capital target
-            self.per_period_dividend = 0
-    
+        
     def get_profitslosses(self):
         return self.cash_last_periods[0] - self.cash_last_periods[1]
     
