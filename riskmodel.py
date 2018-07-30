@@ -152,25 +152,10 @@ class RiskModel():
             else:
                 expected_profits /= necessary_liquidity
 
-
-
         max_category = max(cash_left_by_category)
-
-        if max_category > 1:
-
-            for categ_id in range(self.category_number):
-                if remaining_acceptable_by_category[categ_id] > 0 and pow(
-                                cash_left_by_category[categ_id] / max_category, 5) > 0.8:
-                    remaining_acceptable_by_category[categ_id] = math.floor(
+        remaining_acceptable_by_category[categ_id] = math.floor(
                         remaining_acceptable_by_category[categ_id] * pow(
                             cash_left_by_category[categ_id] / max_category, 5))
-                else:
-                    remaining_acceptable_by_category[categ_id] = 0
-        else:
-            for categ_id in range(self.category_number):
-                remaining_acceptable_by_category[categ_id] = 0
-
-
 
         print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
         return expected_profits, remaining_acceptable_by_category, cash_left_by_category, var_per_risk_per_categ
