@@ -132,6 +132,6 @@ ax7.set_ylabel("Profits, Losses")
 ax8 = fig2.add_subplot(515)
 ax8.plot(range(len(o_cb)), o_cb,"m")
 ax8.set_ylabel("Active cat bonds")
-
+ax8.set_xlabel("Time")
 plt.savefig("data/single_replication_pt2.pdf")
 plt.show()

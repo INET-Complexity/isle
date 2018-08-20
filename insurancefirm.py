@@ -248,7 +248,7 @@ class InsuranceFirm(MetaInsuranceOrg):
     def make_reinsurance_claims(self,time):
         """collect and effect reinsurance claims"""
         # TODO: reorganize this with risk category ledgers
-        # TODO: Put facultative insurance claims here
+        # DONE: Put facultative insurance claims here
         claims_this_turn = np.zeros(self.simulation_no_risk_categories)
         for contract in self.underwritten_contracts:
             categ_id, claims, is_proportional = contract.get_and_reset_current_claim()
