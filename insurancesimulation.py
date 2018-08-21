@@ -182,7 +182,7 @@ class InsuranceSimulation():
         
         # lists for logging history
         
-        # TODO: Make history logging abstact; use a dict of variables instead
+        # DONE: Make history logging abstact; use a dict of variables instead
         
         # sum insurance firms
 
@@ -618,25 +618,6 @@ class InsuranceSimulation():
     def replication_log_prepare_oneriskmodel(self):
         return self.replication_log_prepare()
         assert False, "Error: script should never reach this point"
-        
-        to_log = []
-        to_log.append(("data/one_operational.dat", self.history_logs['total_operational'], "a"))
-        to_log.append(("data/one_contracts.dat", self.history_logs['total_contracts'], "a"))
-        to_log.append(("data/one_cash.dat", self.history_logs['total_cash'], "a"))
-        to_log.append(("data/one_excess_capital.dat", self.history_logs['total_excess_capital'], "a"))
-        to_log.append(("data/one_profitslosses.dat", self.history_logs['total_profitslosses'], "a"))
-        to_log.append(("data/one_reinoperational.dat", self.history_logs['total_reinoperational'], "a"))
-        to_log.append(("data/one_reincontracts.dat", self.history_logs['total_reincontracts'], "a"))
-        to_log.append(("data/one_reincash.dat", self.history_logs['total_reincash'], "a"))
-        to_log.append(("data/one_reinexcess_capital.dat", self.history_logs['total_reinexcess_capital'], "a"))
-        to_log.append(("data/one_reinprofitslosses.dat", self.history_logs['total_reinprofitslosses'], "a"))
-        to_log.append(("data/catbonds_number.dat", self.history_logs['total_catbondsoperational'], "a"))
-        to_log.append(("data/one_premium.dat", self.history_logs['market_premium'], "a"))
-        to_log.append(("data/one_diffvar.dat", self.history_logs['market_diffvar'], "a"))
-        to_log.append(("data/one_cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "a"))
-        to_log.append(("data/one_cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "a"))
-
-        return to_log
 
     def single_log_prepare(self):
         to_log = []
