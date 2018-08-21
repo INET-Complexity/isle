@@ -127,7 +127,7 @@ class MetaInsuranceOrg(GenericAgent):
             
             """deal with non-proportional risks first as they must evaluate each request separatly, then with proportional ones"""
             for risk in new_nonproportional_risks:
-                accept, var_this_risk, self.excess_capital = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # DONE: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
+                accept, var_this_risk, self.excess_capital = self.riskmodel.evaluate(underwritten_risks, self.cash, risk)       # TODO: change riskmodel.evaluate() to accept new risk to be evaluated and to account for existing non-proportional risks correctly -> DONE.
                 if accept:
                     per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk["periodized_total_premium"] * risk["runtime"] / risk["value"]            #TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
                     contract = ReinsuranceContract(self, risk, time, per_value_reinsurance_premium, risk["runtime"], \
@@ -136,7 +136,7 @@ class MetaInsuranceOrg(GenericAgent):
                                                   initial_VaR=var_this_risk, \
                                                   insurancetype=risk["insurancetype"])        # TODO: implement excess of loss for reinsurance contracts
                     self.underwritten_contracts.append(contract)
-                #pass    # DONE: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
+                #pass    # TODO: write this nonproportional risk acceptance decision section based on commented code in the lines above this -> DONE.
             
             """obtain risk model evaluation (VaR) for underwriting decisions and for capacity specific decisions"""
             # TODO: Enable reinsurance shares other tan 0.0 and 1.0
@@ -151,7 +151,9 @@ class MetaInsuranceOrg(GenericAgent):
             actual_capacity = self.increase_capacity(time, max_var_by_categ)
             # seek reinsurance
             #if self.is_insurer:
+            #    # TODO: Why should only insurers be able to get reinsurance (not reinsurers)? (Technically, it should work) --> OBSOLETE
             #    self.ask_reinsurance(time)
+            #    # TODO: make independent of insurer/reinsurer, but change this to different deductable values
             """handle capital market interactions: capital history, dividends"""
             self.cash_last_periods = [self.cash] + self.cash_last_periods[:3]
             self.adjust_dividends(time, actual_capacity)
@@ -187,8 +189,8 @@ class MetaInsuranceOrg(GenericAgent):
                                           expire_immediately=self.simulation_parameters["expire_immediately"], )  
                             self.underwritten_contracts.append(contract)
                             #categ_risks[i]["contract"].reincontract = contract
-                            # DONE: move this to insurancecontract (ca. line 14) -> DONE
-                            # DONE: do not write into other object's properties, use setter -> DONE
+                            # TODO: move this to insurancecontract (ca. line 14) -> DONE
+                            # TODO: do not write into other object's properties, use setter -> DONE
 
                             assert categ_risks[i]["contract"].expiration >= contract.expiration, "Reinsurancecontract lasts longer than insurancecontract: {0:d}>{1:d} (EXPIRATION2: {2:d} Time: {3:d})".format(contract.expiration, categ_risks[i]["contract"].expiration, categ_risks[i]["expiration"], time)
                         #else:
@@ -257,7 +259,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.receive_obligation(self.per_period_dividend, self.owner, time)
     
     def obtain_yield(self, time):
-        amount = self.cash * self.interest_rate             # TODO: Obsolete. Instead: Major redesign. Shift awarding of interest from MetaInsuranceOrg to InsuranceSimulation (same as catbond.py:23)
+        amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
         self.simulation.receive_obligation(amount, self, time)
     
     def increase_capacity(self):
