@@ -282,7 +282,7 @@ class InsuranceSimulation():
                 if len(self.rc_event_schedule[categ_id]) > 0:
                     assert self.rc_event_schedule[categ_id][0] >= t
             except:
-                print("Something wrong; past events not deleted")
+                print("Something wrong; past events not deleted", file=sys.stderr)
             if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
                 self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
                 
@@ -397,7 +397,7 @@ class InsuranceSimulation():
         try:
             assert self.money_supply > amount
         except:
-            print("Something wrong: economy out of money")
+            print("Something wrong: economy out of money", file=sys.stderr)
         self.money_supply -= amount
         recipient.receive(amount)
 
@@ -581,17 +581,15 @@ class InsuranceSimulation():
 
     def log(self):
         if self.background_run:
-            if isleconfig.oneriskmodel:
-                to_log = self.replication_log_prepare_oneriskmodel()
-            else:
-                to_log = self.replication_log_prepare()
+            to_log = self.replication_log_prepare()
         else:
             to_log = self.single_log_prepare()
         
+        #TODO: use with file_handle as open structure 
         for filename, data, operation_character in to_log:
-            wfile = open(filename, operation_character)
-            wfile.write(str(data) + "\n")
-            wfile.close()
+            with open(filename, operation_character) as wfile:
+                wfile.write(str(data) + "\n")
+                wfile.close()
     
     def replication_log_prepare(self):
         filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
@@ -614,10 +612,6 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "a"))
 
         return to_log
-
-    def replication_log_prepare_oneriskmodel(self):
-        return self.replication_log_prepare()
-        assert False, "Error: script should never reach this point"
 
     def single_log_prepare(self):
         to_log = []
