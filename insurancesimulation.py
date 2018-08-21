@@ -692,13 +692,3 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
-
-        
-
-
-#if __name__ == "__main__":
-#    arg = None
-#    if len(sys.argv) > 1:
-#        arg = int(sys.argv[1])
-#    S = InsuranceSimulation(replic_ID = arg)
-#    S.run()
