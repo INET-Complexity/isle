@@ -329,6 +329,10 @@ class InsuranceSimulation():
         # iterate catbonds 
         for agent in self.catbonds:
             agent.iterate(t)
+            
+        # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
+        if t//100 == t/100:
+            self.create_network_representation()
         
         
     def save_data(self):
@@ -593,6 +597,30 @@ class InsuranceSimulation():
 
     def record_unrecovered_claims(self, loss):
         self.cumulative_unrecovered_claims += loss
+
+    def create_network_representation(self):
+        import networkx as nx
+        
+        """obtain lists of operational entities"""
+        op_entities = {}
+        num_entities = {}
+        for firmtype, firmlist in [("insurers", self.insurancefirms), ("reinsurers", self.reinsurancefirms), ("catbonds", self.catbonds)]:
+            op_firmtype = [firm for firm in firmlist if firm.operational])
+            op_entities[firmtype] = op_firmtype
+            num_entities[firmtype] = len(op_firmtype)
+        
+        #op_entities_flat = [firm for firm in entities_list for entities_list in op_entities]
+        network_size = sum(num_entities.values())
+        
+        weights_matrix = np.zeros(network_size**2).reshape(network_size, network_size)
+        for firm, idx_to in enumerate(op_entities["insurers"] + op_entities["reinsurers"]):
+            eolrs = firm.get_excess_of_loss_reinsurance()
+            for eolr in eolrs:
+                idx_from = (op_entities["insurers"] + op_entities["reinsurers"]).index(eolr["insurer"])
+                weights_matrix[idx_from][idx_to] = eolr["value"]
+                
+        self.network = nx.DiGraph()
+        
 
     def log(self):
         if self.background_run:
