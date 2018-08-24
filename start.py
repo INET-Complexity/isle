@@ -22,6 +22,7 @@ parser.add_argument("--replicid", type=int, help="if replication ID is given, pa
 parser.add_argument("--replicating", action="store_true", help="if this is a simulation run designed to replicate another, override the config file parameter")
 parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
 parser.add_argument("--foreground", action="store_true", help="force foreground runs even if replication ID is given (which defaults to background runs)")
+parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
 parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
 args = parser.parse_args()
 
@@ -45,6 +46,8 @@ else:
     seed = np.random.randint(0, 2 ** 31 - 1)
 if args.foreground:
     isleconfig.force_foreground = True
+if args.showprogress:
+    isleconfig.showprogress = True
 if args.verbose:
     isleconfig.verbose = True
 

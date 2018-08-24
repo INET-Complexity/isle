@@ -272,6 +272,8 @@ class InsuranceSimulation():
         if isleconfig.verbose:
             print()
             print(t, ": ", len(self.risks))
+        if isleconfig.showprogress:
+            print("\rTime: {0:4d}".format(t), end="")
 
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
