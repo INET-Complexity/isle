@@ -265,8 +265,9 @@ class InsuranceSimulation():
             assert False, "Trying to remove unremovable agent, type: {0:s}".format(agent_class_string)
     
     def iterate(self, t):
-        print()
-        print(t, ": ", len(self.risks))
+        if isleconfig.verbose:
+            print()
+            print(t, ": ", len(self.risks))
 
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
@@ -288,7 +289,8 @@ class InsuranceSimulation():
                 
                 self.inflict_peril(categ_id=categ_id, t=t)# TODO: consider splitting the following lines from this method and running it with nb.jit
             else:
-                print("Next peril ", self.rc_event_schedule[categ_id])
+                if isleconfig.verbose:
+                    print("Next peril ", self.rc_event_schedule[categ_id])
         
         # shuffle risks (insurance and reinsurance risks)
         self.shuffle_risks()
@@ -375,7 +377,8 @@ class InsuranceSimulation():
         affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
         no_affected = len(affected_contracts)
         damage = self.damage_distribution.rvs()
-        print("**** PERIL ", damage)
+        if isleconfig.verbose:
+            print("**** PERIL ", damage)
         damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
         uniformvalues = np.random.uniform(0, 1, size=no_affected)
         [contract.explode(t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
@@ -429,7 +432,8 @@ class InsuranceSimulation():
         self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
         self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
-        print('@', self.insurancefirm_weights)
+        if isleconfig.verbose:
+            print('@', self.insurancefirm_weights)
 
     @nb.jit
     def shuffle_risks(self):
@@ -481,14 +485,16 @@ class InsuranceSimulation():
         self.insurancefirm_new_weights[id] = cash
         risks_to_be_sent = self.risks[:int(self.insurancefirm_weights[id])]
         self.risks = self.risks[int(self.insurancefirm_weights[id]):]
-        print("Number of risks", len(risks_to_be_sent))
+        if isleconfig.verbose:
+            print("Number of risks", len(risks_to_be_sent))
         return risks_to_be_sent
 
     def solicit_reinsurance_requests(self, id, cash):
         self.reinsurancefirm_new_weights[id] = cash
         reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
         self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
-        print("Number of risks",len(reinrisks_to_be_sent))
+        if isleconfig.verbose:
+            print("Number of risks",len(reinrisks_to_be_sent))
         return reinrisks_to_be_sent
 
     def return_risks(self, not_accepted_risks):

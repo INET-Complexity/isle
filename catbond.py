@@ -82,10 +82,11 @@ class CatBond(MetaInsuranceOrg):
 
         """realize due payments"""
         self.effect_payments(time)
-        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
-
-        """mature contracts"""
-        print("Number of underwritten contracts ", len(self.underwritten_contracts))
+        if isleconfig.verbose:
+            print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+            
+            """mature contracts"""
+            print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
         for contract in maturing:
             self.underwritten_contracts.remove(contract)
@@ -111,12 +112,14 @@ class CatBond(MetaInsuranceOrg):
 
         """realize due payments"""
         self.effect_payments(time)
-        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+        if isleconfig.verbose:
+            print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
 
         self.make_reinsurance_claims(time)
 
         """mature contracts"""
-        print("Number of underwritten contracts ", len(self.underwritten_contracts))
+        if isleconfig.verbose:
+            print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
         for contract in maturing:
             self.underwritten_contracts.remove(contract)
@@ -183,7 +186,8 @@ class CatBond(MetaInsuranceOrg):
                 new_risks = [risk for risk in new_risks if risk["category"] != categ_id]
                 categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
                 i = 0
-                print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
+                if isleconfig.verbose:
+                    print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
                 while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
                     #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
                     if categ_risks[i].get("contract") is not None: #categ_risks[i]["reinsurance"]:
@@ -231,7 +235,8 @@ class CatBond(MetaInsuranceOrg):
     
     def set_owner(self, owner):
         self.owner = owner
-        print("SOLD")
+        if isleconfig.verbose:
+            print("SOLD")
         #pdb.set_trace()
     
     def set_contract(self, contract):

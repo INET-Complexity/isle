@@ -14,7 +14,6 @@ replic_ID = None
 override_no_riskmodels = False
 
 # use argparse to handle command line arguments
-
 parser = argparse.ArgumentParser(description='Model the Insurance sector')
 parser.add_argument("--abce", action="store_true", help="use abce")
 parser.add_argument("--oneriskmodel", action="store_true", help="allow overriding the number of riskmodels from the standard config (with 1)")
@@ -23,6 +22,7 @@ parser.add_argument("--replicid", type=int, help="if replication ID is given, pa
 parser.add_argument("--replicating", action="store_true", help="if this is a simulation run designed to replicate another, override the config file parameter")
 parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
 parser.add_argument("--foreground", action="store_true", help="force foreground runs even if replication ID is given (which defaults to background runs)")
+parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
 args = parser.parse_args()
 
 if args.abce:
@@ -30,7 +30,7 @@ if args.abce:
 if args.oneriskmodel:
     isleconfig.oneriskmodel = True
     override_no_riskmodels = 1
-if args.riskmodels: # TODO: double check that args.riskmodels is None when not specified, thus this codeblock doesnt run
+if args.riskmodels:
     override_no_riskmodels = args.riskmodels
 if args.replicid:
     replic_ID = args.replicid
@@ -40,13 +40,13 @@ if args.replicating:
 if args.randomseed:
     randomseed = args.randomseed
     seed = int(randomseed)
-# TODO: the need for an else statement here seems weird, surely the random seed is set up somewhere else?
 else:
     np.random.seed()
     seed = np.random.randint(0, 2 ** 31 - 1)
 if args.foreground:
     isleconfig.force_foreground = True
-
+if args.verbose:
+    isleconfig.verbose = True
 
 # import isle and abce modules
 if isleconfig.use_abce:
