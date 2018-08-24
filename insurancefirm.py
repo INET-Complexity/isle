@@ -262,10 +262,12 @@ class InsuranceFirm(MetaInsuranceOrg):
                 self.category_reinsurance[categ_id].explode(time, claims_this_turn[categ_id])
 
     def get_excess_of_loss_reinsurance(self):
-        reinsurance = {}
+        reinsurance = []
         for categ_id in range(self.simulation_no_risk_categories):
             if self.category_reinsurance[categ_id] is not None:
-               reinsurance["reinsurer"] = self.category_reinsurance[categ_id].insurer
-               reinsurance["value"] = self.category_reinsurance[categ_id].value
-               reinsurance["category"] = categ_id
-               
+               reinsurance_contract = {}
+               reinsurance_contract["reinsurer"] = self.category_reinsurance[categ_id].insurer
+               reinsurance_contract["value"] = self.category_reinsurance[categ_id].value
+               reinsurance_contract["category"] = categ_id
+               reinsurance.append(reinsurance_contract)
+        return reinsurance
