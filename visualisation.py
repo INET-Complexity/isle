@@ -6,11 +6,11 @@ import matplotlib.animation as animation
 
 # read in data for each agent for each timestep
     # read in insurancefirm data
-rfile = open("data/two_insurance_firms_cash.dat","r")
+rfile = open("data/insurance_firms_cash.dat","r")
 insurance_firms_cash = [eval(k) for k in rfile]
 rfile.close()
     # read in reinsurancefirm data
-rfile = open("data/two_reinsurance_firms_cash.dat","r")
+rfile = open("data/reinsurance_firms_cash.dat","r")
 reinsurance_firms_cash = [eval(k) for k in rfile]
 rfile.close()
 
@@ -42,9 +42,10 @@ class InsuranceFirmAnimation(object):
         for timestep in self.data:
             casharr = []
             idarr = []
-            for (cash, id) in timestep:
-                casharr.append(cash)
-                idarr.append(id)
+            for (cash, id, operational) in timestep:
+                if operational:
+                    casharr.append(cash)
+                    idarr.append(id)
             yield casharr,idarr
 
     def update(self, i):
@@ -61,5 +62,5 @@ class InsuranceFirmAnimation(object):
     def show(self):
         plt.show()
         
-anim = InsuranceFirmAnimation(first_run_reinsurance)
+anim = InsuranceFirmAnimation(first_run_insurance)
 anim.show()
