@@ -3,6 +3,7 @@ from catbond import CatBond
 import numba as nb
 import numpy as np
 from reinsurancecontract import ReinsuranceContract
+import isleconfig
 
 class InsuranceFirm(MetaInsuranceOrg):
     """ReinsuranceFirm class.
@@ -79,7 +80,8 @@ class InsuranceFirm(MetaInsuranceOrg):
         return capacity 
 
     def increase_capacity_by_category(self, time, categ_id, reinsurance_price, cat_bond_price, force=False):
-        print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))
+        if isleconfig.verbose:
+            print("IF {0:d} increasing capacity in period {1:d}, cat bond price: {2:f}, reinsurance premium {3:f}".format(self.id, time, cat_bond_price, reinsurance_price))
         if not force:
             actual_premium = self.get_average_premium(categ_id)
             possible_premium = self.simulation.get_market_premium()
@@ -87,10 +89,12 @@ class InsuranceFirm(MetaInsuranceOrg):
                 return False
         '''on the basis of prices decide for obtaining reinsurance or for issuing cat bond'''
         if reinsurance_price > cat_bond_price:
-            print("IF {0:d} issuing Cat bond in period {1:d}".format(self.id, time))
+            if isleconfig.verbose:
+                print("IF {0:d} issuing Cat bond in period {1:d}".format(self.id, time))
             self.issue_cat_bond(time, categ_id)
         else:
-            print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
+            if isleconfig.verbose:
+                print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
             self.ask_reinsurance_non_proportional_by_category(time, categ_id)
         return True
     

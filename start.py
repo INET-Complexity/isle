@@ -4,6 +4,7 @@ import scipy.stats
 import math
 import sys, pdb
 import numba as nb
+import argparse
 
 # import config file and apply configuration
 import isleconfig
@@ -12,49 +13,40 @@ simulation_parameters = isleconfig.simulation_parameters
 replic_ID = None
 override_no_riskmodels = False
 
-# handle command line arguments
-if (len(sys.argv) > 1):
-    if "--abce" in sys.argv:
-        # if command line argument --abce is given, override use_abce from config file
-        argument_idx = sys.argv.index("--abce")
-        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --abce"
-        isleconfig.use_abce = True if int(sys.argv[argument_idx + 1]) == 1 else False
-    if "--oneriskmodel" in sys.argv:
-        # allow overriding the number of riskmodels from standard config (with 1)
-        isleconfig.oneriskmodel = True
-        override_no_riskmodels = 1
-    if "--riskmodels" in sys.argv:
-        # allow overriding the number of riskmodels from standard config (with 1 or other numbers)
-        argument_idx = sys.argv.index("--riskmodels")
-        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --riskmodels"
-        override_no_riskmodels = int(sys.argv[argument_idx + 1])
-    if "--replicid" in sys.argv:
-        # if replication ID is given, pass this to the simulation so that the risk profile can be restored
-        argument_idx = sys.argv.index("--replicid")
-        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --replicid"
-        replic_ID = int(sys.argv[argument_idx + 1])
-    if "--replicating" in sys.argv:
-        # if this is a simulation run designed to replicate another, override the config filr parameter
-        isleconfig.replicating = True
-        assert replic_ID is not None, "Error: Replication requires a replication ID to identify run to be replicated"
-    if "--randomseed" in sys.argv:
-        # allow setting of numpy random seed
-        argument_idx = sys.argv.index("--randomseed")
-        assert len(sys.argv) > argument_idx + 1, "Error: No argument given for keyword --randomseed"
-        randomseed = float(sys.argv[argument_idx + 1])
-        seed = int(randomseed)
-    else:
-        # allow setting of numpy random seed
-        np.random.seed()
-        seed = np.random.randint(0, 2 ** 31 - 1)
-    if "--foreground" in sys.argv:
-        # force foreground runs even if replication ID is given (which defaults to background runs)
-        isleconfig.force_foreground = True
+# use argparse to handle command line arguments
+parser = argparse.ArgumentParser(description='Model the Insurance sector')
+parser.add_argument("--abce", action="store_true", help="use abce")
+parser.add_argument("--oneriskmodel", action="store_true", help="allow overriding the number of riskmodels from the standard config (with 1)")
+parser.add_argument("--riskmodels", type=int, choices=[1,2,3,4], help="allow overriding the number of riskmodels from standard config (with 1 or other numbers)")
+parser.add_argument("--replicid", type=int, help="if replication ID is given, pass this to the simulation so that the risk profile can be restored")
+parser.add_argument("--replicating", action="store_true", help="if this is a simulation run designed to replicate another, override the config file parameter")
+parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
+parser.add_argument("--foreground", action="store_true", help="force foreground runs even if replication ID is given (which defaults to background runs)")
+parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
+args = parser.parse_args()
+
+if args.abce:
+    isleconfig.use_abce = True
+if args.oneriskmodel:
+    isleconfig.oneriskmodel = True
+    override_no_riskmodels = 1
+if args.riskmodels:
+    override_no_riskmodels = args.riskmodels
+if args.replicid:
+    replic_ID = args.replicid
+if args.replicating:
+    isleconfig.replicating = True
+    assert replic_ID is not None, "Error: Replication requires a replication ID to identify run to be replicated"
+if args.randomseed:
+    randomseed = args.randomseed
+    seed = int(randomseed)
 else:
-    # allow setting of numpy random seed
     np.random.seed()
     seed = np.random.randint(0, 2 ** 31 - 1)
-
+if args.foreground:
+    isleconfig.force_foreground = True
+if args.verbose:
+    isleconfig.verbose = True
 
 # import isle and abce modules
 if isleconfig.use_abce:
