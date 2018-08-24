@@ -635,7 +635,7 @@ class InsuranceSimulation():
                 
         """define network"""
         self.network = nx.from_numpy_array(weights_matrix, create_using=nx.DiGraph())  # weighted
-        #self.network = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph())     # unweighted
+        self.network_unweighted = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph())     # unweighted
         
         """obtain measures"""
         #degrees = self.network.degree()
@@ -659,7 +659,8 @@ class InsuranceSimulation():
         firmtypes[num_entities["insurers"]:num_entities["insurers"]+num_entities["reinsurers"]] = 0.5
         firmtypes[num_entities["insurers"]+num_entities["reinsurers"]:] = 1.3
         print(firmtypes, num_entities["insurers"], num_entities["insurers"]+num_entities["reinsurers"])
-        nx.draw(self.network, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
+        pos = nx.spring_layout(self.network_unweighted)
+        nx.draw(self.network_unweighted, pos, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
         plt.show()
 
     def log(self):
