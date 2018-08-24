@@ -335,7 +335,7 @@ class InsuranceSimulation():
             agent.iterate(t)
             
         # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
-        if t//100 == t/100 and t>0:
+        if t//100 == t/100 and t > 0:
             self.create_network_representation()
         
         
