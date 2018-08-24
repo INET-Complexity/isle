@@ -1,14 +1,15 @@
 # file to visualise agent-level data per timestep
+
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
-# read in data for each agent for each timestep
 
-# read in insurancefirm data
+# read in data for each agent for each timestep
+    # read in insurancefirm data
 rfile = open("data/two_insurance_firms_cash.dat","r")
 insurance_firms_cash = [eval(k) for k in rfile]
 rfile.close()
-# read in reinsurancefirm data
+    # read in reinsurancefirm data
 rfile = open("data/two_reinsurance_firms_cash.dat","r")
 reinsurance_firms_cash = [eval(k) for k in rfile]
 rfile.close()
@@ -17,14 +18,13 @@ insurance_firms_cash = np.array(insurance_firms_cash)
 reinsurance_firms_cash = np.array(reinsurance_firms_cash)
 
 # shape (runs, steps)
-print(insurance_firms_cash.shape)
-print(reinsurance_firms_cash.shape)
 
 # let's look at only the first run
 first_run_insurance = insurance_firms_cash[0][:]
 first_run_reinsurance = reinsurance_firms_cash[0][:]
 
 class InsuranceFirmAnimation(object):
+    '''class takes in a run of insurance data and produces animations '''
     def __init__(self, data):
         self.data = data
         self.fig, self.ax = plt.subplots()
@@ -33,11 +33,9 @@ class InsuranceFirmAnimation(object):
                                            init_func=self.setup_plot)
 
     def setup_plot(self):
-        """Initial drawing of the scatter plot."""
+        """Initial drawing of the plots."""
         casharr,idarr = next(self.stream)
-
         self.pie = self.ax.pie(casharr, labels=idarr)
-
         return self.pie,
 
     def data_stream(self):
