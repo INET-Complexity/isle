@@ -32,7 +32,7 @@ if args.oneriskmodel:
     override_no_riskmodels = 1
 if args.riskmodels:
     override_no_riskmodels = args.riskmodels
-if args.replicid:
+if args.replicid is not None:
     replic_ID = args.replicid
 if args.replicating:
     isleconfig.replicating = True
