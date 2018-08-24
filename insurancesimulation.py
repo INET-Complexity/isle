@@ -210,6 +210,10 @@ class InsuranceSimulation():
 
         self.history_logs['market_premium'] = []
         self.history_logs['market_diffvar'] = []
+        
+        # lists to contain agent-level data
+        self.history_logs['insurance_firms_cash'] = []
+        self.history_logs['reinsurance_firms_cash'] = []
 
             
     
@@ -342,6 +346,13 @@ class InsuranceSimulation():
         operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
         reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
         catbondsoperational_no = sum([catbond.operational for catbond in self.catbonds])
+        
+        # agent-level data
+        
+        insurance_firms = [(insurancefirm.cash,insurancefirm.id) for insurancefirm in self.insurancefirms]
+        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id) for reinsurancefirm in self.reinsurancefirms]
+        
+        
         self.history_logs['total_cash'].append(total_cash_no)
         self.history_logs['total_excess_capital'].append(total_excess_capital)
         self.history_logs['total_profitslosses'].append(total_profitslosses)
@@ -356,6 +367,10 @@ class InsuranceSimulation():
         self.history_logs['market_premium'].append(self.market_premium)
         self.history_logs['cumulative_bankruptcies'].append(self.cumulative_bankruptcies)
         self.history_logs['cumulative_unrecovered_claims'].append(self.cumulative_unrecovered_claims)
+        
+        # agent-level data
+        self.history_logs['insurance_firms_cash'].append(insurance_firms)
+        self.history_logs['reinsurance_firms_cash'].append(reinsurance_firms)
         self.log_vars()
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
@@ -616,9 +631,12 @@ class InsuranceSimulation():
         to_log.append(("data/" + fpf + "_diffvar.dat", self.history_logs['market_diffvar'], "a"))
         to_log.append(("data/" + fpf + "_cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "a"))
         to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "a"))
-
+        
+        # agent-level data
+        to_log.append(("data/" + fpf + "_insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "a"))
+        to_log.append(("data/" + fpf + "_reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "a"))
         return to_log
-
+      
     def single_log_prepare(self):
         to_log = []
         to_log.append(("data/operational.dat", self.history_logs['total_operational'], "w"))
@@ -637,6 +655,10 @@ class InsuranceSimulation():
         to_log.append(("data/cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "w"))
         to_log.append(("data/cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "w"))
 
+        # agent-level data
+        to_log.append(("data/insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "w"))
+        to_log.append(("data/reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "w"))
+        
         return to_log
 
     def log_vars(self):

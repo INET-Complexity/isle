@@ -152,6 +152,11 @@ class RiskModel():
                 expected_profits = self.init_profit_estimate * cash[0]
             else:
                 expected_profits /= necessary_liquidity
+                
+        max_category = max(cash_left_by_category)
+        remaining_acceptable_by_category[categ_id] = math.floor(
+                        remaining_acceptable_by_category[categ_id] * pow(
+                            cash_left_by_category[categ_id] / max_category, 5))
         if isleconfig.verbose:
             print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
         return expected_profits, remaining_acceptable_by_category, cash_left_by_category, var_per_risk_per_categ
