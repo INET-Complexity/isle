@@ -174,6 +174,9 @@ def main(simulation_parameters,seed):
         else:
             world.save_data()
         
+        # TODO: Is it useful to call save_simulation() every 50 iterations? This should be governed by command line option or by keyboard interrupt.
+        if t > 0 and t//50 == t/50:
+            save_simulation(t, simulation, simulation_parameters, exit_now=False)
         #print("here")
     
     # finish simulation, write logs
