@@ -6,6 +6,7 @@ import sys, pdb
 import numba as nb
 import argparse
 import pickle
+import hashlib
 import random
 
 # import config file and apply configuration
@@ -188,6 +189,11 @@ def save_simulation(t, sim, sim_param, exit_now=False):
     d["simulation_parameters"] = sim_param
     with open("data/simulation_save.pkl", "bw") as wfile:
         pickle.dump(d, wfile, protocol=pickle.HIGHEST_PROTOCOL)
+    with open("data/simulation_save.pkl", "br") as rfile:
+        file_contents = rfile.read()
+    #print("\nSimulation hashes: ", hashlib.sha512(str(d).encode()).hexdigest(), "; ",  hashlib.sha512(str(file_contents).encode()).hexdigest())
+    # note that the hash over the dict is for some reason not identical between runs. The hash over the state saved to the file is. 
+    print("\nSimulation hash: ",  hashlib.sha512(str(file_contents).encode()).hexdigest())    
     if exit_now:
         exit(0)
 
