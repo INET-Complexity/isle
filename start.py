@@ -5,6 +5,7 @@ import math
 import sys, pdb
 import numba as nb
 import argparse
+import os
 import pickle
 import hashlib
 import random
@@ -64,6 +65,11 @@ from insurancesimulation import InsuranceSimulation
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
+
+# ensure that logging directory exists
+if not os.path.isdir("data"):
+    assert not os.path.exists("data"), "./data exists as regular file. This filename is required for the logging directory"
+    os.makedirs("data")
 
 # create conditional decorator
 def conditionally(decorator_function, condition):
