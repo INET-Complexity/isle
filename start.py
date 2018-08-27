@@ -5,6 +5,7 @@ import math
 import sys, pdb
 import numba as nb
 import argparse
+import random
 
 # import config file and apply configuration
 import isleconfig
@@ -84,6 +85,7 @@ if not isleconfig.use_abce:
 def main(simulation_parameters,seed):
 
     np.random.seed(seed)
+    random.seed(seed)
 
     # create simulation and world objects (identical in non-abce mode)
     if isleconfig.use_abce:
