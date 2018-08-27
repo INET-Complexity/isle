@@ -196,7 +196,7 @@ class InsuranceSimulation():
         self.history_logs['total_contracts'] = []
         self.history_logs['total_operational'] = []
         # individual insurance firms
-        self.history_logs['individual_contracts'] = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
+        self.history_logs['individual_contracts'] = []
         
         # sum reinsurance firms
         self.history_logs['total_reincash'] = []
@@ -238,7 +238,12 @@ class InsuranceSimulation():
                 print(sys.exc_info())
                 pdb.set_trace()
             # fix self.history_logs['individual_contracts'] list
-            self.history_logs['individual_contracts'].append(list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int)))
+            for agent in agents:
+                if len(self.history_logs['individual_contracts']) > 0:
+                    zeroes_to_append = list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int))
+                else:
+                    zeroes_to_append = []
+                self.history_logs['individual_contracts'].append(zeroes_to_append)
             # remove new agent cash from simulation cash to ensure stock flow consistency
             new_agent_cash = sum([agent.cash for agent in agents])
             self.reduce_money_supply(new_agent_cash)
