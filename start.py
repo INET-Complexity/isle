@@ -5,6 +5,7 @@ import math
 import sys, pdb
 import numba as nb
 import argparse
+import pickle
 import random
 
 # import config file and apply configuration
@@ -176,6 +177,19 @@ def main(simulation_parameters,seed):
     
     # finish simulation, write logs
     simulation.finalize()
+
+# save function
+def save_simulation(t, sim, sim_param, exit_now=False):
+    d = {}
+    d["np_seed"] = np.random.get_state()
+    d["random_seed"] = random.getstate()
+    d["time"] = t
+    d["simulation"] = sim
+    d["simulation_parameters"] = sim_param
+    with open("data/simulation_save.pkl", "bw") as wfile:
+        pickle.dump(d, wfile, protocol=pickle.HIGHEST_PROTOCOL)
+    if exit_now:
+        exit(0)
 
 # main entry point
 if __name__ == "__main__":
