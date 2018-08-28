@@ -349,8 +349,8 @@ class InsuranceSimulation():
         
         # agent-level data
         
-        insurance_firms = [(insurancefirm.cash,insurancefirm.id) for insurancefirm in self.insurancefirms]
-        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id) for reinsurancefirm in self.reinsurancefirms]
+        insurance_firms = [(insurancefirm.cash,insurancefirm.id,insurancefirm.operational) for insurancefirm in self.insurancefirms]
+        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id,reinsurancefirm.operational) for reinsurancefirm in self.reinsurancefirms]
         
         
         self.history_logs['total_cash'].append(total_cash_no)
