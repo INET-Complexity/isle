@@ -29,13 +29,13 @@ class InsuranceFirmAnimation(object):
         self.data = data
         self.fig, self.ax = plt.subplots()
         self.stream = self.data_stream()
-        self.ani = animation.FuncAnimation(self.fig, self.update, interval=40,
+        self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=40,
                                            init_func=self.setup_plot)
 
     def setup_plot(self):
         """Initial drawing of the plots."""
         casharr,idarr = next(self.stream)
-        self.pie = self.ax.pie(casharr, labels=idarr)
+        self.pie = self.ax.pie(casharr, labels=idarr,autopct='%1.0f%%')
         return self.pie,
 
     def data_stream(self):
@@ -52,15 +52,18 @@ class InsuranceFirmAnimation(object):
         self.ax.clear()
         self.ax.axis('equal')
         casharr,idarr = next(self.stream)
-        self.pie = self.ax.pie(casharr, labels=idarr)
-        self.ax.set_title("Timestep : " + str(i))
+        self.pie = self.ax.pie(casharr, labels=idarr,autopct='%1.0f%%')
+        self.ax.set_title("Timestep : {:,.0f} | Total cash : {:,.0f}".format(i,sum(casharr)))
         return self.pie,
 
-    def save(self):
-        self.ani.save('line.mp4', writer='ffmpeg', dpi=80)
+    def save(self,filename):
+        self.ani.save(filename, writer='ffmpeg', dpi=80)
 
     def show(self):
         plt.show()
         
-anim = InsuranceFirmAnimation(first_run_insurance)
-anim.show()
+anim1 = InsuranceFirmAnimation(first_run_insurance)
+anim2 = InsuranceFirmAnimation(first_run_reinsurance)
+#anim1.save("insurance.mp4")
+#anim2.save("reinsurance.mp4")
+plt.show()
