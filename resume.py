@@ -5,10 +5,9 @@ import math
 import sys, pdb
 import numba as nb
 import argparse
-import os
 import pickle
 import hashlib
-import random
+import random 
 
 # import config file and apply configuration
 import isleconfig
@@ -66,11 +65,6 @@ from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 
-# ensure that logging directory exists
-if not os.path.isdir("data"):
-    assert not os.path.exists("data"), "./data exists as regular file. This filename is required for the logging directory"
-    os.makedirs("data")
-
 # create conditional decorator
 def conditionally(decorator_function, condition):
     def wrapper(target_function):
@@ -90,45 +84,61 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters,seed):
-
-    np.random.seed(seed)
-    random.seed(seed)
-
-    # create simulation and world objects (identical in non-abce mode)
-    if isleconfig.use_abce:
-        simulation = abce.Simulation(processes=1,random_seed = seed)
-
-    simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
-
-    if not isleconfig.use_abce:
-        simulation = world
+def main():
     
+    with open("data/simulation_save.pkl", "br") as rfile:
+        d = pickle.load(rfile)
+        simulation = d["simulation"]
+        world = simulation
+        np_seed = d["np_seed"]
+        random_seed = d["random_seed"]
+        time = d["time"]
+        simulation_parameters = d["simulation_parameters"]
+    
+    insurancefirms_group = list(simulation.insurancefirms)
+    reinsurancefirms_group = list(simulation.reinsurancefirms)
+    
+    #np.random.seed(seed)
+    np.random.set_state(np_seed)
+    random.setstate(random_seed)
+    
+    assert not isleconfig.use_abce, "Resuming will not work with abce"
+    ## create simulation and world objects (identical in non-abce mode)
+    #if isleconfig.use_abce:
+    #    simulation = abce.Simulation(processes=1,random_seed = seed)
+    #
+        
+    #simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
+    #
+    #if not isleconfig.use_abce:
+    #    simulation = world
+    #
     # create agents: insurance firms 
-    insurancefirms_group = simulation.build_agents(InsuranceFirm,
-                                             'insurancefirm',
-                                             parameters=simulation_parameters,
-                                             agent_parameters=world.agent_parameters["insurancefirm"])
-    
-    if isleconfig.use_abce:
-        insurancefirm_pointers = insurancefirms_group.get_pointer()
-    else:
-        insurancefirm_pointers = insurancefirms_group
-    world.accept_agents("insurancefirm", insurancefirm_pointers, insurancefirms_group)
-
+    #insurancefirms_group = simulation.build_agents(InsuranceFirm,
+    #                                         'insurancefirm',
+    #                                         parameters=simulation_parameters,
+    #                                         agent_parameters=world.agent_parameters["insurancefirm"])
+    #
+    #if isleconfig.use_abce:
+    #    insurancefirm_pointers = insurancefirms_group.get_pointer()
+    #else:
+    #    insurancefirm_pointers = insurancefirms_group
+    #world.accept_agents("insurancefirm", insurancefirm_pointers, insurancefirms_group)
+    #
     # create agents: reinsurance firms 
-    reinsurancefirms_group = simulation.build_agents(ReinsuranceFirm,
-                                               'reinsurance',
-                                               parameters=simulation_parameters,
-                                               agent_parameters=world.agent_parameters["reinsurance"])
-    if isleconfig.use_abce:
-        reinsurancefirm_pointers = reinsurancefirms_group.get_pointer()
-    else:
-        reinsurancefirm_pointers = reinsurancefirms_group
-    world.accept_agents("reinsurance", reinsurancefirm_pointers, reinsurancefirms_group)
+    #reinsurancefirms_group = simulation.build_agents(ReinsuranceFirm,
+    #                                           'reinsurance',
+    #                                           parameters=simulation_parameters,
+    #                                           agent_parameters=world.agent_parameters["reinsurance"])
+    #if isleconfig.use_abce:
+    #    reinsurancefirm_pointers = reinsurancefirms_group.get_pointer()
+    #else:
+    #    reinsurancefirm_pointers = reinsurancefirms_group
+    #world.accept_agents("reinsurance", reinsurancefirm_pointers, reinsurancefirms_group)
+    #
     
     # time iteration
-    for t in range(simulation_parameters["max_time"]):
+    for t in range(time, simulation_parameters["max_time"]):
         
         # abce time step
         simulation.advance_round(t)
@@ -180,13 +190,13 @@ def main(simulation_parameters,seed):
         else:
             world.save_data()
         
-        # TODO: Is it useful to call save_simulation() every 50 iterations? This should be governed by command line option or by keyboard interrupt.
         if t > 0 and t//50 == t/50:
             save_simulation(t, simulation, simulation_parameters, exit_now=False)
         #print("here")
     
     # finish simulation, write logs
     simulation.finalize()
+
 
 # save function
 def save_simulation(t, sim, sim_param, exit_now=False):
@@ -196,16 +206,16 @@ def save_simulation(t, sim, sim_param, exit_now=False):
     d["time"] = t
     d["simulation"] = sim
     d["simulation_parameters"] = sim_param
-    with open("data/simulation_save.pkl", "bw") as wfile:
+    with open("data/simulation_resave.pkl", "bw") as wfile:
         pickle.dump(d, wfile, protocol=pickle.HIGHEST_PROTOCOL)
-    with open("data/simulation_save.pkl", "br") as rfile:
+    with open("data/simulation_resave.pkl", "br") as rfile:
         file_contents = rfile.read()
     #print("\nSimulation hashes: ", hashlib.sha512(str(d).encode()).hexdigest(), "; ",  hashlib.sha512(str(file_contents).encode()).hexdigest())
     # note that the hash over the dict is for some reason not identical between runs. The hash over the state saved to the file is. 
     print("\nSimulation hash: ",  hashlib.sha512(str(file_contents).encode()).hexdigest())    
     if exit_now:
         exit(0)
-
+    
 # main entry point
 if __name__ == "__main__":
-    main(simulation_parameters, seed)
+    main()

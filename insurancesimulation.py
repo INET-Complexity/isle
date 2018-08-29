@@ -9,6 +9,8 @@ import sys, pdb
 import numba as nb
 import isleconfig
 import random
+import networkx as nx
+import matplotlib.pyplot as plt
 
 if isleconfig.use_abce:
     import abce
@@ -194,7 +196,7 @@ class InsuranceSimulation():
         self.history_logs['total_contracts'] = []
         self.history_logs['total_operational'] = []
         # individual insurance firms
-        self.history_logs['individual_contracts'] = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
+        self.history_logs['individual_contracts'] = []
         
         # sum reinsurance firms
         self.history_logs['total_reincash'] = []
@@ -236,7 +238,12 @@ class InsuranceSimulation():
                 print(sys.exc_info())
                 pdb.set_trace()
             # fix self.history_logs['individual_contracts'] list
-            self.history_logs['individual_contracts'].append(list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int)))
+            for agent in agents:
+                if len(self.history_logs['individual_contracts']) > 0:
+                    zeroes_to_append = list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int))
+                else:
+                    zeroes_to_append = []
+                self.history_logs['individual_contracts'].append(zeroes_to_append)
             # remove new agent cash from simulation cash to ensure stock flow consistency
             new_agent_cash = sum([agent.cash for agent in agents])
             self.reduce_money_supply(new_agent_cash)
@@ -272,6 +279,8 @@ class InsuranceSimulation():
         if isleconfig.verbose:
             print()
             print(t, ": ", len(self.risks))
+        if isleconfig.showprogress:
+            print("\rTime: {0:4d}".format(t), end="")
 
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
@@ -331,6 +340,10 @@ class InsuranceSimulation():
         # iterate catbonds 
         for agent in self.catbonds:
             agent.iterate(t)
+            
+        # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
+        if t//100 == t/100 and t > 0:
+            self.create_network_representation()
         
         
     def save_data(self):
@@ -599,6 +612,60 @@ class InsuranceSimulation():
 
     def record_unrecovered_claims(self, loss):
         self.cumulative_unrecovered_claims += loss
+
+    def create_network_representation(self):
+        """obtain lists of operational entities"""
+        op_entities = {}
+        num_entities = {}
+        for firmtype, firmlist in [("insurers", self.insurancefirms), ("reinsurers", self.reinsurancefirms), ("catbonds", self.catbonds)]:
+            op_firmtype = [firm for firm in firmlist if firm.operational]
+            op_entities[firmtype] = op_firmtype
+            num_entities[firmtype] = len(op_firmtype)
+        
+        #op_entities_flat = [firm for firm in entities_list for entities_list in op_entities]
+        network_size = sum(num_entities.values())
+        
+        """create weigthed adjacency matrix"""
+        weights_matrix = np.zeros(network_size**2).reshape(network_size, network_size)
+        for idx_to, firm in enumerate(op_entities["insurers"] + op_entities["reinsurers"]):
+            eolrs = firm.get_excess_of_loss_reinsurance()
+            for eolr in eolrs:
+                #pdb.set_trace()
+                idx_from = num_entities["insurers"] + (op_entities["reinsurers"] + op_entities["catbonds"]).index(eolr["reinsurer"])
+                weights_matrix[idx_from][idx_to] = eolr["value"]
+        
+        """unweighted adjacency matrix"""
+        adj_matrix = np.sign(weights_matrix)
+                
+        """define network"""
+        self.network = nx.from_numpy_array(weights_matrix, create_using=nx.DiGraph())  # weighted
+        self.network_unweighted = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph())     # unweighted
+        
+        """obtain measures"""
+        #degrees = self.network.degree()
+        degree_distr = dict(self.network.degree()).values()
+        in_degree_distr = dict(self.network.in_degree()).values()
+        out_degree_distr = dict(self.network.out_degree()).values()
+        is_connected = nx.is_weakly_connected(self.network)
+        #is_connected = nx.is_strongly_connected(self.network)  # must always be False
+        try:
+            node_centralities = nx.eigenvector_centrality(self.network)
+        except:
+            node_centralities = nx.betweenness_centrality(self.network)
+        # TODO: and more, choose more meaningful ones...
+        
+        print("Graph is connected: ", is_connected, "\nIn degrees ", in_degree_distr, "\nOut degrees", out_degree_distr, \
+              "\nCentralities", node_centralities)
+        
+        """visualize"""
+        plt.figure()
+        firmtypes = np.ones(network_size)
+        firmtypes[num_entities["insurers"]:num_entities["insurers"]+num_entities["reinsurers"]] = 0.5
+        firmtypes[num_entities["insurers"]+num_entities["reinsurers"]:] = 1.3
+        print(firmtypes, num_entities["insurers"], num_entities["insurers"]+num_entities["reinsurers"])
+        pos = nx.spring_layout(self.network_unweighted)
+        nx.draw(self.network_unweighted, pos, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
+        plt.show()
 
     def log(self):
         if self.background_run:
