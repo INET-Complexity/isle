@@ -9,6 +9,8 @@ import sys, pdb
 import numba as nb
 import isleconfig
 import random
+import networkx as nx
+import matplotlib.pyplot as plt
 
 if isleconfig.use_abce:
     import abce
@@ -607,9 +609,6 @@ class InsuranceSimulation():
         self.cumulative_unrecovered_claims += loss
 
     def create_network_representation(self):
-        import networkx as nx
-        import matplotlib.pyplot as plt
-        
         """obtain lists of operational entities"""
         op_entities = {}
         num_entities = {}
