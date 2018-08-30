@@ -132,7 +132,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         """Evaluate by risk category"""
         for categ_id in range(self.simulation_no_risk_categories):
             """Seek reinsurance only with probability 10% if not already reinsured"""  # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 1:
+            if (self.category_reinsurance[categ_id] is None):
                 self.ask_reinsurance_non_proportional_by_category(time, categ_id)
 
     @nb.jit 
