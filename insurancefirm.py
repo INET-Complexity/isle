@@ -66,7 +66,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
             if len(categ_ids) > 1:
                 np.random.shuffle(categ_ids)
-            while len(categ_ids) > 1:       
+            while len(categ_ids) >= 1:       
                 categ_id = categ_ids.pop()
                 capacity = self.get_capacity(max_var)
                 if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
