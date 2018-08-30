@@ -4,7 +4,7 @@ import numpy as np
 import sys, pdb
 import scipy.stats
 import numba as nb
-
+import isleconfig
 from distributionreinsurance import ReinsuranceDistWrapper
 
 
@@ -122,8 +122,9 @@ class RiskModel():
             # record liquidity requirement and apply margin of safety for liquidity requirement
             necessary_liquidity += var_per_risk * self.margin_of_safety * len(categ_risks)
             #print("RISKMODEL: ", self.getPPF(categ_id=categ_id, tailSize=0.01) * average_risk_factor * average_exposure, " = PPF(0.01) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(categ_id=categ_id, tailSize=0.01) * average_risk_factor * average_exposure * len(categ_risks))
-            print(self.inaccuracy)
-            print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
+            if isleconfig.verbose:
+                print(self.inaccuracy)
+                print("RISKMODEL: ", var_per_risk, " = PPF(0.02) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", var_per_risk * len(categ_risks))
             #print("RISKMODEL: ", self.getPPF(categ_id=categ_id, tailSize=0.05) * average_risk_factor * average_exposure, " = PPF(0.05) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(categ_id=categ_id, tailSize=0.05) * average_risk_factor * average_exposure * len(categ_risks))
             #print("RISKMODEL: ", self.getPPF(categ_id=categ_id, tailSize=0.1) * average_risk_factor * average_exposure, " = PPF(0.1) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(categ_id=categ_id, tailSize=0.1) * average_risk_factor * average_exposure * len(categ_risks))
             #print("RISKMODEL: ", self.getPPF(categ_id=categ_id, tailSize=0.25) * average_risk_factor * average_exposure, " = PPF(0.25) * ", average_risk_factor, " * ", average_exposure, " vs. cash: ", cash[categ_id], "TOTAL_RISK_IN_CATEG: ", self.getPPF(categ_id=categ_id, tailSize=0.25) * average_risk_factor * average_exposure * len(categ_risks))
@@ -151,13 +152,13 @@ class RiskModel():
                 expected_profits = self.init_profit_estimate * cash[0]
             else:
                 expected_profits /= necessary_liquidity
-
+                
         max_category = max(cash_left_by_category)
         remaining_acceptable_by_category[categ_id] = math.floor(
                         remaining_acceptable_by_category[categ_id] * pow(
                             cash_left_by_category[categ_id] / max_category, 5))
-
-        print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
+        if isleconfig.verbose:
+            print("RISKMODEL returns: ", expected_profits, remaining_acceptable_by_category)
         return expected_profits, remaining_acceptable_by_category, cash_left_by_category, var_per_risk_per_categ
 
     def evaluate_excess_of_loss(self, risks, cash, offered_risk = None):
@@ -229,7 +230,8 @@ class RiskModel():
             return expected_profits_proportional, remaining_acceptable_by_categ, var_per_risk_per_categ, min(cash_left_by_categ)
         else:       
             # return boolean value whether the offered excess_of_loss risk can be accepted
-            print ("REINSURANCE RISKMODEL", cash, cash_left_by_categ, (cash_left_by_categ - additional_required > 0).all())
+            if isleconfig.verbose:
+                print ("REINSURANCE RISKMODEL", cash, cash_left_by_categ, (cash_left_by_categ - additional_required > 0).all())
             #if not (cash_left_by_categ - additional_required > 0).all():
             #    pdb.set_trace()
             return (cash_left_by_categ - additional_required > 0).all(), var_this_risk, min(cash_left_by_categ)

@@ -1,4 +1,3 @@
-
 from insurancefirm import InsuranceFirm
 #from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
@@ -10,6 +9,8 @@ import sys, pdb
 import numba as nb
 import isleconfig
 import random
+import networkx as nx
+import matplotlib.pyplot as plt
 
 if isleconfig.use_abce:
     import abce
@@ -183,31 +184,38 @@ class InsuranceSimulation():
         
         # lists for logging history
         
-        # TODO: Make history logging abstact; use a dict of variables instead
+        # DONE: Make history logging abstact; use a dict of variables instead
         
         # sum insurance firms
-        self.history_total_cash = []
-        self.history_total_excess_capital = []
-        self.history_total_profitslosses = []
-        self.history_total_contracts = []
-        self.history_total_operational = []
+
+        self.history_logs = {}
+
+        self.history_logs['total_cash'] = []
+        self.history_logs['total_excess_capital'] = []
+        self.history_logs['total_profitslosses'] = []
+        self.history_logs['total_contracts'] = []
+        self.history_logs['total_operational'] = []
         # individual insurance firms
-        self.history_individual_contracts = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
+        self.history_logs['individual_contracts'] = []
         
         # sum reinsurance firms
-        self.history_total_reincash = []
-        self.history_total_reinexcess_capital = []
-        self.history_total_reinprofitslosses = []
-        self.history_total_reincontracts = []
-        self.history_total_reinoperational = []
+        self.history_logs['total_reincash'] = []
+        self.history_logs['total_reinexcess_capital'] = []
+        self.history_logs['total_reinprofitslosses'] = []
+        self.history_logs['total_reincontracts'] = []
+        self.history_logs['total_reinoperational'] = []
         
-        self.history_cumulative_bankruptcies = []
-        self.history_cumulative_unrecovered_claims = []
+        self.history_logs['cumulative_bankruptcies'] = []
+        self.history_logs['cumulative_unrecovered_claims'] = []
 
-        self.history_total_catbondsoperational = []
+        self.history_logs['total_catbondsoperational'] = []
 
-        self.history_market_premium = []
-        self.history_market_diffvar = []
+        self.history_logs['market_premium'] = []
+        self.history_logs['market_diffvar'] = []
+        
+        # lists to contain agent-level data
+        self.history_logs['insurance_firms_cash'] = []
+        self.history_logs['reinsurance_firms_cash'] = []
 
             
     
@@ -229,8 +237,13 @@ class InsuranceSimulation():
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
-            # fix self.history_individual_contracts list
-            self.history_individual_contracts.append(list(np.zeros(len(self.history_individual_contracts[0]), dtype=int)))
+            # fix self.history_logs['individual_contracts'] list
+            for agent in agents:
+                if len(self.history_logs['individual_contracts']) > 0:
+                    zeroes_to_append = list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int))
+                else:
+                    zeroes_to_append = []
+                self.history_logs['individual_contracts'].append(zeroes_to_append)
             # remove new agent cash from simulation cash to ensure stock flow consistency
             new_agent_cash = sum([agent.cash for agent in agents])
             self.reduce_money_supply(new_agent_cash)
@@ -263,8 +276,11 @@ class InsuranceSimulation():
             assert False, "Trying to remove unremovable agent, type: {0:s}".format(agent_class_string)
     
     def iterate(self, t):
-        print()
-        print(t, ": ", len(self.risks))
+        if isleconfig.verbose:
+            print()
+            print(t, ": ", len(self.risks))
+        if isleconfig.showprogress:
+            print("\rTime: {0:4d}".format(t), end="")
 
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
@@ -280,13 +296,14 @@ class InsuranceSimulation():
                 if len(self.rc_event_schedule[categ_id]) > 0:
                     assert self.rc_event_schedule[categ_id][0] >= t
             except:
-                print("Something wrong; past events not deleted")
+                print("Something wrong; past events not deleted", file=sys.stderr)
             if len(self.rc_event_schedule[categ_id]) > 0 and self.rc_event_schedule[categ_id][0] == t:
                 self.rc_event_schedule[categ_id] = self.rc_event_schedule[categ_id][1:]
                 
                 self.inflict_peril(categ_id=categ_id, t=t)# TODO: consider splitting the following lines from this method and running it with nb.jit
             else:
-                print("Next peril ", self.rc_event_schedule[categ_id])
+                if isleconfig.verbose:
+                    print("Next peril ", self.rc_event_schedule[categ_id])
         
         # shuffle risks (insurance and reinsurance risks)
         self.shuffle_risks()
@@ -323,6 +340,10 @@ class InsuranceSimulation():
         # iterate catbonds 
         for agent in self.catbonds:
             agent.iterate(t)
+            
+        # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
+        if t//100 == t/100 and t > 0:
+            self.create_network_representation()
         
         
     def save_data(self):
@@ -338,26 +359,37 @@ class InsuranceSimulation():
         operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
         reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
         catbondsoperational_no = sum([catbond.operational for catbond in self.catbonds])
-        self.history_total_cash.append(total_cash_no)
-        self.history_total_excess_capital.append(total_excess_capital)
-        self.history_total_profitslosses.append(total_profitslosses)
-        self.history_total_contracts.append(total_contracts_no)
-        self.history_total_operational.append(operational_no)
-        self.history_total_reincash.append(total_reincash_no)
-        self.history_total_reinexcess_capital.append(total_reinexcess_capital)
-        self.history_total_reinprofitslosses.append(total_reinprofitslosses)
-        self.history_total_reincontracts.append(total_reincontracts_no)
-        self.history_total_reinoperational.append(reinoperational_no)
-        self.history_total_catbondsoperational.append(catbondsoperational_no)
-        self.history_market_premium.append(self.market_premium)
-        self.history_cumulative_bankruptcies.append(self.cumulative_bankruptcies)
-        self.history_cumulative_unrecovered_claims.append(self.cumulative_unrecovered_claims)
+        
+        # agent-level data
+        
+        insurance_firms = [(insurancefirm.cash,insurancefirm.id) for insurancefirm in self.insurancefirms]
+        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id) for reinsurancefirm in self.reinsurancefirms]
+        
+        
+        self.history_logs['total_cash'].append(total_cash_no)
+        self.history_logs['total_excess_capital'].append(total_excess_capital)
+        self.history_logs['total_profitslosses'].append(total_profitslosses)
+        self.history_logs['total_contracts'].append(total_contracts_no)
+        self.history_logs['total_operational'].append(operational_no)
+        self.history_logs['total_reincash'].append(total_reincash_no)
+        self.history_logs['total_reinexcess_capital'].append(total_reinexcess_capital)
+        self.history_logs['total_reinprofitslosses'].append(total_reinprofitslosses)
+        self.history_logs['total_reincontracts'].append(total_reincontracts_no)
+        self.history_logs['total_reinoperational'].append(reinoperational_no)
+        self.history_logs['total_catbondsoperational'].append(catbondsoperational_no)
+        self.history_logs['market_premium'].append(self.market_premium)
+        self.history_logs['cumulative_bankruptcies'].append(self.cumulative_bankruptcies)
+        self.history_logs['cumulative_unrecovered_claims'].append(self.cumulative_unrecovered_claims)
+        
+        # agent-level data
+        self.history_logs['insurance_firms_cash'].append(insurance_firms)
+        self.history_logs['reinsurance_firms_cash'].append(reinsurance_firms)
         self.log_vars()
         
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
             try:
-                self.history_individual_contracts[i].append(individual_contracts_no[i])
+                self.history_logs['individual_contracts'][i].append(individual_contracts_no[i])
             except:
                 print(sys.exc_info())
                 pdb.set_trace()
@@ -373,7 +405,8 @@ class InsuranceSimulation():
         affected_contracts = [contract for insurer in self.insurancefirms for contract in insurer.underwritten_contracts if contract.category == categ_id]
         no_affected = len(affected_contracts)
         damage = self.damage_distribution.rvs()
-        print("**** PERIL ", damage)
+        if isleconfig.verbose:
+            print("**** PERIL ", damage)
         damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
         uniformvalues = np.random.uniform(0, 1, size=no_affected)
         [contract.explode(t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
@@ -395,7 +428,7 @@ class InsuranceSimulation():
         try:
             assert self.money_supply > amount
         except:
-            print("Something wrong: economy out of money")
+            print("Something wrong: economy out of money", file=sys.stderr)
         self.money_supply -= amount
         recipient.receive(amount)
 
@@ -427,7 +460,8 @@ class InsuranceSimulation():
         self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
         #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
         self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
-        print('@', self.insurancefirm_weights)
+        if isleconfig.verbose:
+            print('@', self.insurancefirm_weights)
 
     @nb.jit
     def shuffle_risks(self):
@@ -479,14 +513,16 @@ class InsuranceSimulation():
         self.insurancefirm_new_weights[id] = cash
         risks_to_be_sent = self.risks[:int(self.insurancefirm_weights[id])]
         self.risks = self.risks[int(self.insurancefirm_weights[id]):]
-        print("Number of risks", len(risks_to_be_sent))
+        if isleconfig.verbose:
+            print("Number of risks", len(risks_to_be_sent))
         return risks_to_be_sent
 
     def solicit_reinsurance_requests(self, id, cash):
         self.reinsurancefirm_new_weights[id] = cash
         reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
         self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
-        print("Number of risks",len(reinrisks_to_be_sent))
+        if isleconfig.verbose:
+            print("Number of risks",len(reinrisks_to_be_sent))
         return reinrisks_to_be_sent
 
     def return_risks(self, not_accepted_risks):
@@ -577,83 +613,119 @@ class InsuranceSimulation():
     def record_unrecovered_claims(self, loss):
         self.cumulative_unrecovered_claims += loss
 
+    def create_network_representation(self):
+        """obtain lists of operational entities"""
+        op_entities = {}
+        num_entities = {}
+        for firmtype, firmlist in [("insurers", self.insurancefirms), ("reinsurers", self.reinsurancefirms), ("catbonds", self.catbonds)]:
+            op_firmtype = [firm for firm in firmlist if firm.operational]
+            op_entities[firmtype] = op_firmtype
+            num_entities[firmtype] = len(op_firmtype)
+        
+        #op_entities_flat = [firm for firm in entities_list for entities_list in op_entities]
+        network_size = sum(num_entities.values())
+        
+        """create weigthed adjacency matrix"""
+        weights_matrix = np.zeros(network_size**2).reshape(network_size, network_size)
+        for idx_to, firm in enumerate(op_entities["insurers"] + op_entities["reinsurers"]):
+            eolrs = firm.get_excess_of_loss_reinsurance()
+            for eolr in eolrs:
+                #pdb.set_trace()
+                idx_from = num_entities["insurers"] + (op_entities["reinsurers"] + op_entities["catbonds"]).index(eolr["reinsurer"])
+                weights_matrix[idx_from][idx_to] = eolr["value"]
+        
+        """unweighted adjacency matrix"""
+        adj_matrix = np.sign(weights_matrix)
+                
+        """define network"""
+        self.network = nx.from_numpy_array(weights_matrix, create_using=nx.DiGraph())  # weighted
+        self.network_unweighted = nx.from_numpy_array(adj_matrix, create_using=nx.DiGraph())     # unweighted
+        
+        """obtain measures"""
+        #degrees = self.network.degree()
+        degree_distr = dict(self.network.degree()).values()
+        in_degree_distr = dict(self.network.in_degree()).values()
+        out_degree_distr = dict(self.network.out_degree()).values()
+        is_connected = nx.is_weakly_connected(self.network)
+        #is_connected = nx.is_strongly_connected(self.network)  # must always be False
+        try:
+            node_centralities = nx.eigenvector_centrality(self.network)
+        except:
+            node_centralities = nx.betweenness_centrality(self.network)
+        # TODO: and more, choose more meaningful ones...
+        
+        print("Graph is connected: ", is_connected, "\nIn degrees ", in_degree_distr, "\nOut degrees", out_degree_distr, \
+              "\nCentralities", node_centralities)
+        
+        """visualize"""
+        plt.figure()
+        firmtypes = np.ones(network_size)
+        firmtypes[num_entities["insurers"]:num_entities["insurers"]+num_entities["reinsurers"]] = 0.5
+        firmtypes[num_entities["insurers"]+num_entities["reinsurers"]:] = 1.3
+        print(firmtypes, num_entities["insurers"], num_entities["insurers"]+num_entities["reinsurers"])
+        pos = nx.spring_layout(self.network_unweighted)
+        nx.draw(self.network_unweighted, pos, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
+        plt.show()
+
     def log(self):
         if self.background_run:
-            if isleconfig.oneriskmodel:
-                to_log = self.replication_log_prepare_oneriskmodel()
-            else:
-                to_log = self.replication_log_prepare()
+            to_log = self.replication_log_prepare()
         else:
             to_log = self.single_log_prepare()
         
+        #TODO: use with file_handle as open structure 
         for filename, data, operation_character in to_log:
-            wfile = open(filename, operation_character)
-            wfile.write(str(data) + "\n")
-            wfile.close()
+            with open(filename, operation_character) as wfile:
+                wfile.write(str(data) + "\n")
+                wfile.close()
     
     def replication_log_prepare(self):
         filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
         fpf = filename_prefix[self.number_riskmodels]
         to_log = []
-        to_log.append(("data/" + fpf + "_operational.dat", self.history_total_operational, "a"))
-        to_log.append(("data/" + fpf + "_contracts.dat", self.history_total_contracts, "a"))
-        to_log.append(("data/" + fpf + "_cash.dat", self.history_total_cash, "a"))
-        to_log.append(("data/" + fpf + "_excess_capital.dat", self.history_total_excess_capital, "a"))
-        to_log.append(("data/" + fpf + "_profitslosses.dat", self.history_total_profitslosses, "a"))
-        to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_total_reinoperational, "a"))
-        to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_total_reincontracts, "a"))
-        to_log.append(("data/" + fpf + "_reincash.dat", self.history_total_reincash, "a"))
-        to_log.append(("data/" + fpf + "_reinexcess_capital.dat", self.history_total_reinexcess_capital, "a"))
-        to_log.append(("data/" + fpf + "_reinprofitslosses.dat", self.history_total_reinprofitslosses, "a"))
-        to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_total_catbondsoperational, "a"))
-        to_log.append(("data/" + fpf + "_premium.dat", self.history_market_premium, "a"))
-        to_log.append(("data/" + fpf + "_diffvar.dat", self.history_market_diffvar, "a"))
-        to_log.append(("data/" + fpf + "_cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "a"))
-        to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "a"))
-
-        return to_log
-
-    def replication_log_prepare_oneriskmodel(self):
-        return self.replication_log_prepare()
-        assert False, "Error: script should never reach this point"
+        to_log.append(("data/" + fpf + "_operational.dat", self.history_logs['total_operational'], "a"))
+        to_log.append(("data/" + fpf + "_contracts.dat", self.history_logs['total_contracts'], "a"))
+        to_log.append(("data/" + fpf + "_cash.dat", self.history_logs['total_cash'], "a"))
+        to_log.append(("data/" + fpf + "_excess_capital.dat", self.history_logs['total_excess_capital'], "a"))
+        to_log.append(("data/" + fpf + "_profitslosses.dat", self.history_logs['total_profitslosses'], "a"))
+        to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_logs['total_reinoperational'], "a"))
+        to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_logs['total_reincontracts'], "a"))
+        to_log.append(("data/" + fpf + "_reincash.dat", self.history_logs['total_reincash'], "a"))
+        to_log.append(("data/" + fpf + "_reinexcess_capital.dat", self.history_logs['total_reinexcess_capital'], "a"))
+        to_log.append(("data/" + fpf + "_reinprofitslosses.dat", self.history_logs['total_reinprofitslosses'], "a"))
+        to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_logs['total_catbondsoperational'], "a"))
+        to_log.append(("data/" + fpf + "_premium.dat", self.history_logs['market_premium'], "a"))
+        to_log.append(("data/" + fpf + "_diffvar.dat", self.history_logs['market_diffvar'], "a"))
+        to_log.append(("data/" + fpf + "_cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "a"))
+        to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "a"))
         
-        to_log = []
-        to_log.append(("data/one_operational.dat", self.history_total_operational, "a"))
-        to_log.append(("data/one_contracts.dat", self.history_total_contracts, "a"))
-        to_log.append(("data/one_cash.dat", self.history_total_cash, "a"))
-        to_log.append(("data/one_excess_capital.dat", self.history_total_excess_capital, "a"))
-        to_log.append(("data/one_profitslosses.dat", self.history_total_profitslosses, "a"))
-        to_log.append(("data/one_reinoperational.dat", self.history_total_reinoperational, "a"))
-        to_log.append(("data/one_reincontracts.dat", self.history_total_reincontracts, "a"))
-        to_log.append(("data/one_reincash.dat", self.history_total_reincash, "a"))
-        to_log.append(("data/one_reinexcess_capital.dat", self.history_total_reinexcess_capital, "a"))
-        to_log.append(("data/one_reinprofitslosses.dat", self.history_total_reinprofitslosses, "a"))
-        to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "a"))
-        to_log.append(("data/one_premium.dat", self.history_market_premium, "a"))
-        to_log.append(("data/one_diffvar.dat", self.history_market_diffvar, "a"))
-        to_log.append(("data/one_cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "a"))
-        to_log.append(("data/one_cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "a"))
-
+        # agent-level data
+        to_log.append(("data/" + fpf + "_insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "a"))
+        to_log.append(("data/" + fpf + "_reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "a"))
         return to_log
-
+      
     def single_log_prepare(self):
         to_log = []
-        to_log.append(("data/operational.dat", self.history_total_operational, "w"))
-        to_log.append(("data/contracts.dat", self.history_total_contracts, "w"))
-        to_log.append(("data/cash.dat", self.history_total_cash, "w"))
-        to_log.append(("data/excess_capital.dat", self.history_total_excess_capital, "w"))
-        to_log.append(("data/profitslosses.dat", self.history_total_profitslosses, "w"))
-        to_log.append(("data/reinoperational.dat", self.history_total_reinoperational, "w"))
-        to_log.append(("data/reincontracts.dat", self.history_total_reincontracts, "w"))
-        to_log.append(("data/reincash.dat", self.history_total_reincash, "w"))
-        to_log.append(("data/reinexcess_capital.dat", self.history_total_reinexcess_capital, "w"))
-        to_log.append(("data/reinprofitslosses.dat", self.history_total_reinprofitslosses, "w"))
-        to_log.append(("data/catbonds_number.dat", self.history_total_catbondsoperational, "w"))
-        to_log.append(("data/premium.dat", self.history_market_premium, "w"))
-        to_log.append(("data/diffvar.dat", self.history_market_diffvar, "w"))
-        to_log.append(("data/cumulative_bankruptcies.dat", self.history_cumulative_bankruptcies, "w"))
-        to_log.append(("data/cumulative_unrecovered_claims.dat", self.history_cumulative_unrecovered_claims, "w"))
+        to_log.append(("data/operational.dat", self.history_logs['total_operational'], "w"))
+        to_log.append(("data/contracts.dat", self.history_logs['total_contracts'], "w"))
+        to_log.append(("data/cash.dat", self.history_logs['total_cash'], "w"))
+        to_log.append(("data/excess_capital.dat", self.history_logs['total_excess_capital'], "w"))
+        to_log.append(("data/profitslosses.dat", self.history_logs['total_profitslosses'], "w"))
+        to_log.append(("data/reinoperational.dat", self.history_logs['total_reinoperational'], "w"))
+        to_log.append(("data/reincontracts.dat", self.history_logs['total_reincontracts'], "w"))
+        to_log.append(("data/reincash.dat", self.history_logs['total_reincash'], "w"))
+        to_log.append(("data/reinexcess_capital.dat", self.history_logs['total_reinexcess_capital'], "w"))
+        to_log.append(("data/reinprofitslosses.dat", self.history_logs['total_reinprofitslosses'], "w"))
+        to_log.append(("data/catbonds_number.dat", self.history_logs['total_catbondsoperational'], "w"))
+        to_log.append(("data/premium.dat", self.history_logs['market_premium'], "w"))
+        to_log.append(("data/diffvar.dat", self.history_logs['market_diffvar'], "w"))
+        to_log.append(("data/cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "w"))
+        to_log.append(("data/cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "w"))
 
+        # agent-level data
+        to_log.append(("data/insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "w"))
+        to_log.append(("data/reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "w"))
+        
         return to_log
 
     def log_vars(self):
@@ -683,7 +755,7 @@ class InsuranceSimulation():
         totalreal = totalreal + sum(varsreinfirms)
 
         totaldiff = totalina - totalreal
-        self.history_market_diffvar.append(totaldiff)
+        self.history_logs['market_diffvar'].append(totaldiff)
 
     def count_underwritten_and_reinsured_risks_by_category(self):
         underwritten_risks = 0
@@ -709,13 +781,3 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
-
-        
-
-
-#if __name__ == "__main__":
-#    arg = None
-#    if len(sys.argv) > 1:
-#        arg = int(sys.argv[1])
-#    S = InsuranceSimulation(replic_ID = arg)
-#    S.run()

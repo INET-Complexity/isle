@@ -2,6 +2,8 @@ use_abce = False
 oneriskmodel = False
 replicating = False
 force_foreground = False
+verbose = False
+showprogress = False
 
 simulation_parameters={"no_categories": 4,
                        "no_insurancefirms": 20,

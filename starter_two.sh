@@ -9,6 +9,5 @@ mv data/two_reincash.dat data/two_reincash.dat_$(date +%Y_%h_%d_%H_%M)
 mv data/two_premium.dat data/two_premium.dat_$(date +%Y_%h_%d_%H_%M)
 
 for ((i=0; i<300; i++)) do
-    #python insurancesimulation.py $i
-    python start.py --abce 0 --replicid $i 
+    python3 start.py --replicid $i 
 done

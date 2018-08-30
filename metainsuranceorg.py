@@ -87,12 +87,14 @@ class MetaInsuranceOrg(GenericAgent):
 
         """realize due payments"""
         self.effect_payments(time)
-        print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
+        if isleconfig.verbose:
+            print(time, ":", self.id, len(self.underwritten_contracts), self.cash, self.operational)
 
         self.make_reinsurance_claims(time)
 
         """mature contracts"""
-        print("Number of underwritten contracts ", len(self.underwritten_contracts))
+        if isleconfig.verbose:
+            print("Number of underwritten contracts ", len(self.underwritten_contracts))
         maturing = [contract for contract in self.underwritten_contracts if contract.expiration <= time]
         for contract in maturing:
             self.underwritten_contracts.remove(contract)
@@ -111,11 +113,9 @@ class MetaInsuranceOrg(GenericAgent):
             if self.is_reinsurer:
                 new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash)
             contracts_offered = len(new_risks)
-            try:
-                assert contracts_offered > 2 * contracts_dissolved
-            except:
-                print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(self.id, contracts_offered, 2*contracts_dissolved))
-            #print(self.id, " has ", len(self.underwritten_contracts), " & receives ", contracts_offered, " & lost ", contracts_dissolved)
+            if isleconfig.verbose and contracts_offered < 2 * contracts_dissolved:
+                print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(
+                                                                self.id, contracts_offered, 2*contracts_dissolved))
             
             new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss' and risk["owner"] is not self]
             new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None] and risk["owner"] is not self]
@@ -167,7 +167,7 @@ class MetaInsuranceOrg(GenericAgent):
 
             growth_limit = max(50, 2 * len(self.underwritten_contracts) + contracts_dissolved)
             if sum(acceptable_by_category) > growth_limit:
-                acceptable_by_category = np.asarray(acceptable_by_category)
+                acceptable_by_category = np.asarray(acceptable_by_category).astype(np.double)
                 acceptable_by_category = acceptable_by_category * growth_limit / sum(acceptable_by_category)
                 acceptable_by_category = np.int64(np.round(acceptable_by_category))
 
@@ -177,7 +177,8 @@ class MetaInsuranceOrg(GenericAgent):
                 new_risks = [risk for risk in new_risks if risk["category"] != categ_id]
                 categ_risks = sorted(categ_risks, key = lambda risk: risk["risk_factor"])
                 i = 0
-                print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
+                if isleconfig.verbose:
+                    print("InsuranceFirm underwrote: ", len(self.underwritten_contracts), " will accept: ", acceptable_by_category[categ_id], " out of ", len(categ_risks), "acceptance threshold: ", self.acceptance_threshold)
                 while (acceptable_by_category[categ_id] > 0 and len(categ_risks) > i): #\
                     #and categ_risks[i]["risk_factor"] < self.acceptance_threshold):
                     if categ_risks[i].get("contract") is not None: #categ_risks[i]["reinsurance"]:
