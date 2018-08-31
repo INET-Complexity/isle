@@ -398,7 +398,7 @@ class InsuranceSimulation():
         pass
     
     def finalize(self, *args):
-        self.log()
+        #self.log()
         pass
 
     def inflict_peril(self, categ_id, t):
@@ -782,3 +782,6 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
+
+    def get_operational(self):
+        return True
