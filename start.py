@@ -9,7 +9,6 @@ import os
 import pickle
 import hashlib
 import random
-import copy
 
 # import config file and apply configuration
 import isleconfig
@@ -91,7 +90,7 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters, rc_event_schedule, seed):
+def main(simulation_parameters,seed):
 
     np.random.seed(seed)
     random.seed(seed)
@@ -127,9 +126,6 @@ def main(simulation_parameters, rc_event_schedule, seed):
     else:
         reinsurancefirm_pointers = reinsurancefirms_group
     world.accept_agents("reinsurance", reinsurancefirm_pointers, reinsurancefirms_group)
-
-    world.rc_event_schedule = copy.copy(rc_event_schedule)
-    world.rc_event_schedule_copy = copy.copy(rc_event_schedule)
     
     # time iteration
     for t in range(simulation_parameters["max_time"]):
@@ -192,9 +188,6 @@ def main(simulation_parameters, rc_event_schedule, seed):
     # finish simulation, write logs
     simulation.finalize()
 
-    return [simulation.history_total_cash, simulation.history_total_contracts, simulation.history_total_operational, simulation.history_total_reincash, simulation.history_total_reincontracts, simulation.history_total_reinoperational, simulation.history_market_premium,simulation.rc_event_schedule_copy]
-
-
 # save function
 def save_simulation(t, sim, sim_param, exit_now=False):
     d = {}
@@ -215,4 +208,4 @@ def save_simulation(t, sim, sim_param, exit_now=False):
 
 # main entry point
 if __name__ == "__main__":
-    main(simulation_parameters, rc_event_schedule, seed)
+    main(simulation_parameters, seed)
