@@ -429,7 +429,7 @@ class InsuranceSimulation():
             assert self.money_supply > amount
         except:
             print("Something wrong: economy out of money", file=sys.stderr)
-        if recipient.get_operational():
+        if self.get_operational() and recipient.get_operational():
             self.money_supply -= amount
             recipient.receive(amount)
 
@@ -782,3 +782,6 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
+
+    def get_operational(self):
+        return True
