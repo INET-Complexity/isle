@@ -14,7 +14,6 @@
         random.random.seed(d["np_seed"])
     """
 
-import scipy.stats
 import argparse
 import scipy.stats
 import pickle
