@@ -196,7 +196,7 @@ class InsuranceSimulation():
         self.history_logs['total_contracts'] = []
         self.history_logs['total_operational'] = []
         # individual insurance firms
-        self.history_logs['individual_contracts'] = [[] for _ in range(simulation_parameters["no_insurancefirms"])]
+        self.history_logs['individual_contracts'] = []
         
         # sum reinsurance firms
         self.history_logs['total_reincash'] = []
@@ -238,7 +238,12 @@ class InsuranceSimulation():
                 print(sys.exc_info())
                 pdb.set_trace()
             # fix self.history_logs['individual_contracts'] list
-            self.history_logs['individual_contracts'].append(list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int)))
+            for agent in agents:
+                if len(self.history_logs['individual_contracts']) > 0:
+                    zeroes_to_append = list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int))
+                else:
+                    zeroes_to_append = []
+                self.history_logs['individual_contracts'].append(zeroes_to_append)
             # remove new agent cash from simulation cash to ensure stock flow consistency
             new_agent_cash = sum([agent.cash for agent in agents])
             self.reduce_money_supply(new_agent_cash)
@@ -357,8 +362,8 @@ class InsuranceSimulation():
         
         # agent-level data
         
-        insurance_firms = [(insurancefirm.cash,insurancefirm.id) for insurancefirm in self.insurancefirms]
-        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id) for reinsurancefirm in self.reinsurancefirms]
+        insurance_firms = [(insurancefirm.cash,insurancefirm.id,insurancefirm.operational) for insurancefirm in self.insurancefirms]
+        reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id,reinsurancefirm.operational) for reinsurancefirm in self.reinsurancefirms]
         
         
         self.history_logs['total_cash'].append(total_cash_no)
@@ -424,8 +429,9 @@ class InsuranceSimulation():
             assert self.money_supply > amount
         except:
             print("Something wrong: economy out of money", file=sys.stderr)
-        self.money_supply -= amount
-        recipient.receive(amount)
+        if self.get_operational() and recipient.get_operational():
+            self.money_supply -= amount
+            recipient.receive(amount)
 
     def receive(self, amount):
         """Method to accept cash payments."""
@@ -776,3 +782,6 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
+
+    def get_operational(self):
+        return True

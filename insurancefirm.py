@@ -66,7 +66,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             categ_ids = [ categ_id for categ_id in range(self.simulation_no_risk_categories) if (self.category_reinsurance[categ_id] is None)]
             if len(categ_ids) > 1:
                 np.random.shuffle(categ_ids)
-            while len(categ_ids) > 1:       
+            while len(categ_ids) >= 1:       
                 categ_id = categ_ids.pop()
                 capacity = self.get_capacity(max_var)
                 if self.capacity_target < capacity: # just one per iteration, unless capital target is unmatched
@@ -132,7 +132,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         """Evaluate by risk category"""
         for categ_id in range(self.simulation_no_risk_categories):
             """Seek reinsurance only with probability 10% if not already reinsured"""  # TODO: find a more generic way to decide whether to request reinsurance for category in this period
-            if (self.category_reinsurance[categ_id] is None) and np.random.random() < 1:
+            if (self.category_reinsurance[categ_id] is None):
                 self.ask_reinsurance_non_proportional_by_category(time, categ_id)
 
     @nb.jit 

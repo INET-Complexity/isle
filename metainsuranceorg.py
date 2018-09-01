@@ -249,8 +249,9 @@ class MetaInsuranceOrg(GenericAgent):
 
 
     def pay(self, amount, recipient):
-        self.cash -= amount
-        recipient.receive(amount)
+        if self.get_operational() and recipient.get_operational():
+            self.cash -= amount
+            recipient.receive(amount)
 
     def receive(self, amount):
         """Method to accept cash payments."""
