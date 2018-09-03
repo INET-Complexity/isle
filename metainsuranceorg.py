@@ -169,6 +169,7 @@ class MetaInsuranceOrg(GenericAgent):
 
             growth_limit = max(50, 2 * len(self.underwritten_contracts) + contracts_dissolved)
             if sum(acceptable_by_category) > growth_limit:
+                print(acceptable_by_category)
                 acceptable_by_category = np.asarray(acceptable_by_category)
                 acceptable_by_category = acceptable_by_category * growth_limit / sum(acceptable_by_category)
                 acceptable_by_category = np.int64(np.round(acceptable_by_category))

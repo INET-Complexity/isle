@@ -635,6 +635,8 @@ class InsuranceSimulation():
         # agent-level data
         to_log.append(("data/" + fpf + "_insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "a"))
         to_log.append(("data/" + fpf + "_reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "a"))
+
+        to_log.append(("data/history_logs.dat", self.history_logs, "w"))
         return to_log
       
     def single_log_prepare(self):
@@ -658,7 +660,8 @@ class InsuranceSimulation():
         # agent-level data
         to_log.append(("data/insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "w"))
         to_log.append(("data/reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "w"))
-        
+
+        to_log.append(("data/history_logs.dat", self.history_logs, "w"))
         return to_log
 
     def log_vars(self):
