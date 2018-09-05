@@ -14,6 +14,46 @@ rfile = open("data/reinsurance_firms_cash.dat","r")
 reinsurance_firms_cash = [eval(k) for k in rfile]
 rfile.close()
 
+rfile = open("data/contracts.dat","r")
+contracts = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/operational.dat","r")
+op = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/cash.dat","r")
+cash = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/profitslosses.dat","r")
+pl = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/reincontracts.dat","r")
+reincontracts = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/reinoperational.dat","r")
+reinop = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/reincash.dat","r")
+reincash = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/reinprofitslosses.dat","r")
+reinpl = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/premium.dat","r")
+premium = [eval(k) for k in rfile]
+rfile.close()
+
+rfile = open("data/catbonds_number.dat","r")
+catbop = [eval(k) for k in rfile]
+rfile.close()
+
 insurance_firms_cash = np.array(insurance_firms_cash)
 reinsurance_firms_cash = np.array(reinsurance_firms_cash)
 
@@ -29,8 +69,8 @@ class InsuranceFirmAnimation(object):
         self.data = data
         self.fig, self.ax = plt.subplots()
         self.stream = self.data_stream()
-        self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=40,
-                                           init_func=self.setup_plot)
+        self.ani = animation.FuncAnimation(self.fig, self.update, repeat=False, interval=100,)
+                                           #init_func=self.setup_plot)
 
     def setup_plot(self):
         """Initial drawing of the plots."""
@@ -61,9 +101,26 @@ class InsuranceFirmAnimation(object):
 
     def show(self):
         plt.show()
-        
-anim1 = InsuranceFirmAnimation(first_run_insurance)
-anim2 = InsuranceFirmAnimation(first_run_reinsurance)
-#anim1.save("insurance.mp4")
-#anim2.save("reinsurance.mp4")
-plt.show()
+
+class visualisation(object):
+    def __init__(self, insurance_cash, reinsurance_cash):
+        self.insurance_cash = insurance_cash
+        self.reinsurance_cash = reinsurance_cash
+        return
+
+    def insurer_pie_animation(self):
+        self.ins_pie_anim = InsuranceFirmAnimation(self.insurance_cash)
+        return self.ins_pie_anim
+
+    def reinsurer_pie_animation(self):
+        self.reins_pie_anim = InsuranceFirmAnimation(self.reinsurance_cash)
+        return self.reins_pie_anim
+
+    def show(self):
+        plt.show()
+        return
+
+vis = visualisation(first_run_insurance,first_run_reinsurance)
+vis.insurer_pie_animation()
+vis.reinsurer_pie_animation()
+vis.show()
