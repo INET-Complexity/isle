@@ -1,67 +1,71 @@
-# file to visualise agent-level data per timestep
+# file to visualise all data produced from a SINGLE simulation run (plotter.py OBSOLETE)
+# TODO: include support for ensemble runs
 
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# read in data for each agent for each timestep
-    # read in insurancefirm data
-rfile = open("data/insurance_firms_cash.dat","r")
-insurance_firms_cash = [eval(k) for k in rfile]
-rfile.close()
-    # read in reinsurancefirm data
-rfile = open("data/reinsurance_firms_cash.dat","r")
-reinsurance_firms_cash = [eval(k) for k in rfile]
-rfile.close()
+# load in data from the history_logs dictionary
+with open("data/history_logs.dat","r") as rfile:
+    history_logs = eval(rfile.read())
 
-rfile = open("data/contracts.dat","r")
-contracts = [eval(k) for k in rfile]
-rfile.close()
+#print(history_logs.keys())
 
-rfile = open("data/operational.dat","r")
-op = [eval(k) for k in rfile]
-rfile.close()
+# agent-level data
 
-rfile = open("data/cash.dat","r")
-cash = [eval(k) for k in rfile]
-rfile.close()
 
-rfile = open("data/profitslosses.dat","r")
-pl = [eval(k) for k in rfile]
-rfile.close()
+# re-load insurance firm data as numpy variables
 
-rfile = open("data/reincontracts.dat","r")
-reincontracts = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/reinoperational.dat","r")
-reinop = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/reincash.dat","r")
-reincash = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/reinprofitslosses.dat","r")
-reinpl = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/premium.dat","r")
-premium = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/catbonds_number.dat","r")
-catbop = [eval(k) for k in rfile]
-rfile.close()
-
-insurance_firms_cash = np.array(insurance_firms_cash)
-reinsurance_firms_cash = np.array(reinsurance_firms_cash)
 
 # shape (runs, steps)
 
+class TimeSeries(object):
+    #TODO: more illuminating variable names, this is basically obsfuscated    
+    #TODO: rename ax5 to something nicer, something that generalises catbonds/premiums
+    def __init__(self, contracts, profitslosses, operational, cash, ax5, ax5label, title):
+
+        self.c_s = []
+        self.o_s = []
+        self.h_s = []
+        self.pl_s = []
+        self.p_e = []
+
+        self.ax5label = ax5label
+        self.title = title
+        self.timesteps = [t for t in range(len(contracts))]
+
+        for t in self.timesteps:
+            cs = np.mean([item[t] for item in contracts])
+            pls = np.mean([item[t] for item in profitslosses])
+            os = np.median([item[t] for item in operational])
+            hs = np.median([item[t] for item in cash])
+            p_s = np.median([item[t] for item in ax5])
+                
+            self.c_s.append(cs)
+            self.pl_s.append(pls)
+            self.o_s.append(os)
+            self.h_s.append(hs)
+            self.p_e.append(p_s)
+
+        def plot(self):
+            self.fig, self.axlist = plt.subplots(5,sharex=True)
+            self.axlist[0].plot(self.timesteps), c_s, "b")
+            self.axlist[0].set_ylabel("Contracts")
+            self.axlist[1].plot(self.timesteps, o_s, "b")
+            self.axlist[1].set_ylabel("Active firms")
+            self.axlist[2].plot(self.timesteps, h_s, "b")
+            self.axlist[2].set_ylabel("Cash")
+            self.axlist[3].plot(self.timesteps, pl_s, "b")
+            self.axlist[3].set_ylabel("Profits, Losses")
+            self.axlist[4].plot(self.timesteps, p_e, "k")
+            self.axlist[4].set_ylabel(ax5label)
+            self.axlist[4].set_xlabel("Time")
+            self.fig.savefig("{title}.pdf".format(title=self.title))
+            return self.fig, self.axlist
+
 # let's look at only the first run
-first_run_insurance = insurance_firms_cash[0][:]
-first_run_reinsurance = reinsurance_firms_cash[0][:]
+first_run_insurance = insurance_firms_cash[:]
+first_run_reinsurance = reinsurance_firms_cash[:]
 
 class InsuranceFirmAnimation(object):
     '''class takes in a run of insurance data and produces animations '''
@@ -103,9 +107,24 @@ class InsuranceFirmAnimation(object):
         plt.show()
 
 class visualisation(object):
-    def __init__(self, insurance_cash, reinsurance_cash):
-        self.insurance_cash = insurance_cash
-        self.reinsurance_cash = reinsurance_cash
+    def __init__(self, history_logs):
+        self.operational = history_logs['total_operational']
+        self.contracts = history_logs['total_contracts']
+        self.cash = history_logs['total_cash']
+        self.excess_capital = history_logs['total_excess_capital']
+        self.profitslosses = history_logs['total_profitslosses']
+        self.reinoperational = history_logs['total_reinoperational']
+        self.reincontracts = history_logs['total_reincontracts']
+        self.reincash = history_logs['total_reincash']
+        self.reinexcess_capital = history_logs['total_reinexcess_capital']
+        self.reinprofitslosses = history_logs['total_reinprofitslosses']
+        self.catbonds_number = history_logs['total_catbondsoperational']
+        self.premium = history_logs['market_premium']
+        self.diffvar = history_logs['market_diffvar']
+        self.cumulative_bankruptcies = history_logs['cumulative_bankruptcies']
+        self.cumulative_unrecovered_claims = history_logs['cumulative_unrecovered_claims']
+        self.insurance_cash = np.array(history_logs['insurance_firms_cash'])
+        self.reinsurance_cash = np.array(history_logs['reinsurance_firms_cash'])
         return
 
     def insurer_pie_animation(self):
@@ -120,7 +139,9 @@ class visualisation(object):
         plt.show()
         return
 
-vis = visualisation(first_run_insurance,first_run_reinsurance)
-vis.insurer_pie_animation()
-vis.reinsurer_pie_animation()
-vis.show()
+
+
+#vis = visualisation(first_run_insurance,first_run_reinsurance)
+#vis.insurer_pie_animation()
+#vis.reinsurer_pie_animation()
+#vis.show()
