@@ -113,11 +113,9 @@ class MetaInsuranceOrg(GenericAgent):
             if self.is_reinsurer:
                 new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash)
             contracts_offered = len(new_risks)
-            try:
-                assert contracts_offered > 2 * contracts_dissolved
-            except:
-                print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(self.id, contracts_offered, 2*contracts_dissolved),file=sys.stderr)
-            #print(self.id, " has ", len(self.underwritten_contracts), " & receives ", contracts_offered, " & lost ", contracts_dissolved)
+            if isleconfig.verbose and contracts_offered < 2 * contracts_dissolved:
+                print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(
+                                                                self.id, contracts_offered, 2*contracts_dissolved))
             
             new_nonproportional_risks = [risk for risk in new_risks if risk.get("insurancetype")=='excess-of-loss' and risk["owner"] is not self]
             new_risks = [risk for risk in new_risks if risk.get("insurancetype") in ['proportional', None] and risk["owner"] is not self]
@@ -169,8 +167,7 @@ class MetaInsuranceOrg(GenericAgent):
 
             growth_limit = max(50, 2 * len(self.underwritten_contracts) + contracts_dissolved)
             if sum(acceptable_by_category) > growth_limit:
-                print(acceptable_by_category)
-                acceptable_by_category = np.asarray(acceptable_by_category)
+                acceptable_by_category = np.asarray(acceptable_by_category).astype(np.double)
                 acceptable_by_category = acceptable_by_category * growth_limit / sum(acceptable_by_category)
                 acceptable_by_category = np.int64(np.round(acceptable_by_category))
 
@@ -252,8 +249,9 @@ class MetaInsuranceOrg(GenericAgent):
 
 
     def pay(self, amount, recipient):
-        self.cash -= amount
-        recipient.receive(amount)
+        if self.get_operational() and recipient.get_operational():
+            self.cash -= amount
+            recipient.receive(amount)
 
     def receive(self, amount):
         """Method to accept cash payments."""
