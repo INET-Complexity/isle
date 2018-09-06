@@ -1,4 +1,4 @@
-# file to visualise all data produced from a SINGLE simulation run (plotter.py OBSOLETE)
+# file to visualise all data produced from a SINGLE simulation run
 # TODO: include support for ensemble runs
 
 import numpy as np
@@ -9,63 +9,42 @@ import matplotlib.animation as animation
 with open("data/history_logs.dat","r") as rfile:
     history_logs = eval(rfile.read())
 
-#print(history_logs.keys())
-
-# agent-level data
-
-
-# re-load insurance firm data as numpy variables
-
-
-# shape (runs, steps)
-
 class TimeSeries(object):
     #TODO: more illuminating variable names, this is basically obsfuscated    
     #TODO: rename ax5 to something nicer, something that generalises catbonds/premiums
     def __init__(self, contracts, profitslosses, operational, cash, ax5, ax5label, title):
 
-        self.c_s = []
-        self.o_s = []
-        self.h_s = []
-        self.pl_s = []
-        self.p_e = []
-
+        self.contracts = contracts
+        self.profitslosses = profitslosses
+        self.cash = cash
+        self.operational = operational
+        self.ax5 = ax5
         self.ax5label = ax5label
         self.title = title
         self.timesteps = [t for t in range(len(contracts))]
+        self.plot() # we create the object when we want the plot so call plot() in the constructor
 
-        for t in self.timesteps:
-            cs = np.mean([item[t] for item in contracts])
-            pls = np.mean([item[t] for item in profitslosses])
-            os = np.median([item[t] for item in operational])
-            hs = np.median([item[t] for item in cash])
-            p_s = np.median([item[t] for item in ax5])
-                
-            self.c_s.append(cs)
-            self.pl_s.append(pls)
-            self.o_s.append(os)
-            self.h_s.append(hs)
-            self.p_e.append(p_s)
+    def plot(self):
+        #TODO: Add nicely formatted strings for axes labels (LaTeX markup?)
+        self.fig, self.axlist = plt.subplots(5,sharex=True)
+        self.axlist[0].plot(self.timesteps, self.contracts, "b")
+        self.axlist[0].set_ylabel("Contracts")
+        self.axlist[1].plot(self.timesteps, self.operational, "b")
+        self.axlist[1].set_ylabel("Active firms")
+        self.axlist[2].plot(self.timesteps, self.cash, "b")
+        self.axlist[2].set_ylabel("Cash")
+        self.axlist[3].plot(self.timesteps, self.profitslosses, "b")
+        self.axlist[3].set_ylabel("Profits, Losses")
+        self.axlist[4].plot(self.timesteps, self.ax5, "k")
+        self.axlist[4].set_ylabel(self.ax5label)
+        self.axlist[4].set_xlabel("Time")
+        
+        self.fig.suptitle(self.title)
+        return self.fig, self.axlist
 
-        def plot(self):
-            self.fig, self.axlist = plt.subplots(5,sharex=True)
-            self.axlist[0].plot(self.timesteps), c_s, "b")
-            self.axlist[0].set_ylabel("Contracts")
-            self.axlist[1].plot(self.timesteps, o_s, "b")
-            self.axlist[1].set_ylabel("Active firms")
-            self.axlist[2].plot(self.timesteps, h_s, "b")
-            self.axlist[2].set_ylabel("Cash")
-            self.axlist[3].plot(self.timesteps, pl_s, "b")
-            self.axlist[3].set_ylabel("Profits, Losses")
-            self.axlist[4].plot(self.timesteps, p_e, "k")
-            self.axlist[4].set_ylabel(ax5label)
-            self.axlist[4].set_xlabel("Time")
-            self.fig.savefig("{title}.pdf".format(title=self.title))
-            return self.fig, self.axlist
-
-# let's look at only the first run
-first_run_insurance = insurance_firms_cash[:]
-first_run_reinsurance = reinsurance_firms_cash[:]
+    def save(self, filename):
+        self.fig.savefig("{filename}".format(filename=filename))
+        return
 
 class InsuranceFirmAnimation(object):
     '''class takes in a run of insurance data and produces animations '''
@@ -77,12 +56,13 @@ class InsuranceFirmAnimation(object):
                                            #init_func=self.setup_plot)
 
     def setup_plot(self):
-        """Initial drawing of the plots."""
+        # initial drawing of the plot
         casharr,idarr = next(self.stream)
         self.pie = self.ax.pie(casharr, labels=idarr,autopct='%1.0f%%')
         return self.pie,
 
     def data_stream(self):
+        # unpack data in a format ready for update()
         for timestep in self.data:
             casharr = []
             idarr = []
@@ -93,6 +73,7 @@ class InsuranceFirmAnimation(object):
             yield casharr,idarr
 
     def update(self, i):
+        # clear plot and redraw
         self.ax.clear()
         self.ax.axis('equal')
         casharr,idarr = next(self.stream)
@@ -108,6 +89,7 @@ class InsuranceFirmAnimation(object):
 
 class visualisation(object):
     def __init__(self, history_logs):
+        # unpack history_logs
         self.operational = history_logs['total_operational']
         self.contracts = history_logs['total_contracts']
         self.cash = history_logs['total_cash']
@@ -135,13 +117,23 @@ class visualisation(object):
         self.reins_pie_anim = InsuranceFirmAnimation(self.reinsurance_cash)
         return self.reins_pie_anim
 
+    def insurer_time_series(self):
+        self.ins_time_series = TimeSeries(self.contracts, self.profitslosses, self.operational, self.cash, self.premium, "Premium", "Insurer")
+        return self.ins_time_series
+
+    def reinsurer_time_series(self):
+        self.reins_time_series = TimeSeries(self.reincontracts, self.reinprofitslosses, self.reinoperational, self.reincash, self.catbonds_number, "Active Cat Bonds", "Reinsurer")
+        return self.ins_time_series
+
     def show(self):
         plt.show()
         return
 
 
-
-#vis = visualisation(first_run_insurance,first_run_reinsurance)
+# first create visualisation object, then create graph/animation objects as necessary
+vis = visualisation(history_logs)
 #vis.insurer_pie_animation()
 #vis.reinsurer_pie_animation()
-#vis.show()
+vis.insurer_time_series().save("insurer_time_series.pdf")
+vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
+vis.show()
