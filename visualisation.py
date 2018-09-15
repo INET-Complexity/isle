@@ -7,7 +7,7 @@ import matplotlib.animation as animation
 
 # load in data from the history_logs dictionary
 with open("data/history_logs.dat","r") as rfile:
-    history_logs = eval(rfile.read())
+    history_logs_list = [eval(k) for k in rfile] # one dict on each line
 
 class TimeSeries(object):
     #TODO: more illuminating variable names, this is basically obsfuscated    
@@ -88,42 +88,78 @@ class InsuranceFirmAnimation(object):
         plt.show()
 
 class visualisation(object):
-    def __init__(self, history_logs):
-        # unpack history_logs
-        self.operational = history_logs['total_operational']
-        self.contracts = history_logs['total_contracts']
-        self.cash = history_logs['total_cash']
-        self.excess_capital = history_logs['total_excess_capital']
-        self.profitslosses = history_logs['total_profitslosses']
-        self.reinoperational = history_logs['total_reinoperational']
-        self.reincontracts = history_logs['total_reincontracts']
-        self.reincash = history_logs['total_reincash']
-        self.reinexcess_capital = history_logs['total_reinexcess_capital']
-        self.reinprofitslosses = history_logs['total_reinprofitslosses']
-        self.catbonds_number = history_logs['total_catbondsoperational']
-        self.premium = history_logs['market_premium']
-        self.diffvar = history_logs['market_diffvar']
-        self.cumulative_bankruptcies = history_logs['cumulative_bankruptcies']
-        self.cumulative_unrecovered_claims = history_logs['cumulative_unrecovered_claims']
-        self.insurance_cash = np.array(history_logs['insurance_firms_cash'])
-        self.reinsurance_cash = np.array(history_logs['reinsurance_firms_cash'])
+    def __init__(self, history_logs_list):
+        self.history_logs_list = history_logs_list
+        # unused data in history_logs
+        #self.excess_capital = history_logs['total_excess_capital']
+        #self.reinexcess_capital = history_logs['total_reinexcess_capital']
+        #self.diffvar = history_logs['market_diffvar']
+        #self.cumulative_bankruptcies = history_logs['cumulative_bankruptcies']
+        #self.cumulative_unrecovered_claims = history_logs['cumulative_unrecovered_claims']
         return
 
-    def insurer_pie_animation(self):
-        self.ins_pie_anim = InsuranceFirmAnimation(self.insurance_cash)
+    def insurer_pie_animation(self, run=0):
+        data = self.history_logs_list[run]
+        insurance_cash = np.array(data['insurance_firms_cash'])
+        self.ins_pie_anim = InsuranceFirmAnimation(insurance_cash)
         return self.ins_pie_anim
 
-    def reinsurer_pie_animation(self):
-        self.reins_pie_anim = InsuranceFirmAnimation(self.reinsurance_cash)
+    def reinsurer_pie_animation(self, run=0):
+        data = self.history_logs_list[run]
+        reinsurance_cash = np.array(data['reinsurance_firms_cash'])
+        self.reins_pie_anim = InsuranceFirmAnimation(reinsurance_cash)
         return self.reins_pie_anim
 
-    def insurer_time_series(self):
-        self.ins_time_series = TimeSeries(self.contracts, self.profitslosses, self.operational, self.cash, self.premium, "Premium", "Insurer")
+    def insurer_time_series(self, runs=None):
+        # runs should be a list of the indexes you want included in the ensemble for consideration
+        if runs:
+            data = [self.history_logs_list[x] for x in runs]
+        else:
+            data = self.history_logs_list
+        
+        # Take the element-wise means/medians of the ensemble set (axis=0)
+        contracts = np.mean([history_logs['total_contracts'] for history_logs in self.history_logs_list],axis=0)
+        profitslosses = np.mean([history_logs['total_profitslosses'] for history_logs in self.history_logs_list],axis=0)
+        operational = np.median([history_logs['total_operational'] for history_logs in self.history_logs_list],axis=0)
+        cash = np.median([history_logs['total_cash'] for history_logs in self.history_logs_list],axis=0)
+        premium = np.median([history_logs['market_premium'] for history_logs in self.history_logs_list],axis=0)
+
+        self.ins_time_series = TimeSeries(contracts, profitslosses, operational, cash, premium, "Premium", "Insurer")
         return self.ins_time_series
 
-    def reinsurer_time_series(self):
-        self.reins_time_series = TimeSeries(self.reincontracts, self.reinprofitslosses, self.reinoperational, self.reincash, self.catbonds_number, "Active Cat Bonds", "Reinsurer")
+    def reinsurer_time_series(self, runs=None):
+        # runs should be a list of the indexes you want included in the ensemble for consideration
+        if runs:
+            data = [self.history_logs_list[x] for x in runs]
+        else:
+            data = self.history_logs_list
+
+        # Take the element-wise means/medians of the ensemble set (axis=0)
+        reincontracts = np.mean([history_logs['total_reincontracts'] for history_logs in self.history_logs_list],axis=0)
+        reinprofitslosses = np.mean([history_logs['total_reinprofitslosses'] for history_logs in self.history_logs_list],axis=0)
+        reinoperational = np.median([history_logs['total_reinoperational'] for history_logs in self.history_logs_list],axis=0)
+        reincash = np.median([history_logs['total_reincash'] for history_logs in self.history_logs_list],axis=0)
+        catbonds_number = np.median([history_logs['total_catbondsoperational'] for history_logs in self.history_logs_list],axis=0)
+
+        self.reins_time_series = TimeSeries(reincontracts, reinprofitslosses, reinoperational, reincash, catbonds_number, "Active Cat Bonds", "Reinsurer")
         return self.ins_time_series
+
+    def metaplotter_timescale(self):
+        # Take the element-wise means/medians of the ensemble set (axis=0)
+        contracts = np.mean([history_logs['total_contracts'] for history_logs in self.history_logs_list],axis=0)
+        profitslosses = np.mean([history_logs['total_profitslosses'] for history_logs in self.history_logs_list],axis=0)
+        operational = np.median([history_logs['total_operational'] for history_logs in self.history_logs_list],axis=0)
+        cash = np.median([history_logs['total_cash'] for history_logs in self.history_logs_list],axis=0)
+        premium = np.median([history_logs['market_premium'] for history_logs in self.history_logs_list],axis=0)
+        reincontracts = np.mean([history_logs['total_reincontracts'] for history_logs in self.history_logs_list],axis=0)
+        reinprofitslosses = np.mean([history_logs['total_reinprofitslosses'] for history_logs in self.history_logs_list],axis=0)
+        reinoperational = np.median([history_logs['total_reinoperational'] for history_logs in self.history_logs_list],axis=0)
+        reincash = np.median([history_logs['total_reincash'] for history_logs in self.history_logs_list],axis=0)
+        catbonds_number = np.median([history_logs['total_catbondsoperational'] for history_logs in self.history_logs_list],axis=0)
+
+        #pl_ins = np.mean([np.diff(history_logs['total_cash']) for history_logs in self.history_logs_list],axis=0)
+        #pl_reins = np.mean([np.diff(history_logs['total_reincash']) for history_logs in self.history_logs_list],axis=0)
+        return
 
     def show(self):
         plt.show()
@@ -131,9 +167,18 @@ class visualisation(object):
 
 
 # first create visualisation object, then create graph/animation objects as necessary
-vis = visualisation(history_logs)
+vis = visualisation(history_logs_list)
 #vis.insurer_pie_animation()
 #vis.reinsurer_pie_animation()
-vis.insurer_time_series().save("insurer_time_series.pdf")
-vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
-vis.show()
+#vis.insurer_time_series().save("insurer_time_series.pdf")
+#vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
+N = len(history_logs_list)
+
+# for each run, generate an animation and time series for insurer and reinsurer
+# TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
+for i in range(N):
+    vis.insurer_pie_animation(run=i)
+    vis.insurer_time_series(runs=[i])
+    vis.reinsurer_pie_animation(run=i)
+    vis.reinsurer_time_series(runs=[i])
+    vis.show()

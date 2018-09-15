@@ -342,7 +342,7 @@ class InsuranceSimulation():
             agent.iterate(t)
             
         # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
-        if t//100 == t/100 and t > 0:
+        if t%1000==0 and t > 0:
             self.create_network_representation()
         
         
@@ -684,51 +684,11 @@ class InsuranceSimulation():
         filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
         fpf = filename_prefix[self.number_riskmodels]
         to_log = []
-        to_log.append(("data/" + fpf + "_operational.dat", self.history_logs['total_operational'], "a"))
-        to_log.append(("data/" + fpf + "_contracts.dat", self.history_logs['total_contracts'], "a"))
-        to_log.append(("data/" + fpf + "_cash.dat", self.history_logs['total_cash'], "a"))
-        to_log.append(("data/" + fpf + "_excess_capital.dat", self.history_logs['total_excess_capital'], "a"))
-        to_log.append(("data/" + fpf + "_profitslosses.dat", self.history_logs['total_profitslosses'], "a"))
-        to_log.append(("data/" + fpf + "_reinoperational.dat", self.history_logs['total_reinoperational'], "a"))
-        to_log.append(("data/" + fpf + "_reincontracts.dat", self.history_logs['total_reincontracts'], "a"))
-        to_log.append(("data/" + fpf + "_reincash.dat", self.history_logs['total_reincash'], "a"))
-        to_log.append(("data/" + fpf + "_reinexcess_capital.dat", self.history_logs['total_reinexcess_capital'], "a"))
-        to_log.append(("data/" + fpf + "_reinprofitslosses.dat", self.history_logs['total_reinprofitslosses'], "a"))
-        to_log.append(("data/" + fpf + "_catbonds_number.dat", self.history_logs['total_catbondsoperational'], "a"))
-        to_log.append(("data/" + fpf + "_premium.dat", self.history_logs['market_premium'], "a"))
-        to_log.append(("data/" + fpf + "_diffvar.dat", self.history_logs['market_diffvar'], "a"))
-        to_log.append(("data/" + fpf + "_cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "a"))
-        to_log.append(("data/" + fpf + "_cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "a"))
-        
-        # agent-level data
-        to_log.append(("data/" + fpf + "_insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "a"))
-        to_log.append(("data/" + fpf + "_reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "a"))
-
-        to_log.append(("data/history_logs.dat", self.history_logs, "w"))
+        to_log.append(("data/history_logs.dat", self.history_logs, "a"))
         return to_log
       
     def single_log_prepare(self):
         to_log = []
-        to_log.append(("data/operational.dat", self.history_logs['total_operational'], "w"))
-        to_log.append(("data/contracts.dat", self.history_logs['total_contracts'], "w"))
-        to_log.append(("data/cash.dat", self.history_logs['total_cash'], "w"))
-        to_log.append(("data/excess_capital.dat", self.history_logs['total_excess_capital'], "w"))
-        to_log.append(("data/profitslosses.dat", self.history_logs['total_profitslosses'], "w"))
-        to_log.append(("data/reinoperational.dat", self.history_logs['total_reinoperational'], "w"))
-        to_log.append(("data/reincontracts.dat", self.history_logs['total_reincontracts'], "w"))
-        to_log.append(("data/reincash.dat", self.history_logs['total_reincash'], "w"))
-        to_log.append(("data/reinexcess_capital.dat", self.history_logs['total_reinexcess_capital'], "w"))
-        to_log.append(("data/reinprofitslosses.dat", self.history_logs['total_reinprofitslosses'], "w"))
-        to_log.append(("data/catbonds_number.dat", self.history_logs['total_catbondsoperational'], "w"))
-        to_log.append(("data/premium.dat", self.history_logs['market_premium'], "w"))
-        to_log.append(("data/diffvar.dat", self.history_logs['market_diffvar'], "w"))
-        to_log.append(("data/cumulative_bankruptcies.dat", self.history_logs['cumulative_bankruptcies'], "w"))
-        to_log.append(("data/cumulative_unrecovered_claims.dat", self.history_logs['cumulative_unrecovered_claims'], "w"))
-
-        # agent-level data
-        to_log.append(("data/insurance_firms_cash.dat", self.history_logs['insurance_firms_cash'], "w"))
-        to_log.append(("data/reinsurance_firms_cash.dat", self.history_logs['reinsurance_firms_cash'], "w"))
-
         to_log.append(("data/history_logs.dat", self.history_logs, "w"))
         return to_log
 
