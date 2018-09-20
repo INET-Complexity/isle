@@ -165,7 +165,20 @@ class visualisation(object):
         plt.show()
         return
 
-
+class compare_riskmodels(object):
+    def __init__():
+        # take in list of visualisation objects
+        pass
+    def create_timeseries():
+        # create the time series for each object in turn and superpose them?
+        pass
+    def show():
+        # logic to show plots
+        pass
+    def save():
+        # logic to save plots
+        pass
+    
 # first create visualisation object, then create graph/animation objects as necessary
 vis = visualisation(history_logs_list)
 #vis.insurer_pie_animation()
