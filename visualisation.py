@@ -166,11 +166,14 @@ class visualisation(object):
         return
 
 class compare_riskmodels(object):
-    def __init__():
-        # take in list of visualisation objects
-        pass
-    def create_timeseries():
+    def __init__(vis_list):
+        # take in list of visualisation objects and call their plot methods
+        self.vis_list = vis_list
+        
+    def create_insurer_timeseries():
         # create the time series for each object in turn and superpose them?
+        for vis in vis_list:
+            vis.insurer_time_series(ax = ) # pass in an optional axis argument, to superpose plots
         pass
     def show():
         # logic to show plots
