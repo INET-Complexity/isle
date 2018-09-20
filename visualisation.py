@@ -10,37 +10,28 @@ with open("data/history_logs.dat","r") as rfile:
     history_logs_list = [eval(k) for k in rfile] # one dict on each line
 
 class TimeSeries(object):
-    #TODO: more illuminating variable names, this is basically obsfuscated    
-    #TODO: rename ax5 to something nicer, something that generalises catbonds/premiums
-    def __init__(self, contracts, profitslosses, operational, cash, ax5, ax5label, title):
-
-        self.contracts = contracts
-        self.profitslosses = profitslosses
-        self.cash = cash
-        self.operational = operational
-        self.ax5 = ax5
-        self.ax5label = ax5label
+    def __init__(self, series_list, title="",xlabel="Time", colour='k', axlst=None, fig=None):
+        self.series_list = series_list
+        self.size = len(series_list)
+        self.xlabel = xlabel
+        self.colour = colour
         self.title = title
-        self.timesteps = [t for t in range(len(contracts))]
-        self.plot() # we create the object when we want the plot so call plot() in the constructor
+        self.timesteps = [t for t in range(len(series_list[0][0]))] # assume all data series are the same size
+        if axlst is not None and fig is not None:
+            self.axlst = axlst
+            self.fig = fig
+        else:
+            self.fig, self.axlst = plt.subplots(self.size,sharex=True)
+
+        #self.plot() # we create the object when we want the plot so call plot() in the constructor
 
     def plot(self):
-        #TODO: Add nicely formatted strings for axes labels (LaTeX markup?)
-        self.fig, self.axlist = plt.subplots(5,sharex=True)
-        self.axlist[0].plot(self.timesteps, self.contracts, "b")
-        self.axlist[0].set_ylabel("Contracts")
-        self.axlist[1].plot(self.timesteps, self.operational, "b")
-        self.axlist[1].set_ylabel("Active firms")
-        self.axlist[2].plot(self.timesteps, self.cash, "b")
-        self.axlist[2].set_ylabel("Cash")
-        self.axlist[3].plot(self.timesteps, self.profitslosses, "b")
-        self.axlist[3].set_ylabel("Profits, Losses")
-        self.axlist[4].plot(self.timesteps, self.ax5, "k")
-        self.axlist[4].set_ylabel(self.ax5label)
-        self.axlist[4].set_xlabel("Time")
-        
+        for i, (series, series_label) in enumerate(self.series_list):
+            self.axlst[i].plot(self.timesteps, series,color=self.colour)
+            self.axlst[i].set_ylabel(series_label)
+        self.axlst[self.size-1].set_xlabel(self.xlabel)
         self.fig.suptitle(self.title)
-        return self.fig, self.axlist
+        return self.fig, self.axlst
 
     def save(self, filename):
         self.fig.savefig("{filename}".format(filename=filename))
@@ -110,7 +101,7 @@ class visualisation(object):
         self.reins_pie_anim = InsuranceFirmAnimation(reinsurance_cash)
         return self.reins_pie_anim
 
-    def insurer_time_series(self, runs=None):
+    def insurer_time_series(self, runs=None, axlst=None, fig=None, title="Insurer", colour='black'):
         # runs should be a list of the indexes you want included in the ensemble for consideration
         if runs:
             data = [self.history_logs_list[x] for x in runs]
@@ -124,10 +115,16 @@ class visualisation(object):
         cash = np.median([history_logs['total_cash'] for history_logs in self.history_logs_list],axis=0)
         premium = np.median([history_logs['market_premium'] for history_logs in self.history_logs_list],axis=0)
 
-        self.ins_time_series = TimeSeries(contracts, profitslosses, operational, cash, premium, "Premium", "Insurer")
+        self.ins_time_series = TimeSeries([
+                                        (contracts, 'Contracts'),
+                                        (profitslosses, 'Profitslosses'),
+                                        (operational, 'Operational') ,
+                                        (cash, 'Cash') ,
+                                        (premium, "Premium"),
+                                        ],title=title, xlabel = "Time", axlst=axlst, fig=fig, colour=colour).plot()
         return self.ins_time_series
 
-    def reinsurer_time_series(self, runs=None):
+    def reinsurer_time_series(self, runs=None, axlst=None, fig=None, title="Reinsurer", colour='black'):
         # runs should be a list of the indexes you want included in the ensemble for consideration
         if runs:
             data = [self.history_logs_list[x] for x in runs]
@@ -141,8 +138,14 @@ class visualisation(object):
         reincash = np.median([history_logs['total_reincash'] for history_logs in self.history_logs_list],axis=0)
         catbonds_number = np.median([history_logs['total_catbondsoperational'] for history_logs in self.history_logs_list],axis=0)
 
-        self.reins_time_series = TimeSeries(reincontracts, reinprofitslosses, reinoperational, reincash, catbonds_number, "Active Cat Bonds", "Reinsurer")
-        return self.ins_time_series
+        self.reins_time_series = TimeSeries([
+                                        (reincontracts, 'Contracts'),
+                                        (reinprofitslosses, 'Profitslosses'),
+                                        (reinoperational, 'Operational'),
+                                        (reincash, 'Cash') ,
+                                        (catbonds_number, "Active Cat Bonds"),
+                                        ],title= title, xlabel = "Time", axlst=axlst, fig=fig, colour=colour).plot()
+        return self.reins_time_series
 
     def metaplotter_timescale(self):
         # Take the element-wise means/medians of the ensemble set (axis=0)
@@ -156,9 +159,6 @@ class visualisation(object):
         reinoperational = np.median([history_logs['total_reinoperational'] for history_logs in self.history_logs_list],axis=0)
         reincash = np.median([history_logs['total_reincash'] for history_logs in self.history_logs_list],axis=0)
         catbonds_number = np.median([history_logs['total_catbondsoperational'] for history_logs in self.history_logs_list],axis=0)
-
-        #pl_ins = np.mean([np.diff(history_logs['total_cash']) for history_logs in self.history_logs_list],axis=0)
-        #pl_reins = np.mean([np.diff(history_logs['total_reincash']) for history_logs in self.history_logs_list],axis=0)
         return
 
     def show(self):
@@ -166,35 +166,54 @@ class visualisation(object):
         return
 
 class compare_riskmodels(object):
-    def __init__(vis_list):
+    def __init__(self,vis_list, colour_list):
         # take in list of visualisation objects and call their plot methods
         self.vis_list = vis_list
+        self.colour_list = colour_list
         
-    def create_insurer_timeseries():
+    def create_insurer_timeseries(self):
         # create the time series for each object in turn and superpose them?
-        for vis in vis_list:
-            vis.insurer_time_series(ax = ) # pass in an optional axis argument, to superpose plots
-        pass
-    def show():
-        # logic to show plots
-        pass
-    def save():
+        fig = axlst = None
+        for vis,colour in zip(vis_list, colour_list):
+            (fig, axlst) = vis.insurer_time_series(fig=fig, axlst=axlst, colour=colour) # pass in an optional axis argument, to superpose plots
+
+    def create_reinsurer_timeseries(self):
+        # create the time series for each object in turn and superpose them?
+        fig = axlst = None
+        for vis,colour in zip(vis_list, colour_list):
+            (fig, axlst) = vis.reinsurer_time_series(fig=fig, axlst=axlst, colour=colour) # pass in an optional axis argument, to superpose plots
+
+    def show(self):
+        plt.show()
+    def save(self):
         # logic to save plots
         pass
     
 # first create visualisation object, then create graph/animation objects as necessary
-vis = visualisation(history_logs_list)
+#vis = visualisation(history_logs_list)
 #vis.insurer_pie_animation()
 #vis.reinsurer_pie_animation()
 #vis.insurer_time_series().save("insurer_time_series.pdf")
 #vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
-N = len(history_logs_list)
+#N = len(history_logs_list)
 
 # for each run, generate an animation and time series for insurer and reinsurer
 # TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
-for i in range(N):
-    vis.insurer_pie_animation(run=i)
-    vis.insurer_time_series(runs=[i])
-    vis.reinsurer_pie_animation(run=i)
-    vis.reinsurer_time_series(runs=[i])
-    vis.show()
+#for i in range(N):
+#    vis.insurer_pie_animation(run=i)
+#    vis.insurer_time_series(runs=[i])
+#    vis.reinsurer_pie_animation(run=i)
+#    vis.reinsurer_time_series(runs=[i])
+#    vis.show()
+vis_list = []
+filenames = ["./data/"+x+"_history_logs.dat" for x in ["one","two","three","four"]]
+for filename in filenames:
+    with open(filename,'r') as rfile:
+        history_logs_list = [eval(k) for k in rfile] # one dict on each line
+        vis_list.append(visualisation(history_logs_list))
+
+colour_list = ['blue', 'yellow', 'red', 'green']
+cmp_rsk = compare_riskmodels(vis_list, colour_list)
+cmp_rsk.create_insurer_timeseries()
+cmp_rsk.create_reinsurer_timeseries()
+cmp_rsk.show()
