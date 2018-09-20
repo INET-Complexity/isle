@@ -684,7 +684,7 @@ class InsuranceSimulation():
         filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
         fpf = filename_prefix[self.number_riskmodels]
         to_log = []
-        to_log.append(("data/history_logs.dat", self.history_logs, "a"))
+        to_log.append(("data/" + fpf + "_history_logs.dat", self.history_logs, "a"))
         return to_log
       
     def single_log_prepare(self):
