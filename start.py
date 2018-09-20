@@ -28,6 +28,7 @@ parser.add_argument("--randomseed", type=float, help="allow setting of numpy ran
 parser.add_argument("--foreground", action="store_true", help="force foreground runs even if replication ID is given (which defaults to background runs)")
 parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
 parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
+parser.add_argument("--save_iterations", type=int, help="number of iterations to iterate before saving world state")
 args = parser.parse_args()
 
 if args.abce:
@@ -54,6 +55,10 @@ if args.showprogress:
     isleconfig.showprogress = True
 if args.verbose:
     isleconfig.verbose = True
+if args.save_iterations:
+    save_iter = args.save_iterations
+else:
+    save_iter = 200
 
 # import isle and abce modules
 if isleconfig.use_abce:
@@ -180,10 +185,8 @@ def main(simulation_parameters,seed):
         else:
             world.save_data()
         
-        # TODO: Is it useful to call save_simulation() every 50 iterations? This should be governed by command line option or by keyboard interrupt.
-        if t > 0 and t//50 == t/50:
+        if t%50 == save_iter:
             save_simulation(t, simulation, simulation_parameters, exit_now=False)
-        #print("here")
     
     # finish simulation, write logs
     simulation.finalize()
