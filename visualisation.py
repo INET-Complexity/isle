@@ -1,13 +1,8 @@
-# file to visualise all data produced from a SINGLE simulation run
-# TODO: include support for ensemble runs
-
+# file to visualise data from a single and ensemble runs
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 
-# load in data from the history_logs dictionary
-with open("data/history_logs.dat","r") as rfile:
-    history_logs_list = [eval(k) for k in rfile] # one dict on each line
 
 class TimeSeries(object):
     def __init__(self, series_list, title="",xlabel="Time", colour='k', axlst=None, fig=None, percentiles=None, alpha=0.7):
@@ -126,11 +121,11 @@ class visualisation(object):
         premium = np.median(premium_agg, axis=0)
 
         self.ins_time_series = TimeSeries([
-                                        (contracts, 'Contracts', np.percentile(contracts_agg,percentiles[0], axis=0), np.percentile(contracts_agg, percentiles[1], axis=0)),
-                                        (profitslosses, 'Profitslosses', np.percentile(profitslosses_agg,percentiles[0], axis=0), np.percentile(profitslosses_agg, percentiles[1], axis=0)),
-                                        (operational, 'Operational', np.percentile(operational_agg,percentiles[0], axis=0), np.percentile(operational_agg, percentiles[1], axis=0)),
-                                        (cash, 'Cash', np.percentile(cash_agg,percentiles[0], axis=0), np.percentile(cash_agg, percentiles[1], axis=0)),
-                                        (premium, "Premium", np.percentile(premium_agg,percentiles[0], axis=0), np.percentile(premium_agg, percentiles[1], axis=0)),
+                                (contracts, 'Contracts', np.percentile(contracts_agg,percentiles[0], axis=0), np.percentile(contracts_agg, percentiles[1], axis=0)),
+                                (profitslosses, 'Profitslosses', np.percentile(profitslosses_agg,percentiles[0], axis=0), np.percentile(profitslosses_agg, percentiles[1], axis=0)),
+                                (operational, 'Operational', np.percentile(operational_agg,percentiles[0], axis=0), np.percentile(operational_agg, percentiles[1], axis=0)),
+                                (cash, 'Cash', np.percentile(cash_agg,percentiles[0], axis=0), np.percentile(cash_agg, percentiles[1], axis=0)),
+                                (premium, "Premium", np.percentile(premium_agg,percentiles[0], axis=0), np.percentile(premium_agg, percentiles[1], axis=0)),
                                         ],title=title, xlabel = "Time", axlst=axlst, fig=fig, colour=colour).plot()
         return self.ins_time_series
 
@@ -155,11 +150,11 @@ class visualisation(object):
         catbonds_number = np.median(catbonds_number_agg, axis=0)
 
         self.reins_time_series = TimeSeries([
-                                        (reincontracts, 'Contracts', np.percentile(reincontracts_agg,percentiles[0], axis=0), np.percentile(reincontracts_agg, percentiles[1], axis=0)),
-                                        (reinprofitslosses, 'Profitslosses', np.percentile(reinprofitslosses_agg,percentiles[0], axis=0), np.percentile(reinprofitslosses_agg, percentiles[1], axis=0)),
-                                        (reinoperational, 'Operational', np.percentile(reinoperational_agg,percentiles[0], axis=0), np.percentile(reinoperational_agg, percentiles[1], axis=0)),
-                                        (reincash, 'Cash', np.percentile(reincash_agg,percentiles[0], axis=0), np.percentile(reincash_agg, percentiles[1], axis=0)),
-                                        (catbonds_number, "Activate Cat Bonds", np.percentile(catbonds_number_agg,percentiles[0], axis=0), np.percentile(catbonds_number_agg, percentiles[1], axis=0)),
+                                (reincontracts, 'Contracts', np.percentile(reincontracts_agg,percentiles[0], axis=0), np.percentile(reincontracts_agg, percentiles[1], axis=0)),
+                                (reinprofitslosses, 'Profitslosses', np.percentile(reinprofitslosses_agg,percentiles[0], axis=0), np.percentile(reinprofitslosses_agg, percentiles[1], axis=0)),
+                                (reinoperational, 'Operational', np.percentile(reinoperational_agg,percentiles[0], axis=0), np.percentile(reinoperational_agg, percentiles[1], axis=0)),
+                                (reincash, 'Cash', np.percentile(reincash_agg,percentiles[0], axis=0), np.percentile(reincash_agg, percentiles[1], axis=0)),
+                                (catbonds_number, "Activate Cat Bonds", np.percentile(catbonds_number_agg,percentiles[0], axis=0), np.percentile(catbonds_number_agg, percentiles[1], axis=0)),
                                         ],title= title, xlabel = "Time", axlst=axlst, fig=fig, colour=colour).plot()
         return self.reins_time_series
 
@@ -187,17 +182,17 @@ class compare_riskmodels(object):
         self.vis_list = vis_list
         self.colour_list = colour_list
         
-    def create_insurer_timeseries(self):
+    def create_insurer_timeseries(self, fig=None, axlst=None, percentiles=[25,75]):
         # create the time series for each object in turn and superpose them?
         fig = axlst = None
-        for vis,colour in zip(vis_list, colour_list):
-            (fig, axlst) = vis.insurer_time_series(fig=fig, axlst=axlst, colour=colour) # pass in an optional axis argument, to superpose plots
+        for vis,colour in zip(self.vis_list, self.colour_list):
+            (fig, axlst) = vis.insurer_time_series(fig=fig, axlst=axlst, colour=colour, percentiles=percentiles) 
 
-    def create_reinsurer_timeseries(self):
+    def create_reinsurer_timeseries(self, fig=None, axlst=None, percentiles=[25,75]):
         # create the time series for each object in turn and superpose them?
         fig = axlst = None
-        for vis,colour in zip(vis_list, colour_list):
-            (fig, axlst) = vis.reinsurer_time_series(fig=fig, axlst=axlst, colour=colour) # pass in an optional axis argument, to superpose plots
+        for vis,colour in zip(self.vis_list, self.colour_list):
+            (fig, axlst) = vis.reinsurer_time_series(fig=fig, axlst=axlst, colour=colour, percentiles=percentiles) 
 
     def show(self):
         plt.show()
@@ -205,31 +200,35 @@ class compare_riskmodels(object):
         # logic to save plots
         pass
     
-# first create visualisation object, then create graph/animation objects as necessary
-#vis = visualisation(history_logs_list)
-#vis.insurer_pie_animation()
-#vis.reinsurer_pie_animation()
-#vis.insurer_time_series().save("insurer_time_series.pdf")
-#vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
-#N = len(history_logs_list)
-
-# for each run, generate an animation and time series for insurer and reinsurer
-# TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
-#for i in range(N):
-#    vis.insurer_pie_animation(run=i)
-#    vis.insurer_time_series(runs=[i])
-#    vis.reinsurer_pie_animation(run=i)
-#    vis.reinsurer_time_series(runs=[i])
-#    vis.show()
-vis_list = []
-filenames = ["./data/"+x+"_history_logs.dat" for x in ["one","two","three","four"]]
-for filename in filenames:
-    with open(filename,'r') as rfile:
+if __name__ == "__main__":
+    # load in data from the history_logs dictionarywith open("data/history_logs.dat","r") as rfile:
+    with open("data/history_logs.dat","r") as rfile:
         history_logs_list = [eval(k) for k in rfile] # one dict on each line
-        vis_list.append(visualisation(history_logs_list))
+    # first create visualisation object, then create graph/animation objects as necessary
+    #vis = visualisation(history_logs_list)
+    #vis.insurer_pie_animation()
+    #vis.reinsurer_pie_animation()
+    #vis.insurer_time_series().save("insurer_time_series.pdf")
+    #vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
+    #N = len(history_logs_list)
 
-colour_list = ['blue', 'yellow', 'red', 'green']
-cmp_rsk = compare_riskmodels(vis_list, colour_list)
-cmp_rsk.create_insurer_timeseries()
-cmp_rsk.create_reinsurer_timeseries() #TODO: reinsurer code not implemented for percentiles
-cmp_rsk.show()
+    # for each run, generate an animation and time series for insurer and reinsurer
+    # TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
+    #for i in range(N):
+    #    vis.insurer_pie_animation(run=i)
+    #    vis.insurer_time_series(runs=[i])
+    #    vis.reinsurer_pie_animation(run=i)
+    #    vis.reinsurer_time_series(runs=[i])
+    #    vis.show()
+    vis_list = []
+    filenames = ["./data/"+x+"_history_logs.dat" for x in ["one","two","three","four"]]
+    for filename in filenames:
+        with open(filename,'r') as rfile:
+            history_logs_list = [eval(k) for k in rfile] # one dict on each line
+            vis_list.append(visualisation(history_logs_list))
+
+    colour_list = ['blue', 'yellow', 'red', 'green']
+    cmp_rsk = compare_riskmodels(vis_list, colour_list)
+    cmp_rsk.create_insurer_timeseries(percentiles=[10,90])
+    cmp_rsk.create_reinsurer_timeseries(percentiles=[10,90]) 
+    cmp_rsk.show()
