@@ -80,6 +80,9 @@ class MetaInsuranceOrg(GenericAgent):
         self.var_sum = 0                    # sum over initial VaR for all contracts
         self.counter_category = np.zeros(self.simulation_no_risk_categories)    # var_counter disaggregated by category
         self.var_category = np.zeros(self.simulation_no_risk_categories)        # var_sum disaggregated by category
+        self.naccep = []
+        self.risks_kept = []
+        self.reinrisks_kept = []
 
     def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
@@ -109,9 +112,9 @@ class MetaInsuranceOrg(GenericAgent):
             """request risks to be considered for underwriting in the next period and collect those for this period"""
             new_risks = []
             if self.is_insurer:
-                new_risks += self.simulation.solicit_insurance_requests(self.id, self.cash)
+                new_risks += self.simulation.solicit_insurance_requests(self.id, self.cash, self)
             if self.is_reinsurer:
-                new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash)
+                new_risks += self.simulation.solicit_reinsurance_requests(self.id, self.cash, self)
             contracts_offered = len(new_risks)
             if isleconfig.verbose and contracts_offered < 2 * contracts_dissolved:
                 print("Something wrong; agent {0:d} receives too few new contracts {1:d} <= {2:d}".format(
@@ -224,6 +227,9 @@ class MetaInsuranceOrg(GenericAgent):
 
     def enter_bankruptcy(self, time):
         [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
+        self.simulation.return_risks(self.risks_kept)
+        self.risks_kept = []
+        self.reinrisks_kept = []
         self.simulation.receive(self.cash)
         self.cash = 0
         self.operational = False
