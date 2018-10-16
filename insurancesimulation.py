@@ -169,11 +169,10 @@ class InsuranceSimulation():
         self.insurancefirms = []
         self.catbonds = []
         
-        # lists of agent weights 
-        self.insurancefirm_weights = []
-        self.insurancefirm_new_weights = []
-        self.reinsurancefirm_weights = []
-        self.reinsurancefirm_new_weights = []
+        # lists of agent weights
+        self.insurers_weights = {}
+        self.reinsurers_weights = {}
+
 
         # list of reinsurance risks offered for underwriting
         self.reinrisks = []
@@ -231,8 +230,6 @@ class InsuranceSimulation():
         if agent_class_string == "insurancefirm":
             try:
                 self.insurancefirms += agents
-                self.insurancefirm_weights += [1 for i in agents]
-                self.insurancefirm_new_weights += [agent.cash for agent in agents]
                 self.insurancefirms_group = agent_group
             except:
                 print(sys.exc_info())
@@ -250,8 +247,6 @@ class InsuranceSimulation():
         elif agent_class_string == "reinsurance":
             try:
                 self.reinsurancefirms += agents
-                self.reinsurancefirm_weights += [1 for i in agents]
-                self.reinsurancefirm_new_weights += [agent.cash for agent in agents]
                 self.reinsurancefirms_group = agent_group
             except:
                 print(sys.exc_info())
@@ -276,6 +271,7 @@ class InsuranceSimulation():
             assert False, "Trying to remove unremovable agent, type: {0:s}".format(agent_class_string)
     
     def iterate(self, t):
+
         if isleconfig.verbose:
             print()
             print(t, ": ", len(self.risks))
@@ -441,30 +437,57 @@ class InsuranceSimulation():
         """Method to reduce money supply immediately and without payment recipient (used to adjust money supply to compensate for agent endowment)."""
         self.money_supply -= amount
         assert self.money_supply >= 0
-        
-    @nb.jit
-    def reset_reinsurance_weights(self):
-        self.reinsurancefirm_weights = np.asarray(self.reinsurancefirm_new_weights) / \
-                                    sum(self.reinsurancefirm_new_weights) * len(self.reinrisks)
-        self.reinsurancefirm_weights = np.int64(np.floor(self.reinsurancefirm_weights))
-        #self.reinsurancefirm_new_weights = [0 for i in self.reinsurancefirms]
-        #reinsurancefirm_new_weights2 = [0 for i in self.reinsurancefirms]
-        self.reinsurancefirm_new_weights = list(np.zeros(len(self.reinsurancefirms)))
-        #assert self.reinsurancefirm_new_weights == reinsurancefirm_new_weights2
-        
-        #self.reinsurancefirm_new_weights = self.reinsurancefirms.zeros()
-        
-    @nb.jit
-    def reset_insurance_weights(self):
-        self.insurancefirm_weights = np.asarray(self.insurancefirm_new_weights) / \
-                                   sum(self.insurancefirm_new_weights) * len(self.risks)
-        self.insurancefirm_weights = np.int64(np.floor(self.insurancefirm_weights))
-        #self.insurancefirm_new_weights = [0 for i in self.insurancefirms]
-        self.insurancefirm_new_weights = list(np.zeros(len(self.insurancefirms)))
-        if isleconfig.verbose:
-            print('@', self.insurancefirm_weights)
 
-    @nb.jit
+    def reset_reinsurance_weights(self):
+
+        operational_reinfirms = [reinsurancefirm for reinsurancefirm in self.reinsurancefirms if reinsurancefirm.operational]
+
+        operational_no = len(operational_reinfirms)
+
+        reinrisks_no = len(self.reinrisks)
+
+        self.reinsurers_weights = {}
+
+        for reinsurer in self.reinsurancefirms:
+            self.reinsurers_weights[reinsurer.id] = 0
+
+        if operational_no > 0:
+
+            if reinrisks_no/operational_no > 1:
+                weights = reinrisks_no/operational_no
+                for reinsurer in self.reinsurancefirms:
+                    self.reinsurers_weights[reinsurer.id] = math.floor(weights)
+            else:
+                for i in range(len(self.reinrisks)):
+                    s = math.floor(np.random.uniform(0, len(operational_reinfirms), 1))
+                    self.reinsurers_weights[operational_reinfirms[s].id] += 1
+        else:
+            self.not_accepted_reinrisks = self.reinrisks
+
+    def reset_insurance_weights(self):
+
+        operational_no = sum([insurancefirm.operational for insurancefirm in self.insurancefirms])
+
+        operational_firms = [insurancefirm for insurancefirm in self.insurancefirms if insurancefirm.operational]
+
+        risks_no = len(self.risks)
+
+        self.insurers_weights = {}
+
+        for insurer in self.insurancefirms:
+            self.insurers_weights[insurer.id] = 0
+
+        if operational_no > 0:
+
+            if risks_no/operational_no > 1:
+                weights = risks_no/operational_no
+                for insurer in self.insurancefirms:
+                    self.insurers_weights[insurer.id] = math.floor(weights)
+            else:
+                for i in range(len(self.risks)):
+                    s = math.floor(np.random.uniform(0, len(operational_firms), 1))
+                    self.insurers_weights[operational_firms[s].id] += 1
+
     def shuffle_risks(self):
         np.random.shuffle(self.reinrisks)
         np.random.shuffle(self.risks)
@@ -510,20 +533,30 @@ class InsuranceSimulation():
         np.random.shuffle(self.reinrisks)
         return self.reinrisks
 
-    def solicit_insurance_requests(self, id, cash):
-        self.insurancefirm_new_weights[id] = cash
-        risks_to_be_sent = self.risks[:int(self.insurancefirm_weights[id])]
-        self.risks = self.risks[int(self.insurancefirm_weights[id]):]
-        if isleconfig.verbose:
-            print("Number of risks", len(risks_to_be_sent))
+    def solicit_insurance_requests(self, id, cash, insurer):
+
+        risks_to_be_sent = self.risks[:int(self.insurers_weights[insurer.id])]
+        self.risks = self.risks[int(self.insurers_weights[insurer.id]):]
+        for risk in insurer.risks_kept:
+            risks_to_be_sent.append(risk)
+
+        insurer.risks_kept = []
+
+        np.random.shuffle(risks_to_be_sent)
+
         return risks_to_be_sent
 
-    def solicit_reinsurance_requests(self, id, cash):
-        self.reinsurancefirm_new_weights[id] = cash
-        reinrisks_to_be_sent = self.reinrisks[:self.reinsurancefirm_weights[id]]
-        self.reinrisks = self.reinrisks[self.reinsurancefirm_weights[id]:]
-        if isleconfig.verbose:
-            print("Number of risks",len(reinrisks_to_be_sent))
+    def solicit_reinsurance_requests(self, id, cash, reinsurer):
+        reinrisks_to_be_sent = self.reinrisks[:int(self.reinsurers_weights[reinsurer.id])]
+        self.reinrisks = self.reinrisks[int(self.reinsurers_weights[reinsurer.id]):]
+
+        for reinrisk in reinsurer.reinrisks_kept:
+            reinrisks_to_be_sent.append(reinrisk)
+
+        reinsurer.reinrisks_kept = []
+
+        np.random.shuffle(reinrisks_to_be_sent)
+
         return reinrisks_to_be_sent
 
     def return_risks(self, not_accepted_risks):

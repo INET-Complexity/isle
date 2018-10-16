@@ -275,3 +275,18 @@ class InsuranceFirm(MetaInsuranceOrg):
                reinsurance_contract["category"] = categ_id
                reinsurance.append(reinsurance_contract)
         return reinsurance
+
+    def create_reinrisk(self, time, categ_id):
+        """Proceed with creation of reinsurance risk only if category is not empty."""
+        total_value, avg_risk_factor, number_risks, periodized_total_premium = self.characterize_underwritten_risks_by_category(time, categ_id)
+        if number_risks > 0:
+            risk = {"value": total_value, "category": categ_id, "owner": self,
+                        #"identifier": uuid.uuid1(),
+                        "insurancetype": 'excess-of-loss', "number_risks": number_risks,
+                        "deductible_fraction": self.np_reinsurance_deductible_fraction,
+                        "excess_fraction": self.np_reinsurance_excess_fraction,
+                        "periodized_total_premium": periodized_total_premium, "runtime": 12,
+                        "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
+            return risk
+        else:
+            return None
