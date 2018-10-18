@@ -141,6 +141,7 @@ def main(simulation_parameters,seed):
         # create new agents             # TODO: write method for this; this code block is executed almost identically 4 times
         if world.insurance_firm_market_entry(agent_type="InsuranceFirm"):
             parameters = [np.random.choice(world.agent_parameters["insurancefirm"])]
+            parameters = [world.agent_parameters["insurancefirm"][simulation.insurance_entry_index()]]
             parameters[0]["id"] = world.get_unique_insurer_id()
             new_insurance_firm = simulation.build_agents(InsuranceFirm,
                                              'insurancefirm',
@@ -158,6 +159,7 @@ def main(simulation_parameters,seed):
         
         if world.insurance_firm_market_entry(agent_type="ReinsuranceFirm"):
             parameters = [np.random.choice(world.agent_parameters["reinsurance"])]
+            parameters = [world.agent_parameters["reinsurance"][simulation.reinsurance_entry_index()]]
             parameters[0]["id"] = world.get_unique_reinsurer_id()
             new_reinsurance_firm = simulation.build_agents(ReinsuranceFirm,
                                              'reinsurance',
