@@ -99,9 +99,9 @@ class InsuranceSimulation():
         #                for i in range(self.simulation_parameters["no_categories"])] \
         #                for j in range(self.simulation_parameters["no_riskmodels"])]
 
-        inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
+        self.inaccuracy = self.get_all_riskmodel_combinations(self.simulation_parameters["no_categories"], self.simulation_parameters["riskmodel_inaccuracy_parameter"])
 
-        inaccuracy = random.sample(inaccuracy, self.simulation_parameters["no_riskmodels"])
+        self.inaccuracy = random.sample(self.inaccuracy, self.simulation_parameters["no_riskmodels"])
 
         risk_model_configurations = [{"damage_distribution": self.damage_distribution,
                                       "expire_immediately": self.simulation_parameters["expire_immediately"],
@@ -113,7 +113,7 @@ class InsuranceSimulation():
                                       "norm_profit_markup": self.simulation_parameters["norm_profit_markup"],
                                       "margin_of_safety": self.simulation_parameters["riskmodel_margin_of_safety"],
                                       "var_tail_prob": self.simulation_parameters["value_at_risk_tail_probability"],
-                                      "inaccuracy_by_categ": inaccuracy[i]} \
+                                      "inaccuracy_by_categ": self.inaccuracy[i]} \
                                       for i in range(self.simulation_parameters["no_riskmodels"])]
         
         # prepare setting up agents (to be done from start.py)
@@ -215,6 +215,9 @@ class InsuranceSimulation():
         # lists to contain agent-level data
         self.history_logs['insurance_firms_cash'] = []
         self.history_logs['reinsurance_firms_cash'] = []
+
+        self.insurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
+        self.reinsurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
 
             
     
@@ -336,6 +339,28 @@ class InsuranceSimulation():
         # iterate catbonds 
         for agent in self.catbonds:
             agent.iterate(t)
+
+
+
+        self.insurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
+
+        for insurer in self.insurancefirms:
+            for i in range(len(self.inaccuracy)):
+                if insurer.operational:
+                    if insurer.riskmodel.inaccuracy == self.inaccuracy[i]:
+                        self.insurance_models_counter[i] += 1
+
+        print(self.insurance_models_counter)
+
+        self.reinsurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
+
+        for reinsurer in self.reinsurancefirms:
+            for i in range(len(self.inaccuracy)):
+                if reinsurer.operational:
+                    if reinsurer.riskmodel.inaccuracy == self.inaccuracy[i]:
+                        self.reinsurance_models_counter[i] += 1
+
+        print(self.reinsurance_models_counter)
             
         # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
         if t%1000==0 and t > 0:
@@ -778,6 +803,12 @@ class InsuranceSimulation():
         current_id = self.reinsurer_id_counter
         self.reinsurer_id_counter += 1
         return current_id
+
+    def insurance_entry_index(self):
+        return self.insurance_models_counter[0:self.simulation_parameters["no_riskmodels"]].argmin()
+
+    def reinsurance_entry_index(self):
+        return self.reinsurance_models_counter[0:self.simulation_parameters["no_riskmodels"]].argmin()
 
     def get_operational(self):
         return True
