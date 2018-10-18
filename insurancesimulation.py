@@ -93,6 +93,12 @@ class InsuranceSimulation():
         rcategories = np.random.randint(0, self.simulation_parameters["no_categories"], size=self.simulation_parameters["no_risks"])
         self.risks = [{"risk_factor": rrisk_factors[i], "value": rvalues[i], "category": rcategories[i], "owner": self} for i in range(self.simulation_parameters["no_risks"])]
 
+        self.risks_counter = [0,0,0,0]
+
+        for item in self.risks:
+            self.risks_counter[item["category"]] = self.risks_counter[item["category"]] + 1
+
+
         # set up risk models
         #inaccuracy = [[(1./self.simulation_parameters["riskmodel_inaccuracy_parameter"] if (i + j) % 2 == 0 \
         #                else self.simulation_parameters["riskmodel_inaccuracy_parameter"]) \
@@ -428,8 +434,8 @@ class InsuranceSimulation():
         damage = self.damage_distribution.rvs()
         if isleconfig.verbose:
             print("**** PERIL ", damage)
-        damagevalues = np.random.beta(1, 1./damage -1, size=no_affected)
-        uniformvalues = np.random.uniform(0, 1, size=no_affected)
+        damagevalues = np.random.beta(1, 1./damage -1, size=self.risks_counter[categ_id])
+        uniformvalues = np.random.uniform(0, 1, size=self.risks_counter[categ_id])
         [contract.explode(t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
     
     def receive_obligation(self, amount, recipient, due_time):
