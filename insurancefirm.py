@@ -1,6 +1,5 @@
 from metainsuranceorg import MetaInsuranceOrg
 from catbond import CatBond
-import numba as nb
 import numpy as np
 from reinsurancecontract import ReinsuranceContract
 import isleconfig
@@ -29,8 +28,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         
     def get_profitslosses(self):
         return self.cash_last_periods[0] - self.cash_last_periods[1]
-    
-    #@nb.jit    
+
     def get_reinsurance_VaR_estimate(self, max_var):
         reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
                                 if (self.category_reinsurance[categ_id] is None)]) \
@@ -97,8 +95,7 @@ class InsuranceFirm(MetaInsuranceOrg):
                 print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
             self.ask_reinsurance_non_proportional_by_category(time, categ_id)
         return True
-    
-    @nb.jit
+
     def get_average_premium(self, categ_id):
         weighted_premium_sum = 0
         total_weight = 0
@@ -119,7 +116,6 @@ class InsuranceFirm(MetaInsuranceOrg):
         else:
             assert False, "Undefined reinsurance type"
 
-    @nb.jit
     def ask_reinsurance_non_proportional(self, time):
         """ Method for requesting excess of loss reinsurance for all underwritten contracts by category.
             The method calculates the combined valur at risk. With a probability it then creates a combined 
@@ -135,7 +131,6 @@ class InsuranceFirm(MetaInsuranceOrg):
             if (self.category_reinsurance[categ_id] is None):
                 self.ask_reinsurance_non_proportional_by_category(time, categ_id)
 
-    @nb.jit 
     def characterize_underwritten_risks_by_category(self, time, categ_id):
         total_value = 0
         avg_risk_factor = 0
@@ -152,7 +147,6 @@ class InsuranceFirm(MetaInsuranceOrg):
         return total_value, avg_risk_factor, number_risks, periodized_total_premium
 
 
-    @nb.jit
     def ask_reinsurance_non_proportional_by_category(self, time, categ_id):
         """Proceed with creation of reinsurance risk only if category is not empty."""
         total_value, avg_risk_factor, number_risks, periodized_total_premium = self.characterize_underwritten_risks_by_category(time, categ_id)
@@ -167,7 +161,6 @@ class InsuranceFirm(MetaInsuranceOrg):
 
             self.simulation.append_reinrisks(risk)
 
-    @nb.jit
     def ask_reinsurance_proportional(self):
         nonreinsured = []
         for contract in self.underwritten_contracts:

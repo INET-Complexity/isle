@@ -3,7 +3,6 @@ import math
 import numpy as np
 import sys, pdb
 import scipy.stats
-import numba as nb
 import isleconfig
 from distributionreinsurance import ReinsuranceDistWrapper
 
@@ -37,7 +36,6 @@ class RiskModel():
            Returns value-at-risk."""
         return self.damage_distribution[categ_id].ppf(1-tailSize)
 
-    @nb.jit
     def get_categ_risks(self, risks, categ_id):
         #categ_risks2 = [risk for risk in risks if risk["category"]==categ_id]
         categ_risks = []
@@ -46,8 +44,7 @@ class RiskModel():
                 categ_risks.append(risk)
         #assert categ_risks == categ_risks2
         return categ_risks
-    
-    @nb.jit    
+
     def compute_expectation(self, categ_risks, categ_id):      #TODO: more intuitive name?
         #average_exposure2 = np.mean([risk["excess"]-risk["deductible"] for risk in categ_risks])
         #
