@@ -6,7 +6,6 @@ import numpy as np
 import scipy.stats
 import math
 import sys, pdb
-import numba as nb
 import isleconfig
 import random
 import networkx as nx
@@ -356,8 +355,6 @@ class InsuranceSimulation():
                     if insurer.riskmodel.inaccuracy == self.inaccuracy[i]:
                         self.insurance_models_counter[i] += 1
 
-        print(self.insurance_models_counter)
-
         self.reinsurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
 
         for reinsurer in self.reinsurancefirms:
@@ -366,8 +363,6 @@ class InsuranceSimulation():
                     if reinsurer.riskmodel.inaccuracy == self.inaccuracy[i]:
                         self.reinsurance_models_counter[i] += 1
 
-        print(self.reinsurance_models_counter)
-            
         # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
         if t%1000==0 and t > 0:
             self.create_network_representation()
