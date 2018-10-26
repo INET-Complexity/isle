@@ -40,6 +40,10 @@ simulation_parameters={"no_categories": 4,
                        "capacity_target_increment_threshold": 1.2,
                        "capacity_target_decrement_factor": 24/25.,
                        "capacity_target_increment_factor": 25/24.,
+                       'insurers_balance_ratio': 0.1,           # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
+                       'reinsurers_balance_ratio': 20,          # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
+                       'insurers_recursion_limit': 50,          # Intensity of the recursion algorithm to balance the portfolio of risks for insurers.
+                       'reinsurers_recursion_limit': 10,        # Intensity of the recursion algorithm to balance the portfolio of risks for reinsurers.
                        "insurance_reinsurance_levels_lower_bound": 0.35,
                        "insurance_reinsurance_levels_upper_bound": 0.7,
                        "reinsurance_reinsurance_levels_lower_bound": 0.5,

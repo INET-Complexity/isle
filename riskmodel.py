@@ -204,11 +204,11 @@ class RiskModel():
         var_this_risk = max(additional_var_per_categ)
         
         return cash_left_by_categ, additional_required, var_this_risk
-        
-    def evaluate(self, risks, cash, offered_risk = None):
+
+    def evaluate(self, risks, cash, offered_risk=None):
         # ensure that any risk to be considered supplied directly as argument is non-proportional/excess-of-loss
         assert (offered_risk is None) or offered_risk.get("insurancetype") == "excess-of-loss"
-        
+
         # construct cash_left_by_categ as a sequence, defining remaining liquidity by category
         if not isinstance(cash, (np.ndarray, list)):
             cash_left_by_categ = np.ones(self.category_number) * cash
@@ -219,24 +219,22 @@ class RiskModel():
         # sort current contracts
         el_risks = [risk for risk in risks if risk["insurancetype"] == 'excess-of-loss']
         risks = [risk for risk in risks if risk["insurancetype"] == 'proportional']
-        
         # compute liquidity requirements and acceptable risks from existing contract
         if (offered_risk is not None) or (len(el_risks) > 0):
             cash_left_by_categ, additional_required, var_this_risk = self.evaluate_excess_of_loss(el_risks, cash_left_by_categ, offered_risk)
         if (offered_risk is None) or (len(risks) > 0):
             expected_profits_proportional, remaining_acceptable_by_categ, cash_left_by_categ, var_per_risk_per_categ = self.evaluate_proportional(risks, cash_left_by_categ)
-        
         if offered_risk is None:
             # return numbers of remaining acceptable risks by category
-            return expected_profits_proportional, remaining_acceptable_by_categ, var_per_risk_per_categ, min(cash_left_by_categ)
-        else:       
+            return expected_profits_proportional, remaining_acceptable_by_categ, cash_left_by_categ, var_per_risk_per_categ, min(cash_left_by_categ)
+        else:
             # return boolean value whether the offered excess_of_loss risk can be accepted
             if isleconfig.verbose:
-                print ("REINSURANCE RISKMODEL", cash, cash_left_by_categ, (cash_left_by_categ - additional_required > 0).all())
-            #if not (cash_left_by_categ - additional_required > 0).all():
+                print("REINSURANCE RISKMODEL", cash, cash_left_by_categ,(cash_left_by_categ - additional_required > 0).all())
+            # if not (cash_left_by_categ - additional_required > 0).all():
             #    pdb.set_trace()
-            return (cash_left_by_categ - additional_required > 0).all(), var_this_risk, min(cash_left_by_categ)
-        
+            return (cash_left_by_categ - additional_required > 0).all(), cash_left_by_categ, var_this_risk, min(cash_left_by_categ)
+
     def add_reinsurance(self, categ_id, excess_fraction, deductible_fraction, contract):
         self.damage_distribution_stack[categ_id].append(self.damage_distribution[categ_id])
         self.reinsurance_contract_stack[categ_id].append(contract)
