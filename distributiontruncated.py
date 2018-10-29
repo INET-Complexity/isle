@@ -1,6 +1,5 @@
 import scipy.stats
 import numpy as np
-import matplotlib.pyplot as plt
 from math import ceil
 import scipy.integrate
 
@@ -54,15 +53,5 @@ if __name__ == "__main__":
 
     x = np.linspace(non_truncated.ppf(0.01), non_truncated.ppf(0.99), 100)
     x2 = np.linspace(truncated.ppf(0.01), truncated.ppf(0.99), 100)
-
-    fig, ax = plt.subplots(1, 1)
-    ax.plot(x, non_truncated.pdf(x), 'k-', lw=2, label='non-truncated pdf')
-    ax.plot(x2, truncated.pdf(x2), 'r-', lw=2, label='truncated pdf')
-    ax.plot(x, non_truncated.cdf(x), 'b-', lw=2, label='non-truncated cdf')
-    ax.plot(x2, truncated.cdf(x2), 'g-', lw=2, label='truncated cdf')
-    sample = truncated.rvs(size=1000)
-    ax.hist(sample, normed=True, histtype='stepfilled', alpha=0.4)
-    ax.legend(loc='best', frameon=False)
-    plt.show()
     
     print(truncated.mean())
