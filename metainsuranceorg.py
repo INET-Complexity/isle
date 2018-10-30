@@ -371,7 +371,7 @@ class MetaInsuranceOrg(GenericAgent):
                         per_value_reinsurance_premium = self.np_reinsurance_premium_share * risk_to_insure[
                             "periodized_total_premium"] * risk_to_insure["runtime"] / risk_to_insure[
                                                             "value"]  # TODO: rename this to per_value_premium in insurancecontract.py to avoid confusion
-                        [condition, self.cash_left_by_categ] = self.balanced_portfolio(risk_to_insure, cash_left_by_categ, None) #Here it is check whether the portfolio is balanced or not if the reinrisk (risk_to_insure) is underwritten. Return True if it is balanced. False otherwise.
+                        [condition, cash_left_by_categ] = self.balanced_portfolio(risk_to_insure, cash_left_by_categ, None) #Here it is check whether the portfolio is balanced or not if the reinrisk (risk_to_insure) is underwritten. Return True if it is balanced. False otherwise.
                         if condition:
                             contract = ReinsuranceContract(self, risk_to_insure, time, per_value_reinsurance_premium,
                                                            risk_to_insure["runtime"], \
