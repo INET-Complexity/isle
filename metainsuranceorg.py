@@ -445,31 +445,37 @@ class MetaInsuranceOrg(GenericAgent):
 
     def market_permanency(self, time):     #This method determines whether an insurer or reinsurer stays in the market. If it has very few risks underwritten or too much cash left for TOO LONG it eventually leaves the market.
                                                       # If it has very few risks underwritten it cannot balance the portfolio so it makes sense to leave the market.
-        cash_left_by_categ = np.asarray(self.cash_left_by_categ)
+        if not self.simulation_parameters["market_permanency_off"]:
 
-        avg_cash_left = cash_left_by_categ.mean()
+            cash_left_by_categ = np.asarray(self.cash_left_by_categ)
 
-        if self.cash < 100:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
-            self.enter_bankruptcy(time)
-        else:
-            if self.is_insurer:
+            avg_cash_left = cash_left_by_categ.mean()
 
-                if len(self.underwritten_contracts) < 4 or avg_cash_left / self.cash > 0.6:   #Insurers leave the market if they only have 4 contracts underwritten or an excess capital of 60 percent for more than 24 periods.
-                    self.market_permanency_counter += 1
-                else:
-                    self.market_permanency_counter = 0                                    #All these limits maybe should be parameters in isleconfig.py
+            if self.cash < self.simulation_parameters["cash_permanency_limit"]:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
+                self.enter_bankruptcy(time)        #TODO This should not count as a bankruptcy
+            else:
+                if self.is_insurer:
 
-                if self.market_permanency_counter >= 24:
-                    self.enter_bankruptcy(time)
+                    if len(self.underwritten_contracts) < self.simulation_parameters["insurance_permanency_contracts_limit"] or avg_cash_left / self.cash > self.simulation_parameters["insurance_permanency_ratio_limit"]:
+                        #Insurers leave the market if they have contracts under the limit or an excess capital over the limit for too long.
+                        self.market_permanency_counter += 1
+                    else:
+                        self.market_permanency_counter = 0                                    #All these limits maybe should be parameters in isleconfig.py
 
-            if self.is_reinsurer:
+                    if self.market_permanency_counter >= self.simulation_parameters["insurance_permanency_time_constraint"]:    # Here we determine how much is too long.
+                        self.enter_bankruptcy(time)         #TODO This should not count as a bankruptcy
 
-                if len(self.underwritten_contracts) < 2 or avg_cash_left / self.cash > 0.8:   #Reinsurers leave the market if they only have 2 contracts underwritten or an excess capital of 80 percent for more than 100 periods.
+                if self.is_reinsurer:
 
-                    self.market_permanency_counter += 1                                       #Insurers and reinsurers potentially have different reasons to leave the market. That's why the code is duplicated here.
-                else:
-                    self.market_permanency_counter = 0
+                    if len(self.underwritten_contracts) < self.simulation_parameters["reinsurance_permanency_contracts_limit"] or avg_cash_left / self.cash > self.simulation_parameters["reinsurance_permanency_ratio_limit"]:
+                        #Reinsurers leave the market if they have contracts under the limit or an excess capital over the limit for too long.
 
-                if self.market_permanency_counter >= 200:
-                    self.enter_bankruptcy(time)
+                        self.market_permanency_counter += 1                                       #Insurers and reinsurers potentially have different reasons to leave the market. That's why the code is duplicated here.
+                    else:
+                        self.market_permanency_counter = 0
+
+                    if self.market_permanency_counter >= self.simulation_parameters["reinsurance_permanency_time_constraint"]:  # Here we determine how much is too long.
+                        self.enter_bankruptcy(time)            #TODO This should not count as a bankruptcy
+
+
 

@@ -40,10 +40,21 @@ simulation_parameters={"no_categories": 4,
                        "capacity_target_increment_threshold": 1.2,
                        "capacity_target_decrement_factor": 24/25.,
                        "capacity_target_increment_factor": 25/24.,
-                       'insurers_balance_ratio': 0.1,           # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
-                       'reinsurers_balance_ratio': 20,          # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
-                       'insurers_recursion_limit': 50,          # Intensity of the recursion algorithm to balance the portfolio of risks for insurers.
-                       'reinsurers_recursion_limit': 10,        # Intensity of the recursion algorithm to balance the portfolio of risks for reinsurers.
+                       #Balanced portfolio parameters
+                       "insurers_balance_ratio": 0.1,           # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
+                       "reinsurers_balance_ratio": 20,          # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
+                       "insurers_recursion_limit": 50,          # Intensity of the recursion algorithm to balance the portfolio of risks for insurers.
+                       "reinsurers_recursion_limit": 10,        # Intensity of the recursion algorithm to balance the portfolio of risks for reinsurers.
+                       #Market permanency parameters
+                       "market_permanency_off": False,          # This parameter activates (deactivates) the following market permanency constraints.
+                       "cash_permanency_limit": 100,            # This parameter enforces the limit under which the firms leave the market because they cannot underwrite anything.
+                       "insurance_permanency_contracts_limit": 4,  # If insurers stay for too long under this limit of contracts they deccide to leave the market.
+                       "insurance_permanency_ratio_limit": 0.6,    # If insurers stay for too long under this limit they deccide to leave the market because they have too much capital.
+                       "insurance_permanency_time_constraint": 24, # This parameter defines the period that the insurers wait if they have few capital or few contract before leaving the market.
+                       "reinsurance_permanency_contracts_limit": 2,   # If reinsurers stay for too long under this limit of contracts they deccide to leave the market.
+                       "reinsurance_permanency_ratio_limit": 0.8,  # If reinsurers stay for too long under this limit they deccide to leave the market because they have too much capital.
+                       "reinsurance_permanency_time_constraint": 200,  # This parameter defines the period that the reinsurers wait if they have few capital or few contract before leaving the market.
+                       #Insurance and Reinsurance deductibles
                        "insurance_reinsurance_levels_lower_bound": 0.35,
                        "insurance_reinsurance_levels_upper_bound": 0.7,
                        "reinsurance_reinsurance_levels_lower_bound": 0.5,
