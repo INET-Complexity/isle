@@ -84,6 +84,8 @@ class MetaInsuranceOrg(GenericAgent):
         self.reinrisks_kept = []
         self.balance_ratio = simulation_parameters['insurers_balance_ratio']
         self.recursion_limit = simulation_parameters['insurers_recursion_limit']
+        self.cash_left_by_categ = [self.cash for i in range(self.simulation_parameters["no_categories"])]
+        self.market_permanency_counter = 0
 
     def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
         """obtain investments yield"""
@@ -184,6 +186,8 @@ class MetaInsuranceOrg(GenericAgent):
             #not implemented
             #"""adjust liquidity, borrow or invest"""
             #pass
+
+        self.market_permanency(time)
             
         self.estimated_var()
 
@@ -378,6 +382,7 @@ class MetaInsuranceOrg(GenericAgent):
                                                            insurancetype=risk_to_insure[
                                                                "insurancetype"])  # TODO: implement excess of loss for reinsurance contracts
                             self.underwritten_contracts.append(contract)
+                            self.cash_left_by_categ = cash_left_by_categ
                             reinrisks_per_categ[categ_id][iterion] = None
 
         not_accepted_reinrisks = []
@@ -385,6 +390,8 @@ class MetaInsuranceOrg(GenericAgent):
             for reinrisk in reinrisks_per_categ[categ_id]:
                 if reinrisk is not None:
                     not_accepted_reinrisks.append(reinrisk)
+
+
 
         return not_accepted_reinrisks
 
@@ -407,6 +414,7 @@ class MetaInsuranceOrg(GenericAgent):
                                                            expire_immediately=self.simulation_parameters[
                                                                "expire_immediately"], )
                             self.underwritten_contracts.append(contract)
+                            self.cash_left_by_categ = cash_left_by_categ
                             risks_per_categ[categ_id][iter] = None
                             # TODO: move this to insurancecontract (ca. line 14) -> DONE
                             # TODO: do not write into other object's properties, use setter -> DONE
@@ -421,9 +429,9 @@ class MetaInsuranceOrg(GenericAgent):
                                                              "expire_immediately"], \
                                                          initial_VaR=var_per_risk_per_categ[categ_id])
                             self.underwritten_contracts.append(contract)
+                            self.cash_left_by_categ = cash_left_by_categ
                             risks_per_categ[categ_id][iter] = None
-                    acceptable_by_category[
-                        categ_id] -= 1  # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
+                    acceptable_by_category[categ_id] -= 1  # TODO: allow different values per risk (i.e. sum over value (and reinsurance_share) or exposure instead of counting)
 
         not_accepted_risks = []
         for categ_id in range(len(acceptable_by_category)):
@@ -432,4 +440,41 @@ class MetaInsuranceOrg(GenericAgent):
                     not_accepted_risks.append(risk)
 
         return not_accepted_risks
+
+
+    def market_permanency(self, time):     #This method determines whether an insurer or reinsurer stays in the market. If it has very few risks underwritten or too much cash left for TOO LONG it eventually leaves the market.
+                                                      # If it has very few risks underwritten it cannot balance the portfolio so it makes sense to leave the market.
+        if not self.simulation_parameters["market_permanency_off"]:
+
+            cash_left_by_categ = np.asarray(self.cash_left_by_categ)
+
+            avg_cash_left = cash_left_by_categ.mean()
+
+            if self.cash < self.simulation_parameters["cash_permanency_limit"]:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
+                self.enter_bankruptcy(time)        #TODO This should not count as a bankruptcy
+            else:
+                if self.is_insurer:
+
+                    if len(self.underwritten_contracts) < self.simulation_parameters["insurance_permanency_contracts_limit"] or avg_cash_left / self.cash > self.simulation_parameters["insurance_permanency_ratio_limit"]:
+                        #Insurers leave the market if they have contracts under the limit or an excess capital over the limit for too long.
+                        self.market_permanency_counter += 1
+                    else:
+                        self.market_permanency_counter = 0                                    #All these limits maybe should be parameters in isleconfig.py
+
+                    if self.market_permanency_counter >= self.simulation_parameters["insurance_permanency_time_constraint"]:    # Here we determine how much is too long.
+                        self.enter_bankruptcy(time)         #TODO This should not count as a bankruptcy
+
+                if self.is_reinsurer:
+
+                    if len(self.underwritten_contracts) < self.simulation_parameters["reinsurance_permanency_contracts_limit"] or avg_cash_left / self.cash > self.simulation_parameters["reinsurance_permanency_ratio_limit"]:
+                        #Reinsurers leave the market if they have contracts under the limit or an excess capital over the limit for too long.
+
+                        self.market_permanency_counter += 1                                       #Insurers and reinsurers potentially have different reasons to leave the market. That's why the code is duplicated here.
+                    else:
+                        self.market_permanency_counter = 0
+
+                    if self.market_permanency_counter >= self.simulation_parameters["reinsurance_permanency_time_constraint"]:  # Here we determine how much is too long.
+                        self.enter_bankruptcy(time)            #TODO This should not count as a bankruptcy
+
+
 
