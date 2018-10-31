@@ -416,7 +416,6 @@ class MetaInsuranceOrg(GenericAgent):
                             self.underwritten_contracts.append(contract)
                             self.cash_left_by_categ = cash_left_by_categ
                             risks_per_categ[categ_id][iter] = None
-                            self.cash_left_by_categ = cash_left_by_categ
                             # TODO: move this to insurancecontract (ca. line 14) -> DONE
                             # TODO: do not write into other object's properties, use setter -> DONE
                     else:
