@@ -326,6 +326,7 @@ class InsuranceSimulation():
         #        reinagent.iterate(t)
         
         # remove all non-accepted reinsurance risks
+
         self.reinrisks = []
 
         # reset weights
@@ -344,8 +345,6 @@ class InsuranceSimulation():
         # iterate catbonds 
         for agent in self.catbonds:
             agent.iterate(t)
-
-
 
         self.insurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
 
@@ -465,6 +464,8 @@ class InsuranceSimulation():
         assert self.money_supply >= 0
 
     def reset_reinsurance_weights(self):
+
+        self.not_accepted_reinrisks = []
 
         operational_reinfirms = [reinsurancefirm for reinsurancefirm in self.reinsurancefirms if reinsurancefirm.operational]
 
@@ -589,7 +590,7 @@ class InsuranceSimulation():
         self.risks += not_accepted_risks
 
     def return_reinrisks(self, not_accepted_risks):
-        self.reinrisks += not_accepted_risks
+        self.not_accepted_reinrisks += not_accepted_risks
 
     def get_all_riskmodel_combinations(self, n, rm_factor):
         riskmodels = []
@@ -813,3 +814,17 @@ class InsuranceSimulation():
 
     def get_operational(self):
         return True
+
+    def reinsurance_capital_entry(self):     #This method determines the capital market entry of reinsurers. It is only run in start.py.
+        capital_per_non_re_cat = []
+        for reinrisk in self.not_accepted_reinrisks:
+            capital_per_non_re_cat.append(reinrisk["value"])     #It takes all the values of the reinsurance risks NOT REINSURED.
+
+        capital_per_non_re_cat = sorted(capital_per_non_re_cat, reverse=True)    #Here those vaules are ordered.
+        capital_per_non_re_cat = capital_per_non_re_cat[0:5]        #Only the 5 larger values are considered. (Too low?)
+        entry = capital_per_non_re_cat
+        entry = [2 * risk for risk in entry]           #The capital market entry of those values will be the double of one of those values. It will be picked up randomly.
+        np.random.shuffle(entry)          #Here the possible market entry values are suffled randomly.
+
+        return entry[0]           #Here we pick one after suffling.
+
