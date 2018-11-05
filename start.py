@@ -158,6 +158,7 @@ def main(simulation_parameters,seed):
         
         if world.insurance_firm_market_entry(agent_type="ReinsuranceFirm"):
             parameters = [np.random.choice(world.agent_parameters["reinsurance"])]
+            parameters[0]["initial_cash"] = world.reinsurance_capital_entry()     #Since the value of the reinrisks varies overtime it makes sense that the market entry of reinsures depends on those values. The method world.reinsurance_capital_entry() determines the capital market entry of reinsurers.
             parameters = [world.agent_parameters["reinsurance"][simulation.reinsurance_entry_index()]]
             parameters[0]["id"] = world.get_unique_reinsurer_id()
             new_reinsurance_firm = simulation.build_agents(ReinsuranceFirm,
@@ -205,8 +206,8 @@ def save_simulation(t, sim, sim_param, exit_now=False):
     with open("data/simulation_save.pkl", "br") as rfile:
         file_contents = rfile.read()
     #print("\nSimulation hashes: ", hashlib.sha512(str(d).encode()).hexdigest(), "; ",  hashlib.sha512(str(file_contents).encode()).hexdigest())
-    # note that the hash over the dict is for some reason not identical between runs. The hash over the state saved to the file is. 
-    print("\nSimulation hash: ",  hashlib.sha512(str(file_contents).encode()).hexdigest())    
+    # note that the hash over the dict is for some reason not identical between runs. The hash over the state saved to the file is.
+    print("\nSimulation hash: ",  hashlib.sha512(str(file_contents).encode()).hexdigest())
     if exit_now:
         exit(0)
 
