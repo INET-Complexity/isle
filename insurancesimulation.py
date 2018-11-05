@@ -820,11 +820,9 @@ class InsuranceSimulation():
         for reinrisk in self.not_accepted_reinrisks:
             capital_per_non_re_cat.append(reinrisk["value"])     #It takes all the values of the reinsurance risks NOT REINSURED.
 
-        capital_per_non_re_cat = sorted(capital_per_non_re_cat, reverse=True)    #Here those vaules are ordered.
-        capital_per_non_re_cat = capital_per_non_re_cat[0:5]        #Only the 5 larger values are considered. (Too low?)
-        entry = capital_per_non_re_cat
-        entry = [2 * risk for risk in entry]           #The capital market entry of those values will be the double of one of those values. It will be picked up randomly.
-        np.random.shuffle(entry)          #Here the possible market entry values are suffled randomly.
+        capital_per_non_re_cat = np.random.choice(capital_per_non_re_cat, 10)        #Only 10 values sampled randomly are considered. (Too low?)
+        entry = max(capital_per_non_re_cat)            #For market entry the maximum of the sample is considered.
+        entry = 2 * entry           #The capital market entry of those values will be the double of the maximum.
 
-        return entry[0]           #Here we pick one after suffling.
+        return entry[0]           #The capital market entry is returned.
 
