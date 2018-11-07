@@ -34,6 +34,7 @@ class InsuranceContract(MetaInsuranceContract):
         if uniform_value < self.risk_factor:
             # if True:
             claim = min(self.excess, damage_extent * self.value) - self.deductible
+            self.insurer.register_claim(claim)       #Every insurance claim made is immediately registered.
 
             self.current_claim += claim
             self.insurer.receive_obligation(claim, self.property_holder, time + 2)
