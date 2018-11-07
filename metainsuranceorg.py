@@ -476,5 +476,8 @@ class MetaInsuranceOrg(GenericAgent):
                     if self.market_permanency_counter >= self.simulation_parameters["reinsurance_permanency_time_constraint"]:  # Here we determine how much is too long.
                         self.enter_bankruptcy(time)            #TODO This should not count as a bankruptcy
 
+    def register_claim(self, claim):    #This method records in insurancesimulation.py every claim made. It is called either from insurancecontract.py or reinsurancecontract.py respectively.
+        self.simulation.record_claims(claim)
+
 
 

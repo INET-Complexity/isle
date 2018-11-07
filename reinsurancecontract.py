@@ -39,6 +39,8 @@ class ReinsuranceContract(MetaInsuranceContract):
             claim = min(self.excess, damage_extent) - self.deductible
             self.insurer.receive_obligation(claim, self.property_holder, time + 1)
             # Reinsurer pays as soon as possible.
+
+        self.insurer.register_claim(claim)   #Every reinsurance claim made is immediately registered.
         if self.expire_immediately:
             self.current_claim += self.contract.claim   # TODO: should proportional reinsurance claims be subject to excess_of_loss retrocession? If so, reorganize more straightforwardly
             
