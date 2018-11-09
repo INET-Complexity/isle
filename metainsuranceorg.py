@@ -2,6 +2,7 @@
 import isleconfig
 import numpy as np
 import scipy.stats
+import copy
 from insurancecontract import InsuranceContract
 from reinsurancecontract import ReinsuranceContract
 from riskmodel import RiskModel
@@ -131,7 +132,10 @@ class MetaInsuranceOrg(GenericAgent):
             [reinrisks_per_categ, number_reinrisks_categ] = self.risks_reinrisks_organizer(new_nonproportional_risks)  #Here the new reinrisks are organized by category.
 
             for repetition in range(self.recursion_limit):     # TODO: find an efficient way to stop the recursion if there are no more risks to accept or if it is not accepting any more over several iterations.
-                not_accepted_reinrisks = self.process_newrisks_reinsurer(reinrisks_per_categ, number_reinrisks_categ, time)  #Here we process all the new reinrisks in order to keep the portfolio as balanced as possible.
+                former_reinrisks_per_categ = copy.copy(reinrisks_per_categ)
+                [reinrisks_per_categ, not_accepted_reinrisks] = self.process_newrisks_reinsurer(reinrisks_per_categ, number_reinrisks_categ, time)  #Here we process all the new reinrisks in order to keep the portfolio as balanced as possible.
+                if former_reinrisks_per_categ == reinrisks_per_categ:   #Stop condition implemented. Might solve the previous TODO.
+                    break
 
             self.simulation.return_reinrisks(not_accepted_reinrisks)
 
@@ -176,8 +180,11 @@ class MetaInsuranceOrg(GenericAgent):
             [risks_per_categ, number_risks_categ] = self.risks_reinrisks_organizer(new_risks)  #Here the new risks are organized by category.
 
             for repetition in range(self.recursion_limit):   # TODO: find an efficient way to stop the recursion if there are no more risks to accept or if it is not accepting any more over several iterations.
-                not_accepted_risks = self.process_newrisks_insurer(risks_per_categ, number_risks_categ, acceptable_by_category,
+                former_risks_per_categ = copy.copy(risks_per_categ)
+                [risks_per_categ, not_accepted_risks] = self.process_newrisks_insurer(risks_per_categ, number_risks_categ, acceptable_by_category,
                                          var_per_risk_per_categ, cash_left_by_categ, time) #Here we process all the new risks in order to keep the portfolio as balanced as possible.
+                if former_risks_per_categ == risks_per_categ:   #Stop condition implemented. Might solve the previous TODO.
+                    break
 
             # return unacceptables
             #print(self.id, " now has ", len(self.underwritten_contracts), " & returns ", len(not_accepted_risks))
@@ -393,7 +400,7 @@ class MetaInsuranceOrg(GenericAgent):
 
 
 
-        return not_accepted_reinrisks
+        return reinrisks_per_categ, not_accepted_reinrisks
 
     def process_newrisks_insurer(self, risks_per_categ, number_risks_categ, acceptable_by_category, var_per_risk_per_categ, cash_left_by_categ, time): #This method processes one by one the risks contained in risks_per_categ in order to decide whether they should be underwritten or not.
                                                                                              #It is done in this way to maintain the portfolio as balanced as possible. For that reason we process risk[C1], risk[C2], risk[C3], risk[C4], risk[C1], risk[C2], ... and so forth.
@@ -439,7 +446,7 @@ class MetaInsuranceOrg(GenericAgent):
                 if risk is not None:
                     not_accepted_risks.append(risk)
 
-        return not_accepted_risks
+        return risks_per_categ, not_accepted_risks
 
 
     def market_permanency(self, time):     #This method determines whether an insurer or reinsurer stays in the market. If it has very few risks underwritten or too much cash left for TOO LONG it eventually leaves the market.

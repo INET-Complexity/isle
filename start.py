@@ -8,6 +8,9 @@ import os
 import pickle
 import hashlib
 import random
+import copy
+
+
 
 # import config file and apply configuration
 import isleconfig
@@ -15,55 +18,6 @@ import isleconfig
 simulation_parameters = isleconfig.simulation_parameters
 replic_ID = None
 override_no_riskmodels = False
-
-# use argparse to handle command line arguments
-parser = argparse.ArgumentParser(description='Model the Insurance sector')
-parser.add_argument("--abce", action="store_true", help="use abce")
-parser.add_argument("--oneriskmodel", action="store_true", help="allow overriding the number of riskmodels from the standard config (with 1)")
-parser.add_argument("--riskmodels", type=int, choices=[1,2,3,4], help="allow overriding the number of riskmodels from standard config (with 1 or other numbers)")
-parser.add_argument("--replicid", type=int, help="if replication ID is given, pass this to the simulation so that the risk profile can be restored")
-parser.add_argument("--replicating", action="store_true", help="if this is a simulation run designed to replicate another, override the config file parameter")
-parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
-parser.add_argument("--foreground", action="store_true", help="force foreground runs even if replication ID is given (which defaults to background runs)")
-parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
-parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
-parser.add_argument("--save_iterations", type=int, help="number of iterations to iterate before saving world state")
-args = parser.parse_args()
-
-if args.abce:
-    isleconfig.use_abce = True
-if args.oneriskmodel:
-    isleconfig.oneriskmodel = True
-    override_no_riskmodels = 1
-if args.riskmodels:
-    override_no_riskmodels = args.riskmodels
-if args.replicid is not None:
-    replic_ID = args.replicid
-if args.replicating:
-    isleconfig.replicating = True
-    assert replic_ID is not None, "Error: Replication requires a replication ID to identify run to be replicated"
-if args.randomseed:
-    randomseed = args.randomseed
-    seed = int(randomseed)
-else:
-    np.random.seed()
-    seed = np.random.randint(0, 2 ** 31 - 1)
-if args.foreground:
-    isleconfig.force_foreground = True
-if args.showprogress:
-    isleconfig.showprogress = True
-if args.verbose:
-    isleconfig.verbose = True
-if args.save_iterations:
-    save_iter = args.save_iterations
-else:
-    save_iter = 200
-
-# import isle and abce modules
-if isleconfig.use_abce:
-    #print("Importing abce")
-    import abce
-    from abce import gui
 
 from insurancesimulation import InsuranceSimulation
 from insurancefirm import InsuranceFirm
@@ -94,16 +48,17 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters,seed):
+def main(simulation_parameters, rc_event_schedule, rc_event_damage, np_seed, random_seed):
 
-    np.random.seed(seed)
-    random.seed(seed)
+    save_iter = 200         #This has to be duplicated here if the parse stuff is moved to the end of this file.
+    np.random.seed(np_seed)
+    random.seed(random_seed)
 
     # create simulation and world objects (identical in non-abce mode)
     if isleconfig.use_abce:
-        simulation = abce.Simulation(processes=1,random_seed = seed)
+        simulation = abce.Simulation(processes=1,random_seed = random_seed)
 
-    simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters)
+    simulation_parameters['simulation'] = world = InsuranceSimulation(override_no_riskmodels, replic_ID, simulation_parameters, rc_event_schedule, rc_event_damage)
 
     if not isleconfig.use_abce:
         simulation = world
@@ -214,5 +169,65 @@ def save_simulation(t, sim, sim_param, exit_now=False):
         exit(0)
 
 # main entry point
+# main entry point
 if __name__ == "__main__":
-    main(simulation_parameters, seed)
+
+    # use argparse to handle command line arguments
+    parser = argparse.ArgumentParser(description='Model the Insurance sector')
+    parser.add_argument("--abce", action="store_true", help="use abce")
+    parser.add_argument("--oneriskmodel", action="store_true",
+                        help="allow overriding the number of riskmodels from the standard config (with 1)")
+    parser.add_argument("--riskmodels", type=int, choices=[1, 2, 3, 4],
+                        help="allow overriding the number of riskmodels from standard config (with 1 or other numbers)")
+    parser.add_argument("--replicid", type=int,
+                        help="if replication ID is given, pass this to the simulation so that the risk profile can be restored")
+    parser.add_argument("--replicating", action="store_true",
+                        help="if this is a simulation run designed to replicate another, override the config file parameter")
+    parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
+    parser.add_argument("--foreground", action="store_true",
+                        help="force foreground runs even if replication ID is given (which defaults to background runs)")
+    parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
+    parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
+    parser.add_argument("--save_iterations", type=int, help="number of iterations to iterate before saving world state")
+    args = parser.parse_args()
+
+    if args.abce:
+        isleconfig.use_abce = True
+    if args.oneriskmodel:
+        isleconfig.oneriskmodel = True
+        override_no_riskmodels = 1
+    if args.riskmodels:
+        override_no_riskmodels = args.riskmodels
+    if args.replicid is not None:
+        replic_ID = args.replicid
+    if args.replicating:
+        isleconfig.replicating = True
+        assert replic_ID is not None, "Error: Replication requires a replication ID to identify run to be replicated"
+    if args.randomseed:
+        randomseed = args.randomseed
+        seed = int(randomseed)
+    else:
+        np.random.seed()
+        seed = np.random.randint(0, 2 ** 31 - 1)
+    if args.foreground:
+        isleconfig.force_foreground = True
+    if args.showprogress:
+        isleconfig.showprogress = True
+    if args.verbose:
+        isleconfig.verbose = True
+    if args.save_iterations:
+        save_iter = args.save_iterations
+    else:
+        save_iter = 200
+
+        # import isle and abce modules
+    if isleconfig.use_abce:
+        # print("Importing abce")
+        import abce
+        from abce import gui
+    
+    from setup import SetupSim
+    setup = SetupSim()       #Here the setup for the simulation is done.
+    [general_rc_event_schedule, general_rc_event_damage, np_seeds, random_seeds] = setup.obtain_ensemble(1)   #Only one ensemble. This part will only be run locally (laptop).
+
+    main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0])

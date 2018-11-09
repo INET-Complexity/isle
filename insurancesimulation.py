@@ -9,8 +9,8 @@ import sys, pdb
 import isleconfig
 import random
 import copy
-import networkx as nx
-import matplotlib.pyplot as plt
+#import networkx as nx
+#import matplotlib.pyplot as plt
 
 if isleconfig.use_abce:
     import abce
@@ -21,7 +21,7 @@ if isleconfig.use_abce:
 
 
 class InsuranceSimulation():
-    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters):
+    def __init__(self, override_no_riskmodels, replic_ID, simulation_parameters, rc_event_schedule, rc_event_damage):
         # override one-riskmodel case (this is to ensure all other parameters are truly identical for comparison runs)
         if override_no_riskmodels:
             simulation_parameters["no_riskmodels"] = override_no_riskmodels
@@ -85,7 +85,15 @@ class InsuranceSimulation():
         self.rc_event_damage = []
         self.rc_event_schedule_initial = []   #For debugging (cloud debugging) purposes is good to store the initial schedule of catastrophes
         self.rc_event_damage_initial = []     #and damages that will be use in a single run of the model.
-        self.setup_risk_categories_caller()
+
+        if rc_event_schedule is not None and rc_event_damage is not None: #If we have schedules pass as arguments we used them.
+            self.rc_event_schedule = copy.copy(rc_event_schedule)
+            self.rc_event_schedule_initial = copy.copy(rc_event_schedule)
+
+            self.rc_event_damage = copy.copy(rc_event_damage)
+            self.rc_event_damage_initial = copy.copy(rc_event_damage)
+        else:                                                              #Otherwise the schedules and damages are generated.
+            self.setup_risk_categories_caller()
 
 
         # set up risks
@@ -186,6 +194,7 @@ class InsuranceSimulation():
 
         # list of reinsurance risks offered for underwriting
         self.reinrisks = []
+        self.not_accepted_reinrisks = []
         
         # cumulative variables for history and logging
         self.cumulative_bankruptcies = 0
@@ -372,8 +381,8 @@ class InsuranceSimulation():
                         self.reinsurance_models_counter[i] += 1
 
         # TODO: use network representation in a more generic way, perhaps only once at the end to characterize the network and use for calibration(?)
-        if t%1000==0 and t > 0:
-            self.create_network_representation()
+        #if t%1000==0 and t > 0:
+            #self.create_network_representation()    #TODO remove this part from insurance simulatiton
         
         
     def save_data(self):
