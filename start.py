@@ -9,7 +9,7 @@ import pickle
 import hashlib
 import random
 import copy
-from setup import SetupSim
+
 
 
 # import config file and apply configuration
@@ -225,7 +225,8 @@ if __name__ == "__main__":
         # print("Importing abce")
         import abce
         from abce import gui
-
+    
+    from setup import SetupSim
     setup = SetupSim()       #Here the setup for the simulation is done.
     [general_rc_event_schedule, general_rc_event_damage, np_seeds, random_seeds] = setup.obtain_ensemble(1)   #Only one ensemble. This part will only be run locally (laptop).
 
