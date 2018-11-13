@@ -207,7 +207,8 @@ class MetaInsuranceOrg(GenericAgent):
         self.risks_kept = []
         self.reinrisks_kept = []
         self.simulation.receive(self.cash)
-        self.cash = 0
+        self.cash = 0                           #Cash is 0 after bankruptcy.
+        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy.
         self.operational = False
         self.simulation.record_bankruptcy()
 
