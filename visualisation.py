@@ -2,6 +2,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import argparse
+
 
 
 class TimeSeries(object):
@@ -201,34 +203,50 @@ class compare_riskmodels(object):
         pass
     
 if __name__ == "__main__":
-    # load in data from the history_logs dictionarywith open("data/history_logs.dat","r") as rfile:
-    with open("data/history_logs.dat","r") as rfile:
-        history_logs_list = [eval(k) for k in rfile] # one dict on each line
-    # first create visualisation object, then create graph/animation objects as necessary
-    #vis = visualisation(history_logs_list)
-    #vis.insurer_pie_animation()
-    #vis.reinsurer_pie_animation()
-    #vis.insurer_time_series().save("insurer_time_series.pdf")
-    #vis.reinsurer_time_series().save("reinsurer_time_series.pdf")
-    #N = len(history_logs_list)
 
-    # for each run, generate an animation and time series for insurer and reinsurer
-    # TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
-    #for i in range(N):
-    #    vis.insurer_pie_animation(run=i)
-    #    vis.insurer_time_series(runs=[i])
-    #    vis.reinsurer_pie_animation(run=i)
-    #    vis.reinsurer_time_series(runs=[i])
-    #    vis.show()
-    vis_list = []
-    filenames = ["./data/"+x+"_history_logs.dat" for x in ["one","two","three","four"]]
-    for filename in filenames:
-        with open(filename,'r') as rfile:
+
+    # use argparse to handle command line arguments
+    parser = argparse.ArgumentParser(description='Model the Insurance sector')
+    parser.add_argument("--single", action="store_true", help="plot time series of a single run of the insurance model")
+    parser.add_argument("--comparison", action="store_true", help="plot the result of an ensemble of replicatons of the insurance model")
+
+    args = parser.parse_args()
+
+
+    if args.single:
+
+        # load in data from the history_logs dictionarywith open("data/history_logs.dat","r") as rfile:
+        with open("data/history_logs.dat","r") as rfile:
             history_logs_list = [eval(k) for k in rfile] # one dict on each line
-            vis_list.append(visualisation(history_logs_list))
+        # first create visualisation object, then create graph/animation objects as necessary
+        vis = visualisation(history_logs_list)
+        vis.insurer_pie_animation()
+        vis.reinsurer_pie_animation()
+        vis.insurer_time_series()
+        vis.reinsurer_time_series()
+        vis.show()
+        N = len(history_logs_list)
 
-    colour_list = ['blue', 'yellow', 'red', 'green']
-    cmp_rsk = compare_riskmodels(vis_list, colour_list)
-    cmp_rsk.create_insurer_timeseries(percentiles=[10,90])
-    cmp_rsk.create_reinsurer_timeseries(percentiles=[10,90]) 
-    cmp_rsk.show()
+
+    if args.comparison:
+
+        # for each run, generate an animation and time series for insurer and reinsurer
+        # TODO: provide some way for these to be lined up nicely rather than having to manually arrange screen
+        #for i in range(N):
+        #    vis.insurer_pie_animation(run=i)
+        #    vis.insurer_time_series(runs=[i])
+        #    vis.reinsurer_pie_animation(run=i)
+        #    vis.reinsurer_time_series(runs=[i])
+        #    vis.show()
+        vis_list = []
+        filenames = ["./data/"+x+"_history_logs.dat" for x in ["one","two","three","four"]]
+        for filename in filenames:
+            with open(filename,'r') as rfile:
+                history_logs_list = [eval(k) for k in rfile] # one dict on each line
+                vis_list.append(visualisation(history_logs_list))
+
+        colour_list = ['blue', 'yellow', 'red', 'green']
+        cmp_rsk = compare_riskmodels(vis_list, colour_list)
+        cmp_rsk.create_insurer_timeseries(percentiles=[10,90])
+        cmp_rsk.create_reinsurer_timeseries(percentiles=[10,90])
+        cmp_rsk.show()
