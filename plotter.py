@@ -14,7 +14,7 @@ reinop = data[0]['total_reinoperational']
 reincash = data[0]['total_reincash']
 reinpl = data[0]['total_reinprofitslosses']
 premium = data[0]['market_premium']
-catbop = data[0]['market_reinpremium']
+catbop = data[0]['total_catbondsoperational']
 
 rfile.close()
 
