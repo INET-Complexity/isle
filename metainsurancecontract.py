@@ -69,7 +69,7 @@ class MetaInsuranceContract():
         self.payment_values = total_premium * (np.ones(len(self.payment_times)) / len(self.payment_times))
         
         ## Create obligation for premium payment
-        #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
+        #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time, 'premium')
  
         # Embed contract in reinsurance network, if applicable
         if self.contract is not None:
@@ -79,8 +79,8 @@ class MetaInsuranceContract():
     def check_payment_due(self, time):
         if len(self.payment_times) > 0 and time >= self.payment_times[0]:
             # Create obligation for premium payment
-            #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time)
-            self.property_holder.receive_obligation(self.payment_values[0], self.insurer, time)
+            #self.property_holder.receive_obligation(premium * (self.excess - self.deductible), self.insurer, time, 'premium')
+            self.property_holder.receive_obligation(self.payment_values[0], self.insurer, time, 'premium')
             
             # Remove current payment from payment schedule
             self.payment_times = self.payment_times[1:]

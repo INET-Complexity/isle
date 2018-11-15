@@ -303,6 +303,9 @@ class InsuranceSimulation():
         if isleconfig.showprogress:
             print("\rTime: {0:4d}".format(t), end="")
 
+        self.reset_pls()
+
+
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
         self.adjust_market_premium(capital=sum_capital)
@@ -479,8 +482,8 @@ class InsuranceSimulation():
         uniformvalues = np.random.uniform(0, 1, size=self.risks_counter[categ_id])
         [contract.explode(t, uniformvalues[i], damagevalues[i]) for i, contract in enumerate(affected_contracts)]
     
-    def receive_obligation(self, amount, recipient, due_time):
-        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
+    def receive_obligation(self, amount, recipient, due_time, purpose):
+        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time, "purpose": purpose}
         self.obligations.append(obligation)
 
     def effect_payments(self, time):
@@ -489,10 +492,12 @@ class InsuranceSimulation():
         self.obligations = [item for item in self.obligations if item["due_time"]>time]
         sum_due = sum([item["amount"] for item in due])
         for obligation in due:
-            self.pay(obligation["amount"], obligation["recipient"])
+            self.pay(obligation)
 
-    def pay(self, amount, recipient):
-        #print("SIMULATION paying ", amount)
+    def pay(self, obligation):
+        amount = obligation["amount"]
+        recipient = obligation["recipient"]
+        purpose = obligation["purpose"]
         try:
             assert self.money_supply > amount
         except:
@@ -885,4 +890,18 @@ class InsuranceSimulation():
             entry = self.simulation_parameters["initial_reinagent_cash"]
 
         return entry           #The capital market entry is returned.
+
+    def reset_pls(self):
+        """Reset_pls Method.
+               Accepts no arguments:
+               No return value.
+           This method reset all the profits and losses of all insurance firms, reinsurance firms and catbonds."""
+        for insurancefirm in self.insurancefirms:
+            insurancefirm.reset_pl()
+
+        for reininsurancefirm in self.reinsurancefirms:
+            reininsurancefirm.reset_pl()
+
+        for catbond in self.catbonds:
+            catbond.reset_pl()
 

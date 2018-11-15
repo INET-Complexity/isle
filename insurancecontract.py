@@ -37,7 +37,7 @@ class InsuranceContract(MetaInsuranceContract):
             self.insurer.register_claim(claim)       #Every insurance claim made is immediately registered.
 
             self.current_claim += claim
-            self.insurer.receive_obligation(claim, self.property_holder, time + 2)
+            self.insurer.receive_obligation(claim, self.property_holder, time + 2, 'claim')
             # Insurer pays one time step after reinsurer to avoid bankruptcy.
             # TODO: Is this realistic? Change this?
             if self.expire_immediately:

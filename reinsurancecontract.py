@@ -34,10 +34,10 @@ class ReinsuranceContract(MetaInsuranceContract):
 
         if self.insurancetype == "excess-of-loss" and damage_extent > self.deductible:
             claim = min(self.excess, damage_extent) - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time)
+            self.insurer.receive_obligation(claim, self.property_holder, time, 'claim')
         else:
             claim = min(self.excess, damage_extent) - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time + 1)
+            self.insurer.receive_obligation(claim, self.property_holder, time + 1, 'claim')
             # Reinsurer pays as soon as possible.
 
         self.insurer.register_claim(claim)   #Every reinsurance claim made is immediately registered.
@@ -65,5 +65,5 @@ class ReinsuranceContract(MetaInsuranceContract):
 
         if np.random.uniform(0,1,1) < 0.95:
             reinrisk = self.property_holder.create_reinrisk(time,self.category)
-            if reinrisk is not None:
+            if reinrisk is not None and hasattr(self.insurer, 'reinrisks_kept'):
                 self.insurer.reinrisks_kept.append(reinrisk)
