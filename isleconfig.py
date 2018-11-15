@@ -53,10 +53,10 @@ simulation_parameters={"no_categories": 4,
                        "insurance_permanency_time_constraint": 24, # This parameter defines the period that the insurers wait if they have few capital or few contract before leaving the market.
                        "reinsurance_permanency_contracts_limit": 2,   # If reinsurers stay for too long under this limit of contracts they deccide to leave the market.
                        "reinsurance_permanency_ratio_limit": 0.8,  # If reinsurers stay for too long under this limit they deccide to leave the market because they have too much capital.
-                       "reinsurance_permanency_time_constraint": 200,  # This parameter defines the period that the reinsurers wait if they have few capital or few contract before leaving the market.
+                       "reinsurance_permanency_time_constraint": 48,  # This parameter defines the period that the reinsurers wait if they have few capital or few contract before leaving the market.
                        #Insurance and Reinsurance deductibles
                        "insurance_reinsurance_levels_lower_bound": 0.25,
-                       "insurance_reinsurance_levels_upper_bound": 0.3,
+                       "insurance_reinsurance_levels_upper_bound": 0.30,
                        "reinsurance_reinsurance_levels_lower_bound": 0.5,
                        "reinsurance_reinsurance_levels_upper_bound": 0.95,
                        "initial_agent_cash": 80000,

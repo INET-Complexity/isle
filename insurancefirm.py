@@ -25,9 +25,6 @@ class InsuranceFirm(MetaInsuranceOrg):
         #    self.per_period_dividend = 0
         if actual_capacity < self.capacity_target:                                  # no dividends if firm misses capital target
             self.per_period_dividend = 0
-        
-    def get_profitslosses(self):
-        return self.cash_last_periods[0] - self.cash_last_periods[1]
 
     def get_reinsurance_VaR_estimate(self, max_var):
         reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
@@ -52,7 +49,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             return self.cash + reinsurance_VaR_estimate
         # else: # (This point is only reached when insurer is in severe financial difficulty. Ensure insurer recovers complete coverage.)
         return self.cash
-        
+
     def increase_capacity(self, time, max_var):
         '''This is implemented for non-proportional reinsurance only. Otherwise the price comparison is not meaningful. Assert non-proportional mode.'''
         assert self.simulation_reinsurance_type == 'non-proportional'
@@ -219,7 +216,7 @@ class InsuranceFirm(MetaInsuranceOrg):
                             "excess_fraction": self.np_reinsurance_excess_fraction,
                             "periodized_total_premium": 0, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
-            _, var_this_risk, _ = self.riskmodel.evaluate([], self.cash, risk)
+            _, _, var_this_risk, _ = self.riskmodel.evaluate([], self.cash, risk)
             per_period_premium = per_value_per_period_premium * risk["value"]
             total_premium = sum([per_period_premium * ((1/(1+self.interest_rate))**i) for i in range(risk["runtime"])])                # TODO: or is it range(1, risk["runtime"]+1)?
             #catbond = CatBond(self.simulation, per_period_premium)
@@ -232,13 +229,14 @@ class InsuranceFirm(MetaInsuranceOrg):
                                                       initial_VaR=var_this_risk, \
                                                       insurancetype=risk["insurancetype"])
             # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
-            
+
             catbond.set_contract(contract)
             """sell cat bond (to self.simulation)"""
-            self.simulation.receive_obligation(var_this_risk, self, time)
+            self.simulation.receive_obligation(var_this_risk, self, time, 'bond')
             catbond.set_owner(self.simulation)
             """hand cash over to cat bond such that var_this_risk is covered"""
-            self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
+            obligation = {"amount": var_this_risk + total_premium, "recipient": catbond, "due_time": time, "purpose": 'bond'}
+            self.pay(obligation)    #TODO: is var_this_risk the correct amount?
             """register catbond"""
             self.simulation.accept_agents("catbond", [catbond], time=time)
 

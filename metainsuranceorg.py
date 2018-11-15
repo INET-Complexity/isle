@@ -69,6 +69,7 @@ class MetaInsuranceOrg(GenericAgent):
             self.np_reinsurance_premium_share = simulation_parameters["default_non-proportional_reinsurance_premium_share"]
         self.obligations = []
         self.underwritten_contracts = []
+        self.profits_losses = 0
         #self.reinsurance_contracts = []
         self.operational = True
         self.is_insurer = True
@@ -89,6 +90,7 @@ class MetaInsuranceOrg(GenericAgent):
         self.market_permanency_counter = 0
 
     def iterate(self, time):        # TODO: split function so that only the sequence of events remains here and everything else is in separate methods
+
         """obtain investments yield"""
         self.obtain_yield(time)
 
@@ -209,11 +211,12 @@ class MetaInsuranceOrg(GenericAgent):
         self.simulation.receive(self.cash)
         self.cash = 0                           #Cash is 0 after bankruptcy.
         self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy.
+        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy.
         self.operational = False
         self.simulation.record_bankruptcy()
 
-    def receive_obligation(self, amount, recipient, due_time):
-        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time}
+    def receive_obligation(self, amount, recipient, due_time, purpose):
+        obligation = {"amount": amount, "recipient": recipient, "due_time": due_time, "purpose": purpose}
         self.obligations.append(obligation)
 
     def effect_payments(self, time):
@@ -228,24 +231,30 @@ class MetaInsuranceOrg(GenericAgent):
             # TODO: effect partial payment
         else:
             for obligation in due:
-                self.pay(obligation["amount"], obligation["recipient"])
+                self.pay(obligation)
 
 
-    def pay(self, amount, recipient):
+    def pay(self, obligation):
+        amount = obligation["amount"]
+        recipient = obligation["recipient"]
+        purpose = obligation["purpose"]
         if self.get_operational() and recipient.get_operational():
             self.cash -= amount
+            if purpose is not 'dividend':
+                self.profits_losses -= amount
             recipient.receive(amount)
 
     def receive(self, amount):
         """Method to accept cash payments."""
         self.cash += amount
+        self.profits_losses += amount
 
     def pay_dividends(self, time):
-        self.receive_obligation(self.per_period_dividend, self.owner, time)
+        self.receive_obligation(self.per_period_dividend, self.owner, time, 'dividend')
     
     def obtain_yield(self, time):
         amount = self.cash * self.interest_rate             # TODO: agent should not award her own interest. This interest rate should be taken from self.simulation with a getter method
-        self.simulation.receive_obligation(amount, self, time)
+        self.simulation.receive_obligation(amount, self, time, 'yields')
     
     def increase_capacity(self):
         raise AttributeError( "Method is not implemented in MetaInsuranceOrg, just in inheriting InsuranceFirm instances" )
@@ -269,6 +278,9 @@ class MetaInsuranceOrg(GenericAgent):
 
     def get_operational(self):
         return self.operational
+
+    def get_profitslosses(self):
+        return self.profits_losses
 
     def get_underwritten_contracts(self):
         return self.underwritten_contracts
@@ -486,6 +498,17 @@ class MetaInsuranceOrg(GenericAgent):
 
     def register_claim(self, claim):    #This method records in insurancesimulation.py every claim made. It is called either from insurancecontract.py or reinsurancecontract.py respectively.
         self.simulation.record_claims(claim)
+
+    def reset_pl(self):
+        """Reset_pl Method.
+               Accepts no arguments:
+               No return value.
+           Reset the profits and losses variable of each firm at the beginning of every iteration. It has to be run in insurancesimulation.py at the beginning of the iterate method"""
+        self.profits_losses = 0
+
+
+
+
 
 
 
