@@ -470,7 +470,7 @@ class InsuranceSimulation():
     def advance_round(self, *args):
         pass
     
-    def finalize(self, *args):  # TODO: fix logging for abce. The self.log() function is defunct, logging should be done with Logger object
+    def finalize(self, *args):
         self.log()
         pass
 
@@ -789,7 +789,7 @@ class InsuranceSimulation():
         nx.draw(self.network_unweighted, pos, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
         plt.show()
 
-    def log(self):                  # TODO: fix logging for abce. This function should not be used; will be retained in the code to guide fixing abce logging
+    def log(self):
         if self.background_run:
             to_log = self.replication_log_prepare()
         else:
@@ -801,14 +801,14 @@ class InsuranceSimulation():
                 wfile.write(str(data) + "\n")
                 wfile.close()
     
-    def replication_log_prepare(self):  # TODO: fix logging for abce. This function should not be used; will be retained in the code to guide fixing abce logging
+    def replication_log_prepare(self):
         filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
         fpf = filename_prefix[self.number_riskmodels]
         to_log = []
         to_log.append(("data/" + fpf + "_history_logs.dat", self.history_logs, "a"))
         return to_log
       
-    def single_log_prepare(self): # TODO: fix logging for abce. This function should not be used; will be retained in the code to guide fixing abce logging
+    def single_log_prepare(self):
         to_log = []
         to_log.append(("data/history_logs.dat", self.history_logs, "w"))
         return to_log
