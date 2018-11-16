@@ -48,9 +48,8 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters, rc_event_schedule, rc_event_damage, np_seed, random_seed):
+def main(simulation_parameters, rc_event_schedule, rc_event_damage, np_seed, random_seed, save_iter):
 
-    save_iter = 200         #This has to be duplicated here if the parse stuff is moved to the end of this file.
     np.random.seed(np_seed)
     random.seed(random_seed)
 
@@ -229,4 +228,4 @@ if __name__ == "__main__":
     setup = SetupSim()       #Here the setup for the simulation is done.
     [general_rc_event_schedule, general_rc_event_damage, np_seeds, random_seeds] = setup.obtain_ensemble(1)   #Only one ensemble. This part will only be run locally (laptop).
 
-    main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0])
+    main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0], save_iter)
