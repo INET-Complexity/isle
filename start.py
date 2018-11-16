@@ -169,10 +169,9 @@ def save_simulation(t, sim, sim_param, exit_now=False):
         exit(0)
 
 # main entry point
-# main entry point
 if __name__ == "__main__":
 
-    # use argparse to handle command line arguments
+    """ use argparse to handle command line arguments"""
     parser = argparse.ArgumentParser(description='Model the Insurance sector')
     parser.add_argument("--abce", action="store_true", help="use abce")
     parser.add_argument("--oneriskmodel", action="store_true",
@@ -220,7 +219,7 @@ if __name__ == "__main__":
     else:
         save_iter = 200
 
-        # import isle and abce modules
+    """ import abce module if required """
     if isleconfig.use_abce:
         # print("Importing abce")
         import abce
