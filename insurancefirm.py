@@ -1,6 +1,5 @@
 from metainsuranceorg import MetaInsuranceOrg
 from catbond import CatBond
-import numba as nb
 import numpy as np
 from reinsurancecontract import ReinsuranceContract
 import isleconfig
@@ -26,11 +25,7 @@ class InsuranceFirm(MetaInsuranceOrg):
         #    self.per_period_dividend = 0
         if actual_capacity < self.capacity_target:                                  # no dividends if firm misses capital target
             self.per_period_dividend = 0
-        
-    def get_profitslosses(self):
-        return self.cash_last_periods[0] - self.cash_last_periods[1]
-    
-    #@nb.jit    
+
     def get_reinsurance_VaR_estimate(self, max_var):
         reinsurance_factor_estimate = (sum([ 1 for categ_id in range(self.simulation_no_risk_categories) \
                                 if (self.category_reinsurance[categ_id] is None)]) \
@@ -54,7 +49,7 @@ class InsuranceFirm(MetaInsuranceOrg):
             return self.cash + reinsurance_VaR_estimate
         # else: # (This point is only reached when insurer is in severe financial difficulty. Ensure insurer recovers complete coverage.)
         return self.cash
-        
+
     def increase_capacity(self, time, max_var):
         '''This is implemented for non-proportional reinsurance only. Otherwise the price comparison is not meaningful. Assert non-proportional mode.'''
         assert self.simulation_reinsurance_type == 'non-proportional'
@@ -97,8 +92,7 @@ class InsuranceFirm(MetaInsuranceOrg):
                 print("IF {0:d} getting reinsurance in period {1:d}".format(self.id, time))
             self.ask_reinsurance_non_proportional_by_category(time, categ_id)
         return True
-    
-    @nb.jit
+
     def get_average_premium(self, categ_id):
         weighted_premium_sum = 0
         total_weight = 0
@@ -119,7 +113,6 @@ class InsuranceFirm(MetaInsuranceOrg):
         else:
             assert False, "Undefined reinsurance type"
 
-    @nb.jit
     def ask_reinsurance_non_proportional(self, time):
         """ Method for requesting excess of loss reinsurance for all underwritten contracts by category.
             The method calculates the combined valur at risk. With a probability it then creates a combined 
@@ -135,7 +128,6 @@ class InsuranceFirm(MetaInsuranceOrg):
             if (self.category_reinsurance[categ_id] is None):
                 self.ask_reinsurance_non_proportional_by_category(time, categ_id)
 
-    @nb.jit 
     def characterize_underwritten_risks_by_category(self, time, categ_id):
         total_value = 0
         avg_risk_factor = 0
@@ -152,7 +144,6 @@ class InsuranceFirm(MetaInsuranceOrg):
         return total_value, avg_risk_factor, number_risks, periodized_total_premium
 
 
-    @nb.jit
     def ask_reinsurance_non_proportional_by_category(self, time, categ_id):
         """Proceed with creation of reinsurance risk only if category is not empty."""
         total_value, avg_risk_factor, number_risks, periodized_total_premium = self.characterize_underwritten_risks_by_category(time, categ_id)
@@ -167,7 +158,6 @@ class InsuranceFirm(MetaInsuranceOrg):
 
             self.simulation.append_reinrisks(risk)
 
-    @nb.jit
     def ask_reinsurance_proportional(self):
         nonreinsured = []
         for contract in self.underwritten_contracts:
@@ -226,7 +216,7 @@ class InsuranceFirm(MetaInsuranceOrg):
                             "excess_fraction": self.np_reinsurance_excess_fraction,
                             "periodized_total_premium": 0, "runtime": 12,
                             "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
-            _, var_this_risk, _ = self.riskmodel.evaluate([], self.cash, risk)
+            _, _, var_this_risk, _ = self.riskmodel.evaluate([], self.cash, risk)
             per_period_premium = per_value_per_period_premium * risk["value"]
             total_premium = sum([per_period_premium * ((1/(1+self.interest_rate))**i) for i in range(risk["runtime"])])                # TODO: or is it range(1, risk["runtime"]+1)?
             #catbond = CatBond(self.simulation, per_period_premium)
@@ -239,13 +229,14 @@ class InsuranceFirm(MetaInsuranceOrg):
                                                       initial_VaR=var_this_risk, \
                                                       insurancetype=risk["insurancetype"])
             # per_value_reinsurance_premium = 0 because the insurance firm does not continue to make payments to the cat bond. Only once.
-            
+
             catbond.set_contract(contract)
             """sell cat bond (to self.simulation)"""
-            self.simulation.receive_obligation(var_this_risk, self, time)
+            self.simulation.receive_obligation(var_this_risk, self, time, 'bond')
             catbond.set_owner(self.simulation)
             """hand cash over to cat bond such that var_this_risk is covered"""
-            self.pay(var_this_risk + total_premium, catbond)    #TODO: is var_this_risk the correct amount?
+            obligation = {"amount": var_this_risk + total_premium, "recipient": catbond, "due_time": time, "purpose": 'bond'}
+            self.pay(obligation)    #TODO: is var_this_risk the correct amount?
             """register catbond"""
             self.simulation.accept_agents("catbond", [catbond], time=time)
 
@@ -275,3 +266,18 @@ class InsuranceFirm(MetaInsuranceOrg):
                reinsurance_contract["category"] = categ_id
                reinsurance.append(reinsurance_contract)
         return reinsurance
+
+    def create_reinrisk(self, time, categ_id):
+        """Proceed with creation of reinsurance risk only if category is not empty."""
+        total_value, avg_risk_factor, number_risks, periodized_total_premium = self.characterize_underwritten_risks_by_category(time, categ_id)
+        if number_risks > 0:
+            risk = {"value": total_value, "category": categ_id, "owner": self,
+                        #"identifier": uuid.uuid1(),
+                        "insurancetype": 'excess-of-loss', "number_risks": number_risks,
+                        "deductible_fraction": self.np_reinsurance_deductible_fraction,
+                        "excess_fraction": self.np_reinsurance_excess_fraction,
+                        "periodized_total_premium": periodized_total_premium, "runtime": 12,
+                        "expiration": time + 12, "risk_factor": avg_risk_factor}    # TODO: make runtime into a parameter
+            return risk
+        else:
+            return None

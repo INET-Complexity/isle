@@ -1,3 +1,4 @@
+import numpy as np
 
 from metainsurancecontract import MetaInsuranceContract 
 
@@ -33,11 +34,13 @@ class ReinsuranceContract(MetaInsuranceContract):
 
         if self.insurancetype == "excess-of-loss" and damage_extent > self.deductible:
             claim = min(self.excess, damage_extent) - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time)
+            self.insurer.receive_obligation(claim, self.property_holder, time, 'claim')
         else:
             claim = min(self.excess, damage_extent) - self.deductible
-            self.insurer.receive_obligation(claim, self.property_holder, time + 1)
+            self.insurer.receive_obligation(claim, self.property_holder, time + 1, 'claim')
             # Reinsurer pays as soon as possible.
+
+        self.insurer.register_claim(claim)   #Every reinsurance claim made is immediately registered.
         if self.expire_immediately:
             self.current_claim += self.contract.claim   # TODO: should proportional reinsurance claims be subject to excess_of_loss retrocession? If so, reorganize more straightforwardly
             
@@ -60,3 +63,7 @@ class ReinsuranceContract(MetaInsuranceContract):
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 
+        if np.random.uniform(0,1,1) < 0.95:
+            reinrisk = self.property_holder.create_reinrisk(time,self.category)
+            if reinrisk is not None and hasattr(self.insurer, 'reinrisks_kept'):
+                self.insurer.reinrisks_kept.append(reinrisk)

@@ -3,7 +3,6 @@ import numpy as np
 import scipy.stats
 import math
 import sys, pdb
-import numba as nb
 import argparse
 import pickle
 import hashlib

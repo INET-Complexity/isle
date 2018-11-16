@@ -1,3 +1,5 @@
+import numpy as np
+
 from metainsurancecontract import MetaInsuranceContract
 
 
@@ -32,9 +34,10 @@ class InsuranceContract(MetaInsuranceContract):
         if uniform_value < self.risk_factor:
             # if True:
             claim = min(self.excess, damage_extent * self.value) - self.deductible
+            self.insurer.register_claim(claim)       #Every insurance claim made is immediately registered.
 
             self.current_claim += claim
-            self.insurer.receive_obligation(claim, self.property_holder, time + 2)
+            self.insurer.receive_obligation(claim, self.property_holder, time + 2, 'claim')
             # Insurer pays one time step after reinsurer to avoid bankruptcy.
             # TODO: Is this realistic? Change this?
             if self.expire_immediately:
@@ -49,5 +52,9 @@ class InsuranceContract(MetaInsuranceContract):
            Returns risk to simulation as contract terminates. Calls terminate_reinsurance to dissolve any reinsurance
            contracts."""
         #self.terminating = True
-        self.property_holder.return_risks([self.risk_data])
-        self.terminate_reinsurance(time)
+        if np.random.uniform(0,1,1) > 0.85:
+            self.property_holder.return_risks([self.risk_data])
+            self.terminate_reinsurance(time)
+        else:
+            self.insurer.risks_kept.append(self.risk_data)
+            self.terminate_reinsurance(time)

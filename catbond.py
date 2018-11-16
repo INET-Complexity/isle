@@ -8,7 +8,6 @@ from metainsuranceorg import MetaInsuranceOrg
 from riskmodel import RiskModel
 import sys, pdb
 import uuid
-import numba as nb
 
 class CatBond(MetaInsuranceOrg):
     def init(self, simulation, per_period_premium, owner, interest_rate = 0):   # do we need simulation parameters
@@ -16,6 +15,7 @@ class CatBond(MetaInsuranceOrg):
         self.id = 0
         self.underwritten_contracts = []
         self.cash = 0
+        self.profits_losses = 0
         self.obligations = []
         self.operational = True
         self.owner = owner
@@ -243,7 +243,8 @@ class CatBond(MetaInsuranceOrg):
         self.underwritten_contracts.append(contract)
     
     def mature_bond(self):
-        self.pay(self.cash, self.simulation)
+        obligation = {"amount": self.cash, "recipient": self.simulation, "due_time": 1, "purpose": 'mature'}
+        self.pay(obligation)
         self.simulation.delete_agents("catbond", [self])
         self.operational = False
 
