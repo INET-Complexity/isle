@@ -9,6 +9,7 @@ import sys, pdb
 import isleconfig
 import random
 import copy
+import logger
 #import networkx as nx
 #import matplotlib.pyplot as plt
 
@@ -202,42 +203,10 @@ class InsuranceSimulation():
         self.cumulative_claims = 0.0
         
         # lists for logging history
+        self.logger = logger.Logger(no_categories=self.simulation_parameters["no_categories"], 
+                                    rc_event_schedule_initial=self.rc_event_schedule_initial, 
+                                    rc_event_damage_initial=self.rc_event_damage_initial)
         
-        # DONE: Make history logging abstact; use a dict of variables instead
-        
-        # sum insurance firms
-
-        self.history_logs = {}
-
-        self.history_logs['total_cash'] = []
-        self.history_logs['total_excess_capital'] = []
-        self.history_logs['total_profitslosses'] = []
-        self.history_logs['total_contracts'] = []
-        self.history_logs['total_operational'] = []
-        # individual insurance firms
-        self.history_logs['individual_contracts'] = []
-        
-        # sum reinsurance firms
-        self.history_logs['total_reincash'] = []
-        self.history_logs['total_reinexcess_capital'] = []
-        self.history_logs['total_reinprofitslosses'] = []
-        self.history_logs['total_reincontracts'] = []
-        self.history_logs['total_reinoperational'] = []
-        
-        self.history_logs['cumulative_bankruptcies'] = []
-        self.history_logs['cumulative_claims'] = []          #Here are stored the total cumulative claims received by the whole insurance sector until a certain time.
-        self.history_logs['cumulative_unrecovered_claims'] = []
-
-        self.history_logs['total_catbondsoperational'] = []
-
-        self.history_logs['market_premium'] = []
-        self.history_logs['market_reinpremium'] = []
-        self.history_logs['market_diffvar'] = []
-        
-        # lists to contain agent-level data
-        self.history_logs['insurance_firms_cash'] = []
-        self.history_logs['reinsurance_firms_cash'] = []
-
         self.insurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
         self.reinsurance_models_counter = np.zeros(self.simulation_parameters["no_categories"])
 
@@ -261,11 +230,7 @@ class InsuranceSimulation():
                 pdb.set_trace()
             # fix self.history_logs['individual_contracts'] list
             for agent in agents:
-                if len(self.history_logs['individual_contracts']) > 0:
-                    zeroes_to_append = list(np.zeros(len(self.history_logs['individual_contracts'][0]), dtype=int))
-                else:
-                    zeroes_to_append = []
-                self.history_logs['individual_contracts'].append(zeroes_to_append)
+                self.logger.add_insurance_agent()
             # remove new agent cash from simulation cash to ensure stock flow consistency
             new_agent_cash = sum([agent.cash for agent in agents])
             self.reduce_money_supply(new_agent_cash)
@@ -389,7 +354,12 @@ class InsuranceSimulation():
         
         
     def save_data(self):
-        # collect data
+        """Method to collect statistics about the current state of the simulation. Will pass these to the 
+           Logger object (self.logger) to be recorded.
+            No arguments.
+            Returns None."""
+        
+        """ collect data """
         total_cash_no = sum([insurancefirm.cash for insurancefirm in self.insurancefirms])
         total_excess_capital = sum([insurancefirm.get_excess_capital() for insurancefirm in self.insurancefirms])
         total_profitslosses =  sum([insurancefirm.get_profitslosses() for insurancefirm in self.insurancefirms])
@@ -402,70 +372,44 @@ class InsuranceSimulation():
         reinoperational_no = sum([reinsurancefirm.operational for reinsurancefirm in self.reinsurancefirms])
         catbondsoperational_no = sum([catbond.operational for catbond in self.catbonds])
         
-        # agent-level data
-        
+        """ collect agent-level data """
         insurance_firms = [(insurancefirm.cash,insurancefirm.id,insurancefirm.operational) for insurancefirm in self.insurancefirms]
         reinsurance_firms = [(reinsurancefirm.cash,reinsurancefirm.id,reinsurancefirm.operational) for reinsurancefirm in self.reinsurancefirms]
         
-
-        self.history_logs['total_cash'].append(total_cash_no)
-        self.history_logs['total_excess_capital'].append(total_excess_capital)
-        self.history_logs['total_profitslosses'].append(total_profitslosses)
-        self.history_logs['total_contracts'].append(total_contracts_no)
-        self.history_logs['total_operational'].append(operational_no)
-        self.history_logs['total_reincash'].append(total_reincash_no)
-        self.history_logs['total_reinexcess_capital'].append(total_reinexcess_capital)
-        self.history_logs['total_reinprofitslosses'].append(total_reinprofitslosses)
-        self.history_logs['total_reincontracts'].append(total_reincontracts_no)
-        self.history_logs['total_reinoperational'].append(reinoperational_no)
-        self.history_logs['total_catbondsoperational'].append(catbondsoperational_no)
-        self.history_logs['market_premium'].append(self.market_premium)
-        self.history_logs['market_reinpremium'].append(self.reinsurance_market_premium)
-        self.history_logs['cumulative_bankruptcies'].append(self.cumulative_bankruptcies)
-        self.history_logs['cumulative_unrecovered_claims'].append(self.cumulative_unrecovered_claims)
-        self.history_logs['cumulative_claims'].append(self.cumulative_claims)    #Log the cumulative claims received so far.
+        """ prepare dict """
+        current_log = {}
+        current_log['total_cash'] = total_cash_no
+        current_log['total_excess_capital'] = total_excess_capital
+        current_log['total_profitslosses'] = total_profitslosses
+        current_log['total_contracts'] = total_contracts_no
+        current_log['total_operational'] = operational_no
+        current_log['total_reincash'] = total_reincash_no
+        current_log['total_reinexcess_capital'] = total_reinexcess_capital
+        current_log['total_reinprofitslosses'] = total_reinprofitslosses
+        current_log['total_reincontracts'] = total_reincontracts_no
+        current_log['total_reinoperational'] = reinoperational_no
+        current_log['total_catbondsoperational'] = catbondsoperational_no
+        current_log['market_premium'] = self.market_premium
+        current_log['market_reinpremium'] = self.reinsurance_market_premium
+        current_log['cumulative_bankruptcies'] = self.cumulative_bankruptcies
+        current_log['cumulative_unrecovered_claims'] = self.cumulative_unrecovered_claims
+        current_log['cumulative_claims'] = self.cumulative_claims    #Log the cumulative claims received so far.
         
-        # agent-level data
-        self.history_logs['insurance_firms_cash'].append(insurance_firms)
-        self.history_logs['reinsurance_firms_cash'].append(reinsurance_firms)
-        self.log_vars()
+        """ add agent-level data to dict""" 
+        current_log['insurance_firms_cash'] = insurance_firms
+        current_log['reinsurance_firms_cash'] = reinsurance_firms
+        current_log['market_diffvar'] = self.compute_market_diffvar()
         
+        current_log['individual_contracts'] = []
         individual_contracts_no = [len(insurancefirm.underwritten_contracts) for insurancefirm in self.insurancefirms]
         for i in range(len(individual_contracts_no)):
-            try:
-                self.history_logs['individual_contracts'][i].append(individual_contracts_no[i])
-            except:
-                print(sys.exc_info())
-                pdb.set_trace()
+            current_log['individual_contracts'].append(individual_contracts_no[i])
 
+        """ call to Logger object """
+        self.logger.record_data(current_log)
+        
     def obtain_log(self):   #This function allows to return in a list all the data generated by the model. There is no other way to transfer it back from the cloud.
-
-        log = []
-
-        log.append(self.history_logs['total_cash'])
-        log.append(self.history_logs['total_excess_capital'])
-        log.append(self.history_logs['total_profitslosses'])
-        log.append(self.history_logs['total_contracts'])
-        log.append(self.history_logs['total_operational'])
-        log.append(self.history_logs['total_reincash'])
-        log.append(self.history_logs['total_reinexcess_capital'])
-        log.append(self.history_logs['total_reinprofitslosses'])
-        log.append(self.history_logs['total_reincontracts'])
-        log.append(self.history_logs['total_reinoperational'])
-        log.append(self.history_logs['total_catbondsoperational'])
-        log.append(self.history_logs['market_premium'])
-        log.append(self.history_logs['market_reinpremium'])
-        log.append(self.history_logs['cumulative_bankruptcies'])
-        log.append(self.history_logs['cumulative_unrecovered_claims'])
-        log.append(self.history_logs['cumulative_claims'])
-        log.append(self.history_logs['insurance_firms_cash'])
-        log.append(self.history_logs['reinsurance_firms_cash'])
-        log.append(self.history_logs['market_diffvar'])
-        log.append(self.rc_event_schedule_initial)
-        log.append(self.rc_event_damage_initial)
-
-
-        return log
+        return self.logger.obtain_log()
     
     def advance_round(self, *args):
         pass
@@ -788,32 +732,11 @@ class InsuranceSimulation():
         pos = nx.spring_layout(self.network_unweighted)
         nx.draw(self.network_unweighted, pos, node_color=firmtypes, with_labels=True, cmap=plt.cm.winter)
         plt.show()
-
-    def log(self):
-        if self.background_run:
-            to_log = self.replication_log_prepare()
-        else:
-            to_log = self.single_log_prepare()
-        
-        #TODO: use with file_handle as open structure 
-        for filename, data, operation_character in to_log:
-            with open(filename, operation_character) as wfile:
-                wfile.write(str(data) + "\n")
-                wfile.close()
     
-    def replication_log_prepare(self):
-        filename_prefix = {1: "one", 2: "two", 3: "three", 4: "four"}
-        fpf = filename_prefix[self.number_riskmodels]
-        to_log = []
-        to_log.append(("data/" + fpf + "_history_logs.dat", self.history_logs, "a"))
-        return to_log
-      
-    def single_log_prepare(self):
-        to_log = []
-        to_log.append(("data/history_logs.dat", self.history_logs, "w"))
-        return to_log
-
-    def log_vars(self):
+    def log(self):
+        self.logger.save_log(self.background_run)
+        
+    def compute_market_diffvar(self):
 
         varsfirms = []
         for firm in self.insurancefirms:
@@ -840,7 +763,9 @@ class InsuranceSimulation():
         totalreal = totalreal + sum(varsreinfirms)
 
         totaldiff = totalina - totalreal
-        self.history_logs['market_diffvar'].append(totaldiff)
+        
+        return totaldiff
+        #self.history_logs['market_diffvar'].append(totaldiff)
 
     def count_underwritten_and_reinsured_risks_by_category(self):
         underwritten_risks = 0
