@@ -1,10 +1,10 @@
-"""Logging class. Handles records of a single simulation run. Can save and reload (reloading yet to be implemented). """
+"""Logging class. Handles records of a single simulation run. Can save and reload. """
 
 import numpy as np
-
+import pdb
 
 class Logger():
-    def __init__(self, no_categories, rc_event_schedule_initial, rc_event_damage_initial):
+    def __init__(self, no_riskmodels=None, rc_event_schedule_initial=None, rc_event_damage_initial=None):
         """Constructor. Prepares history_logs atribute as dict for the logs. Records initial event schedule of
            simulation run.
             Arguments
@@ -13,14 +13,13 @@ class Logger():
                 rc_event_damage_initial: list of arrays (or lists) of float. Damage by peril for each category
                                          as share of total possible damage (maximum insured or excess).
             Returns class instance."""        
+        
+        """Record number of riskmodels"""
+        self.no_riskmodels = no_riskmodels
             
         """Record initial event schedule"""
         self.rc_event_schedule_initial = rc_event_schedule_initial
         self.rc_event_damage_initial = rc_event_damage_initial
-
-        """Record risk models number"""
-        self.insurance_models_counter = np.zeros(no_categories)
-        self.reinsurance_models_counter = np.zeros(no_categories)        
 
         """Prepare history log dict"""
         self.history_logs = {}
@@ -75,6 +74,31 @@ class Logger():
             No arguments.
             Returns list."""
         
+        """ TODO: change this to a dict. For now the sequence of the list is:
+                [0]: 'total_cash'
+                [1]: 'total_excess_capital'
+                [2]: 'total_profitslosses'
+                [3]: 'total_contracts'
+                [4]: 'total_operational'
+                [5]: 'total_reincash'
+                [6]: 'total_reinexcess_capital'
+                [7]: 'total_reinprofitslosses'
+                [8]: 'total_reincontracts'
+                [9]: 'total_reinoperational'
+                [10]: 'total_catbondsoperational'
+                [11]: 'market_premium'
+                [12]: 'market_reinpremium'
+                [13]: 'cumulative_bankruptcies'
+                [14]: 'cumulative_unrecovered_claims'
+                [15]: 'cumulative_claims'
+                [16]: 'insurance_firms_cash'
+                [17]: 'reinsurance_firms_cash'
+                [18]: 'market_diffvar'
+                [19]: rc_event_schedule_initial
+                [20]: rc_event_damage_initial
+                [21]: no_riskmodels
+        """
+        
         log = []
 
         log.append(self.history_logs['total_cash'])
@@ -98,8 +122,62 @@ class Logger():
         log.append(self.history_logs['market_diffvar'])
         log.append(self.rc_event_schedule_initial)
         log.append(self.rc_event_damage_initial)
+        log.append(self.no_riskmodels)
 
         return log
+    
+    def restore_logger_object(self, log):
+        """Method to restore logger object. A log can be restored later. It can also be restored 
+           on a different machine. This is useful in the case of ensemble runs to move the log to
+           the master node from the computation nodes.
+            Arguments:
+                log - list - The log in the order as follows:
+                [0]: 'total_cash'
+                [1]: 'total_excess_capital'
+                [2]: 'total_profitslosses'
+                [3]: 'total_contracts'
+                [4]: 'total_operational'
+                [5]: 'total_reincash'
+                [6]: 'total_reinexcess_capital'
+                [7]: 'total_reinprofitslosses'
+                [8]: 'total_reincontracts'
+                [9]: 'total_reinoperational'
+                [10]: 'total_catbondsoperational'
+                [11]: 'market_premium'
+                [12]: 'market_reinpremium'
+                [13]: 'cumulative_bankruptcies'
+                [14]: 'cumulative_unrecovered_claims'
+                [15]: 'cumulative_claims'
+                [16]: 'insurance_firms_cash'
+                [17]: 'reinsurance_firms_cash'
+                [18]: 'market_diffvar'
+                [19]: rc_event_schedule_initial
+                [20]: rc_event_damage_initial                
+                [21]: no_riskmodels
+            Returns None."""
+        self.history_logs['total_cash'] = log[0]
+        self.history_logs['total_excess_capital'] = log [1]
+        self.history_logs['total_profitslosses'] = log [2]
+        self.history_logs['total_contracts'] = log [3]
+        self.history_logs['total_operational'] = log [4]
+        self.history_logs['total_reincash'] = log [5]
+        self.history_logs['total_reinexcess_capital'] = log [6]
+        self.history_logs['total_reinprofitslosses'] = log [7]
+        self.history_logs['total_reincontracts'] = log [8]
+        self.history_logs['total_reinoperational'] = log [9]
+        self.history_logs['total_catbondsoperational'] = log [10]
+        self.history_logs['market_premium'] = log [11]
+        self.history_logs['market_reinpremium'] = log [12]
+        self.history_logs['cumulative_bankruptcies'] = log [13]
+        self.history_logs['cumulative_unrecovered_claims'] = log [14]
+        self.history_logs['cumulative_claims'] = log [15]
+        self.history_logs['insurance_firms_cash'] = log [16]
+        self.history_logs['reinsurance_firms_cash'] = log [17]
+        self.history_logs['market_diffvar'] = log [18]
+        self.rc_event_schedule_initial = log[19]
+        self.rc_event_damage_initial = log[20]
+        self.no_riskmodels = log[21]
+        
 
     def save_log(self, background_run):
         """Method to save log to disk of local machine. Distinguishes single and ensemble runs.

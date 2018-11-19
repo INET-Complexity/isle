@@ -203,7 +203,7 @@ class InsuranceSimulation():
         self.cumulative_claims = 0.0
         
         # lists for logging history
-        self.logger = logger.Logger(no_categories=self.simulation_parameters["no_categories"], 
+        self.logger = logger.Logger(no_riskmodels=simulation_parameters["no_riskmodels"], 
                                     rc_event_schedule_initial=self.rc_event_schedule_initial, 
                                     rc_event_damage_initial=self.rc_event_damage_initial)
         

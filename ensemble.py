@@ -8,6 +8,7 @@ import math
 import copy
 import scipy.stats
 import start
+import logger
 import isleconfig
 from distributiontruncated import TruncatedDistWrapper
 from setup import SetupSim
@@ -67,8 +68,12 @@ def rake(hostname):
         counter = 1
         for job in jobs:     #If there are 4 risk models jobs will be a list with 4 elements.
             result = sess.submit(job)
-
-
+            
+            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat""""
+            L = logger.Logger()
+            L.restore_logger_object(result)
+            L.save_log(True)
+            
             """These are the files created to collect the results"""
 
             wfile_0 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cash.dat", "w")
