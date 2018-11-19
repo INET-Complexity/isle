@@ -23,7 +23,8 @@ from insurancesimulation import InsuranceSimulation
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
-
+import logger
+    
 # ensure that logging directory exists
 if not os.path.isdir("data"):
     assert not os.path.exists("data"), "./data exists as regular file. This filename is required for the logging directory"
@@ -230,7 +231,7 @@ if __name__ == "__main__":
 
     log = main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0], save_iter)
     
-    #""" We could restore the log at the end of the single limulation run for further study like so: """
-    #import logger
-    #L = logger.Logger()
-    #L.restore_logger_object(log)
+    """ Restore the log at the end of the single simulation run for saving and for potential further study """
+    L = logger.Logger()
+    L.restore_logger_object(log)
+    L.save_log(True)

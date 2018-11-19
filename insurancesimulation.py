@@ -415,7 +415,12 @@ class InsuranceSimulation():
         pass
     
     def finalize(self, *args):
-        self.log()
+        """Function to handle oberations after the end of the simulation run.
+           Currently empty.
+           It may be used to handle e.g. loging by including:
+            self.log()
+           but logging has been moved to start.py and ensemble.py
+           """
         pass
 
     def inflict_peril(self, categ_id, damage, t):

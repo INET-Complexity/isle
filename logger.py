@@ -1,7 +1,7 @@
 """Logging class. Handles records of a single simulation run. Can save and reload. """
 
 import numpy as np
-import pdb
+#import pdb
 
 class Logger():
     def __init__(self, no_riskmodels=None, rc_event_schedule_initial=None, rc_event_damage_initial=None):
@@ -15,7 +15,7 @@ class Logger():
             Returns class instance."""        
         
         """Record number of riskmodels"""
-        self.no_riskmodels = no_riskmodels
+        self.number_riskmodels = no_riskmodels
             
         """Record initial event schedule"""
         self.rc_event_schedule_initial = rc_event_schedule_initial
@@ -96,7 +96,7 @@ class Logger():
                 [18]: 'market_diffvar'
                 [19]: rc_event_schedule_initial
                 [20]: rc_event_damage_initial
-                [21]: no_riskmodels
+                [21]: number_riskmodels
         """
         
         log = []
@@ -122,7 +122,7 @@ class Logger():
         log.append(self.history_logs['market_diffvar'])
         log.append(self.rc_event_schedule_initial)
         log.append(self.rc_event_damage_initial)
-        log.append(self.no_riskmodels)
+        log.append(self.number_riskmodels)
 
         return log
     
@@ -153,7 +153,7 @@ class Logger():
                 [18]: 'market_diffvar'
                 [19]: rc_event_schedule_initial
                 [20]: rc_event_damage_initial                
-                [21]: no_riskmodels
+                [21]: number_riskmodels
             Returns None."""
         self.history_logs['total_cash'] = log[0]
         self.history_logs['total_excess_capital'] = log [1]
@@ -176,7 +176,7 @@ class Logger():
         self.history_logs['market_diffvar'] = log [18]
         self.rc_event_schedule_initial = log[19]
         self.rc_event_damage_initial = log[20]
-        self.no_riskmodels = log[21]
+        self.number_riskmodels = log[21]
         
 
     def save_log(self, background_run):
