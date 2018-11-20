@@ -9,8 +9,7 @@ import pickle
 import hashlib
 import random
 import copy
-
-
+import importlib
 
 # import config file and apply configuration
 import isleconfig
@@ -23,7 +22,8 @@ from insurancesimulation import InsuranceSimulation
 from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
-
+import logger
+    
 # ensure that logging directory exists
 if not os.path.isdir("data"):
     assert not os.path.exists("data"), "./data exists as regular file. This filename is required for the logging directory"
@@ -48,9 +48,8 @@ if not isleconfig.use_abce:
 
 #@gui(simulation_parameters, serve=True)
 @conditionally(gui(simulation_parameters, serve=False), isleconfig.use_abce)
-def main(simulation_parameters, rc_event_schedule, rc_event_damage, np_seed, random_seed):
+def main(simulation_parameters, rc_event_schedule, rc_event_damage, np_seed, random_seed, save_iter):
 
-    save_iter = 200         #This has to be duplicated here if the parse stuff is moved to the end of this file.
     np.random.seed(np_seed)
     random.seed(random_seed)
 
@@ -169,10 +168,9 @@ def save_simulation(t, sim, sim_param, exit_now=False):
         exit(0)
 
 # main entry point
-# main entry point
 if __name__ == "__main__":
 
-    # use argparse to handle command line arguments
+    """ use argparse to handle command line arguments"""
     parser = argparse.ArgumentParser(description='Model the Insurance sector')
     parser.add_argument("--abce", action="store_true", help="use abce")
     parser.add_argument("--oneriskmodel", action="store_true",
@@ -186,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
     parser.add_argument("--foreground", action="store_true",
                         help="force foreground runs even if replication ID is given (which defaults to background runs)")
+    parser.add_argument("--shownetwork", action="store_true", help="show reinsurance relations as network")
     parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
     parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
     parser.add_argument("--save_iterations", type=int, help="number of iterations to iterate before saving world state")
@@ -211,6 +210,13 @@ if __name__ == "__main__":
         seed = np.random.randint(0, 2 ** 31 - 1)
     if args.foreground:
         isleconfig.force_foreground = True
+    if args.shownetwork:
+        isleconfig.show_network = True
+        """Option requires reloading of InsuranceSimulation so that modules to show network can be loaded.
+            # TODO: change all module imports of the form "from module import class" to "import module". """   
+        import insurancesimulation
+        importlib.reload(insurancesimulation)
+        from insurancesimulation import InsuranceSimulation
     if args.showprogress:
         isleconfig.showprogress = True
     if args.verbose:
@@ -220,7 +226,7 @@ if __name__ == "__main__":
     else:
         save_iter = 200
 
-        # import isle and abce modules
+    """ import abce module if required """
     if isleconfig.use_abce:
         # print("Importing abce")
         import abce
@@ -230,4 +236,9 @@ if __name__ == "__main__":
     setup = SetupSim()       #Here the setup for the simulation is done.
     [general_rc_event_schedule, general_rc_event_damage, np_seeds, random_seeds] = setup.obtain_ensemble(1)   #Only one ensemble. This part will only be run locally (laptop).
 
-    main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0])
+    log = main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0], save_iter)
+    
+    """ Restore the log at the end of the single simulation run for saving and for potential further study """
+    L = logger.Logger()
+    L.restore_logger_object(log)
+    L.save_log(True)
