@@ -23,6 +23,7 @@ from insurancefirm import InsuranceFirm
 from riskmodel import RiskModel
 from reinsurancefirm import ReinsuranceFirm
 import logger
+import calibrationscore
     
 # ensure that logging directory exists
 if not os.path.isdir("data"):
@@ -242,3 +243,8 @@ if __name__ == "__main__":
     L = logger.Logger()
     L.restore_logger_object(log)
     L.save_log(True)
+    
+    """ Obtain calibration score """
+    CS = calibrationscore.CalibrationScore(L)
+    score = CS.test_all()
+    
