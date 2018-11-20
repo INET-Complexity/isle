@@ -9,8 +9,7 @@ import pickle
 import hashlib
 import random
 import copy
-
-
+import importlib
 
 # import config file and apply configuration
 import isleconfig
@@ -185,6 +184,7 @@ if __name__ == "__main__":
     parser.add_argument("--randomseed", type=float, help="allow setting of numpy random seed")
     parser.add_argument("--foreground", action="store_true",
                         help="force foreground runs even if replication ID is given (which defaults to background runs)")
+    parser.add_argument("--shownetwork", action="store_true", help="show reinsurance relations as network")
     parser.add_argument("-p", "--showprogress", action="store_true", help="show timesteps")
     parser.add_argument("-v", "--verbose", action="store_true", help="more detailed output")
     parser.add_argument("--save_iterations", type=int, help="number of iterations to iterate before saving world state")
@@ -210,6 +210,13 @@ if __name__ == "__main__":
         seed = np.random.randint(0, 2 ** 31 - 1)
     if args.foreground:
         isleconfig.force_foreground = True
+    if args.shownetwork:
+        isleconfig.show_network = True
+        """Option requires reloading of InsuranceSimulation so that modules to show network can be loaded.
+            # TODO: change all module imports of the form "from module import class" to "import module". """   
+        import insurancesimulation
+        importlib.reload(insurancesimulation)
+        from insurancesimulation import InsuranceSimulation
     if args.showprogress:
         isleconfig.showprogress = True
     if args.verbose:
