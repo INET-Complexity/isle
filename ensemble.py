@@ -70,10 +70,9 @@ def rake(hostname):
         for job in jobs:     #If there are 4 risk models jobs will be a list with 4 elements.
             result = sess.submit(job)
             
-            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat""""
+            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat"""
             L = logger.Logger()
-            L.restore_logger_object(result)
-            L.save_log(True)
+
             
             """These are the files created to collect the results"""
 
@@ -113,27 +112,32 @@ def rake(hostname):
                 except:
                     os.mkdir(directory)
 
-                wfile_0.write(str(result[i][0]) + "\n")
-                wfile_1.write(str(result[i][1]) + "\n")
-                wfile_2.write(str(result[i][2]) + "\n")
-                wfile_3.write(str(result[i][3]) + "\n")
-                wfile_4.write(str(result[i][4]) + "\n")
-                wfile_5.write(str(result[i][5]) + "\n")
-                wfile_6.write(str(result[i][6]) + "\n")
-                wfile_7.write(str(result[i][7]) + "\n")
-                wfile_8.write(str(result[i][8]) + "\n")
-                wfile_9.write(str(result[i][9]) + "\n")
-                wfile_10.write(str(result[i][10]) + "\n")
-                wfile_11.write(str(result[i][11]) + "\n")
-                wfile_12.write(str(result[i][12]) + "\n")
-                wfile_13.write(str(result[i][13]) + "\n")
-                wfile_14.write(str(result[i][14]) + "\n")
-                wfile_15.write(str(result[i][15]) + "\n")
-                wfile_16.write(str(result[i][16]) + "\n")
-                wfile_17.write(str(result[i][17]) + "\n")
-                wfile_18.write(str(result[i][18]) + "\n")
-                wfile_19.write(str(result[i][19]) + "\n")
-                wfile_20.write(str(result[i][20]) + "\n")
+                for i in range(len(result)):
+
+                    L.restore_logger_object(result[i])
+                    L.save_log(True)
+
+                    wfile_0.write(str(result[i][0]) + "\n")
+                    wfile_1.write(str(result[i][1]) + "\n")
+                    wfile_2.write(str(result[i][2]) + "\n")
+                    wfile_3.write(str(result[i][3]) + "\n")
+                    wfile_4.write(str(result[i][4]) + "\n")
+                    wfile_5.write(str(result[i][5]) + "\n")
+                    wfile_6.write(str(result[i][6]) + "\n")
+                    wfile_7.write(str(result[i][7]) + "\n")
+                    wfile_8.write(str(result[i][8]) + "\n")
+                    wfile_9.write(str(result[i][9]) + "\n")
+                    wfile_10.write(str(result[i][10]) + "\n")
+                    wfile_11.write(str(result[i][11]) + "\n")
+                    wfile_12.write(str(result[i][12]) + "\n")
+                    wfile_13.write(str(result[i][13]) + "\n")
+                    wfile_14.write(str(result[i][14]) + "\n")
+                    wfile_15.write(str(result[i][15]) + "\n")
+                    wfile_16.write(str(result[i][16]) + "\n")
+                    wfile_17.write(str(result[i][17]) + "\n")
+                    wfile_18.write(str(result[i][18]) + "\n")
+                    wfile_19.write(str(result[i][19]) + "\n")
+                    wfile_20.write(str(result[i][20]) + "\n")
 
 
 
