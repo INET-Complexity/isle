@@ -200,6 +200,7 @@ class InsuranceSimulation():
         
         # cumulative variables for history and logging
         self.cumulative_bankruptcies = 0
+        self.cumulative_market_exits = 0
         self.cumulative_unrecovered_claims = 0.0
         self.cumulative_claims = 0.0
         
@@ -681,6 +682,9 @@ class InsuranceSimulation():
 
     def record_bankruptcy(self):
         self.cumulative_bankruptcies += 1
+
+    def record_market_exit(self):
+        self.cumulative_market_exits += 1
 
     def record_unrecovered_claims(self, loss):
         self.cumulative_unrecovered_claims += loss
