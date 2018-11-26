@@ -201,30 +201,63 @@ class MetaInsuranceOrg(GenericAgent):
         self.estimated_var()
 
     def enter_illiquidity(self, time):
+        """Enter_illiquidity Method.
+               Accepts arguments
+                   time: Type integer. The current time.
+               No return value.
+           This method is called when a firm does not have enough cash to pay all its obligations. It is only called from
+           the method self.effect_payments() which is called at the beginning of the self.iterate() method of this class.
+           This method formalizes the bankruptcy through the method self.enter_bankruptcy()."""
         self.enter_bankruptcy(time)
 
     def enter_bankruptcy(self, time):
+        """Enter_bankruptcy Method.
+               Accepts arguments
+                   time: Type integer. The current time.
+               No return value.
+           This method is used when a firm does not have enough cash to pay all its obligations. It is only called from
+           the method self.enter_illiquidity() which is only called from the method self.effect_payments(). This method
+           dissolves the firm through the method self.dissolve()."""
         self.dissolve(time, 'record_bankruptcy')
-        self.operational = False
 
     def market_exit(self, time):
+        """Market_exit Method.
+               Accepts arguments
+                   time: Type integer. The current time.
+               No return value.
+           This method is called when a firms wants to leave the market because it feels that it has been underperforming
+           for too many periods. It is only called from the method self.market_permanency() that it is run in the main iterate
+           method of this class. It needs to be different from the method self.enter_bankruptcy() because in this case
+           all the obligations can be paid. After paying all the obligations this method dissolves the firm through the
+           method self.dissolve()."""
         due = [item for item in self.obligations]
         for obligation in due:
             self.pay(obligation)
         self.dissolve(time, 'record_market_exit')
 
-    def dissolve(self, time, reason):
+    def dissolve(self, time, record):
+        """Dissolve Method.
+               Accepts arguments
+                   time: Type integer. The current time.
+                   record: Type string. This argument is a string that represents the kind of record that we want for
+                   the dissolution of the firm.So far it can be either 'record_bankruptcy' or 'record_market_exit'.
+               No return value.
+           This method dissolves the firm. It is called from the methods self.enter_bankruptcy() and self.market_exit()
+           of this class (metainsuranceorg.py). First of all it dissolves all the contracts currently held (those in self.underwritten_contracts).
+           Next all the cash currently available is transferred to insurancesimulation.py through an obligation in the
+           next iteration. Finally the type of dissolution is recorded and the operational state is set to false.
+           Different class variables are reset during the process: self.risks_kept, self.reinrisks_kept, self.excess_capital
+           and self.profits_losses."""
         [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
         self.simulation.return_risks(self.risks_kept)
         self.risks_kept = []
         self.reinrisks_kept = []
-        self.simulation.receive(self.cash)
         obligation = {"amount": self.cash, "recipient": self.simulation, "due_time": time, "purpose": "Dissolution"}
-        self.pay(obligation)
+        self.pay(obligation)                    #This MUST be the last obligation before the dissolution of the firm.
         self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy or market exit.
         self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy or market exit.
         if self.operational:
-            method_to_call = getattr(self.simulation, reason)
+            method_to_call = getattr(self.simulation, record)
             method_to_call()
         self.operational = False
 
