@@ -219,7 +219,8 @@ class MetaInsuranceOrg(GenericAgent):
         self.risks_kept = []
         self.reinrisks_kept = []
         self.simulation.receive(self.cash)
-        self.cash = 0                           #Cash is 0 after bankruptcy or market exit.
+        obligation = {"amount": self.cash, "recipient": self.simulation, "due_time": time, "purpose": "Dissolution"}
+        self.pay(obligation)
         self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy or market exit.
         self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy or market exit.
         if self.operational:
