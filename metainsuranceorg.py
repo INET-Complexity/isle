@@ -204,16 +204,29 @@ class MetaInsuranceOrg(GenericAgent):
         self.enter_bankruptcy(time)
 
     def enter_bankruptcy(self, time):
+        self.dissolve(time, 'record_bankruptcy')
+        self.operational = False
+
+    def market_exit(self, time):
+        due = [item for item in self.obligations]
+        for obligation in due:
+            self.pay(obligation)
+        self.dissolve(time, 'record_market_exit')
+
+    def dissolve(self, time, reason):
         [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
         self.simulation.return_risks(self.risks_kept)
         self.risks_kept = []
         self.reinrisks_kept = []
         self.simulation.receive(self.cash)
-        self.cash = 0                           #Cash is 0 after bankruptcy.
-        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy.
-        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy.
+        obligation = {"amount": self.cash, "recipient": self.simulation, "due_time": time, "purpose": "Dissolution"}
+        self.pay(obligation)
+        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy or market exit.
+        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy or market exit.
+        if self.operational:
+            method_to_call = getattr(self.simulation, reason)
+            method_to_call()
         self.operational = False
-        self.simulation.record_bankruptcy()
 
     def receive_obligation(self, amount, recipient, due_time, purpose):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time, "purpose": purpose}
@@ -471,7 +484,7 @@ class MetaInsuranceOrg(GenericAgent):
             avg_cash_left = cash_left_by_categ.mean()
 
             if self.cash < self.simulation_parameters["cash_permanency_limit"]:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
-                self.enter_bankruptcy(time)        #TODO This should not count as a bankruptcy
+                self.market_exit(time)
             else:
                 if self.is_insurer:
 
@@ -482,7 +495,7 @@ class MetaInsuranceOrg(GenericAgent):
                         self.market_permanency_counter = 0                                    #All these limits maybe should be parameters in isleconfig.py
 
                     if self.market_permanency_counter >= self.simulation_parameters["insurance_permanency_time_constraint"]:    # Here we determine how much is too long.
-                        self.enter_bankruptcy(time)         #TODO This should not count as a bankruptcy
+                        self.market_exit(time)
 
                 if self.is_reinsurer:
 
@@ -494,7 +507,7 @@ class MetaInsuranceOrg(GenericAgent):
                         self.market_permanency_counter = 0
 
                     if self.market_permanency_counter >= self.simulation_parameters["reinsurance_permanency_time_constraint"]:  # Here we determine how much is too long.
-                        self.enter_bankruptcy(time)            #TODO This should not count as a bankruptcy
+                        self.market_exit(time)
 
     def register_claim(self, claim):    #This method records in insurancesimulation.py every claim made. It is called either from insurancecontract.py or reinsurancecontract.py respectively.
         self.simulation.record_claims(claim)
