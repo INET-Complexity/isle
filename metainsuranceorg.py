@@ -204,35 +204,28 @@ class MetaInsuranceOrg(GenericAgent):
         self.enter_bankruptcy(time)
 
     def enter_bankruptcy(self, time):
+        self.dissolve(time, 'record_bankruptcy')
+        self.operational = False
+
+    def market_exit(self, time):
+        due = [item for item in self.obligations]
+        for obligation in due:
+            self.pay(obligation)
+        self.dissolve(time, 'record_market_exit')
+
+    def dissolve(self, time, reason):
         [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after bankruptcy (may not be realistic, they might instead be bought by another company)
         self.simulation.return_risks(self.risks_kept)
         self.risks_kept = []
         self.reinrisks_kept = []
         self.simulation.receive(self.cash)
-        self.cash = 0                           #Cash is 0 after bankruptcy.
-        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy.
-        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy.
+        self.cash = 0                           #Cash is 0 after bankruptcy or market exit.
+        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy or market exit.
+        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy or market exit.
         if self.operational:
-            self.simulation.record_bankruptcy()
+            method_to_call = getattr(self.simulation, reason)
+            method_to_call()
         self.operational = False
-
-
-    def market_exit(self, time):
-        [contract.dissolve(time) for contract in self.underwritten_contracts]   # removing (dissolving) all risks immediately after market exit (may not be realistic, they might instead be bought by another company)
-        self.simulation.return_risks(self.risks_kept)
-        self.risks_kept = []
-        self.reinrisks_kept = []
-        due = [item for item in self.obligations]
-        for obligation in due:
-            self.pay(obligation)
-        self.simulation.receive(self.cash)
-        self.cash = 0                           #Cash is 0 after bankruptcy.
-        self.excess_capital = 0                 #Excess of capital is 0 after bankruptcy.
-        self.profits_losses = 0                 #Profits and losses are 0 after bankruptcy.
-        if self.operational:
-            self.simulation.record_market_exit()
-        self.operational = False
-
 
     def receive_obligation(self, amount, recipient, due_time, purpose):
         obligation = {"amount": amount, "recipient": recipient, "due_time": due_time, "purpose": purpose}
