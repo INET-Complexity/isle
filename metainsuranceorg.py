@@ -233,6 +233,7 @@ class MetaInsuranceOrg(GenericAgent):
         due = [item for item in self.obligations]
         for obligation in due:
             self.pay(obligation)
+        self.obligations = []
         self.dissolve(time, 'record_market_exit')
 
     def dissolve(self, time, record):
