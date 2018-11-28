@@ -200,6 +200,7 @@ class InsuranceSimulation():
         
         # cumulative variables for history and logging
         self.cumulative_bankruptcies = 0
+        self.cumulative_market_exits = 0
         self.cumulative_unrecovered_claims = 0.0
         self.cumulative_claims = 0.0
         
@@ -680,7 +681,20 @@ class InsuranceSimulation():
             return False
 
     def record_bankruptcy(self):
+        """Record_bankruptcy Method.
+               Accepts no arguments:
+               No return value.
+           This method is called when a firm files for bankruptcy. It is only called from the method dissolve() from the
+           class metainsuranceorg.py after the dissolution of the firm."""
         self.cumulative_bankruptcies += 1
+
+    def record_market_exit(self):
+        """Record_market_exit Method.
+               Accepts no arguments:
+               No return value.
+           This method is used to record the firms that leave the market due to underperforming conditions. It is only called
+           from the method dissolve() from the class metainsuranceorg.py after the dissolution of the firm."""
+        self.cumulative_market_exits += 1
 
     def record_unrecovered_claims(self, loss):
         self.cumulative_unrecovered_claims += loss

@@ -70,10 +70,9 @@ def rake(hostname):
         for job in jobs:     #If there are 4 risk models jobs will be a list with 4 elements.
             result = sess.submit(job)
             
-            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat""""
+            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat"""
             L = logger.Logger()
-            L.restore_logger_object(result)
-            L.save_log(True)
+
             
             """These are the files created to collect the results"""
 
@@ -104,14 +103,17 @@ def rake(hostname):
             """Here the results of the simulations (typically run in the cloud) are collected"""
 
             for i in range(len(job)):
-                directory = os.getcwd() + "/data"
 
+                directory = os.getcwd() + "/data"
 
                 try: #Here it is checked whether the directory to collect the results exists or not. If not it is created.
 
                     os.stat(directory)
                 except:
                     os.mkdir(directory)
+
+                L.restore_logger_object(result[i])
+                L.save_log(True)
 
                 wfile_0.write(str(result[i][0]) + "\n")
                 wfile_1.write(str(result[i][1]) + "\n")
