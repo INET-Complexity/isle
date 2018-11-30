@@ -276,6 +276,7 @@ class InsuranceSimulation():
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
         self.adjust_market_premium(capital=sum_capital)
+        sum_capital = sum([agent.get_cash() for agent in self.reinsurancefirms])  # TODO: include reinsurancefirms
         self.adjust_reinsurance_market_premium(capital=sum_capital)
 
         # pay obligations
@@ -531,7 +532,9 @@ class InsuranceSimulation():
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
     
     def adjust_reinsurance_market_premium(self, capital):
-         self.reinsurance_market_premium = self.market_premium
+        self.reinsurance_market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
+        if self.reinsurance_market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
+            self.reinsurance_market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
 
     def get_market_premium(self):
         return self.market_premium
