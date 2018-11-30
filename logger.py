@@ -31,6 +31,7 @@ class Logger():
         self.history_logs['total_contracts'] = []
         self.history_logs['total_operational'] = []
         self.history_logs['cumulative_bankruptcies'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
+        self.history_logs['cumulative_market_exits'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
         self.history_logs['cumulative_claims'] = []          #Here are stored the total cumulative claims received by the whole insurance sector until a certain time.
         self.history_logs['cumulative_unrecovered_claims'] = []
         
@@ -89,14 +90,15 @@ class Logger():
                 [11]: 'market_premium'
                 [12]: 'market_reinpremium'
                 [13]: 'cumulative_bankruptcies'
-                [14]: 'cumulative_unrecovered_claims'
-                [15]: 'cumulative_claims'
-                [16]: 'insurance_firms_cash'
-                [17]: 'reinsurance_firms_cash'
-                [18]: 'market_diffvar'
-                [19]: rc_event_schedule_initial
-                [20]: rc_event_damage_initial
-                [21]: number_riskmodels
+                [14]: 'cumulative_market_exits'
+                [15]: 'cumulative_unrecovered_claims'
+                [16]: 'cumulative_claims'
+                [17]: 'insurance_firms_cash'
+                [18]: 'reinsurance_firms_cash'
+                [19]: 'market_diffvar'
+                [20]: rc_event_schedule_initial
+                [21]: rc_event_damage_initial
+                [22]: number_riskmodels
         """
         
         log = []
@@ -115,6 +117,7 @@ class Logger():
         log.append(self.history_logs['market_premium'])
         log.append(self.history_logs['market_reinpremium'])
         log.append(self.history_logs['cumulative_bankruptcies'])
+        log.append(self.history_logs['cumulative_market_exits'])
         log.append(self.history_logs['cumulative_unrecovered_claims'])
         log.append(self.history_logs['cumulative_claims'])
         log.append(self.history_logs['insurance_firms_cash'])
@@ -169,14 +172,15 @@ class Logger():
         self.history_logs['market_premium'] = log [11]
         self.history_logs['market_reinpremium'] = log [12]
         self.history_logs['cumulative_bankruptcies'] = log [13]
-        self.history_logs['cumulative_unrecovered_claims'] = log [14]
-        self.history_logs['cumulative_claims'] = log [15]
-        self.history_logs['insurance_firms_cash'] = log [16]
-        self.history_logs['reinsurance_firms_cash'] = log [17]
-        self.history_logs['market_diffvar'] = log [18]
-        self.rc_event_schedule_initial = log[19]
-        self.rc_event_damage_initial = log[20]
-        self.number_riskmodels = log[21]
+        self.history_logs['cumulative_market_exits'] = log[14]
+        self.history_logs['cumulative_unrecovered_claims'] = log [15]
+        self.history_logs['cumulative_claims'] = log [16]
+        self.history_logs['insurance_firms_cash'] = log [17]
+        self.history_logs['reinsurance_firms_cash'] = log [18]
+        self.history_logs['market_diffvar'] = log [19]
+        self.rc_event_schedule_initial = log[20]
+        self.rc_event_damage_initial = log[21]
+        self.number_riskmodels = log[22]
         
 
     def save_log(self, background_run):
