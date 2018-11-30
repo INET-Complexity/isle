@@ -553,9 +553,19 @@ class InsuranceSimulation():
             self.reinsurance_market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
 
     def get_market_premium(self):
+        """Get_market_premium Method.
+               Accepts no arguments.
+               Returns:
+                   self.market_premium: Type float. The current insurance market premium.
+           This method returns the current insurance market premium."""
         return self.market_premium
 
     def get_market_reinpremium(self):
+        """Get_market_reinpremium Method.
+               Accepts no arguments.
+               Returns:
+                   self.reinsurance_market_premium: Type float. The current reinsurance market premium.
+           This method returns the current reinsurance market premium."""
         return self.reinsurance_market_premium
 
     def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
@@ -704,7 +714,7 @@ class InsuranceSimulation():
 
     def record_bankruptcy(self):
         """Record_bankruptcy Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method is called when a firm files for bankruptcy. It is only called from the method dissolve() from the
            class metainsuranceorg.py after the dissolution of the firm."""
@@ -712,7 +722,7 @@ class InsuranceSimulation():
 
     def record_market_exit(self):
         """Record_market_exit Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method is used to record the firms that leave the market due to underperforming conditions. It is only called
            from the method dissolve() from the class metainsuranceorg.py after the dissolution of the firm."""
@@ -809,7 +819,7 @@ class InsuranceSimulation():
 
     def reset_pls(self):
         """Reset_pls Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method reset all the profits and losses of all insurance firms, reinsurance firms and catbonds."""
         for insurancefirm in self.insurancefirms:
