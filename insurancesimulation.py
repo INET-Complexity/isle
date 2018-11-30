@@ -398,6 +398,7 @@ class InsuranceSimulation():
         current_log['market_premium'] = self.market_premium
         current_log['market_reinpremium'] = self.reinsurance_market_premium
         current_log['cumulative_bankruptcies'] = self.cumulative_bankruptcies
+        current_log['cumulative_market_exits'] = self.cumulative_market_exits
         current_log['cumulative_unrecovered_claims'] = self.cumulative_unrecovered_claims
         current_log['cumulative_claims'] = self.cumulative_claims    #Log the cumulative claims received so far.
         

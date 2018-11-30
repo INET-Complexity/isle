@@ -90,14 +90,15 @@ def rake(hostname):
             wfile_11 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_premium.dat", "w")
             wfile_12 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reinpremium.dat", "w")
             wfile_13 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_bankruptcies.dat", "w")
-            wfile_14 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_unrecovered_claims.dat", "w")
-            wfile_15 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_claims.dat", "w")
-            wfile_16 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_insurance_firms_cash.dat", "w")
-            wfile_17 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_reinsurance_firms_cash.dat", "w")
-            wfile_18 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_market_diffvar.dat", "w")
-            wfile_19 = open(os.getcwd() + "/data/" + str(counter) + "_rc_schedule.dat", "w")
-            wfile_20 = open(os.getcwd() + "/data/" + str(counter) + "_rc_damage.dat", "w")
-
+            wfile_14 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_market_exits", "w")
+            wfile_15 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_unrecovered_claims.dat", "w")
+            wfile_16 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_claims.dat", "w")
+            wfile_17 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_insurance_firms_cash.dat", "w")
+            wfile_18 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_reinsurance_firms_cash.dat", "w")
+            wfile_19 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_market_diffvar.dat", "w")
+            wfile_20 = open(os.getcwd() + "/data/" + str(counter) + "_rc_schedule.dat", "w")
+            wfile_21 = open(os.getcwd() + "/data/" + str(counter) + "_rc_damage.dat", "w")
+            wfile_22 = open(os.getcwd() + "/data/" + str(counter) + "_no_riskmodels.dat", "w")
 
 
             """Here the results of the simulations (typically run in the cloud) are collected"""
@@ -136,6 +137,10 @@ def rake(hostname):
                 wfile_18.write(str(result[i][18]) + "\n")
                 wfile_19.write(str(result[i][19]) + "\n")
                 wfile_20.write(str(result[i][20]) + "\n")
+                wfile_21.write(str(result[i][21]) + "\n")
+                wfile_22.write(str(result[i][22]) + "\n")
+
+
 
 
 
@@ -162,6 +167,8 @@ def rake(hostname):
             wfile_18.close()
             wfile_19.close()
             wfile_20.close()
+            wfile_21.close()
+            wfile_22.close()
 
 
             counter =counter + 1
