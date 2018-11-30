@@ -41,6 +41,9 @@ simulation_parameters={"no_categories": 4,
                        "capacity_target_increment_threshold": 1.2,
                        "capacity_target_decrement_factor": 24/25.,
                        "capacity_target_increment_factor": 25/24.,
+                       #Premium sensitivity parameters
+                       "premium_sensitivity": 8,
+                       "reinpremium_sensitivity": 8,
                        #Balanced portfolio parameters
                        "insurers_balance_ratio": 0.1,           # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
                        "reinsurers_balance_ratio": 20,          # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
