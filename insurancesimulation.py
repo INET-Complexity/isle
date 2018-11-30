@@ -555,6 +555,9 @@ class InsuranceSimulation():
     def get_market_premium(self):
         return self.market_premium
 
+    def get_market_reinpremium(self):
+        return self.reinsurance_market_premium
+
     def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
         # TODO: cut this out of the insurance market premium -> OBSOLETE??
         # TODO: make premiums dependend on the deductible per value (np_reinsurance_deductible_fraction) -> DONE.
