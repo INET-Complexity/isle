@@ -527,11 +527,27 @@ class InsuranceSimulation():
         np.random.shuffle(self.risks)
 
     def adjust_market_premium(self, capital):
+        """Adjust_market_premium Method.
+               Accepts arguments
+                   capital: Type float. The total capital (cash) available in the insurance market (insurance only).
+               No return value.
+           This method adjusts the premium charged by insurance firms for the risks covered. The premium reduces linearly
+           with the capital available in the insurance market and viceversa. The premium reduces until it reaches a minimum
+           below which no insurer is willing to reduce further the price. This method is only called in the self.iterate()
+           method of this class."""
         self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - self.simulation_parameters["premium_sensitivity"] * capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
     
     def adjust_reinsurance_market_premium(self, capital):
+        """Adjust_market_premium Method.
+               Accepts arguments
+                   capital: Type float. The total capital (cash) available in the reinsurance market (reinsurance only).
+               No return value.
+           This method adjusts the premium charged by reinsurance firms for the risks covered. The premium reduces linearly
+           with the capital available in the reinsurance market and viceversa. The premium reduces until it reaches a minimum
+           below which no reinsurer is willing to reduce further the price. This method is only called in the self.iterate()
+           method of this class."""
         self.reinsurance_market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - self.simulation_parameters["reinpremium_sensitivity"] * capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.reinsurance_market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.reinsurance_market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
