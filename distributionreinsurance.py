@@ -40,8 +40,11 @@ class ReinsuranceDistWrapper():
     def ppf(self, x):
         x = np.array(x, ndmin=1)
         assert (x >= 0).all() and (x <= 1).all()
-        r = map(lambda Y: self.dist.ppf(Y) if Y <= self.dist.cdf(self.lower_bound) \
-                        else self.dist.ppf(self.dist.cdf(self.lower_bound)) if Y <= self.dist.cdf(self.upper_bound) \
+        _lower_cdf = self.dist.cdf(self.lower_bound)
+        _lower_ppf = self.dist.ppf(_lower_cdf)
+        _upper_cdf = self.dist.cdf(self.upper_bound)
+        r = map(lambda Y: self.dist.ppf(Y) if Y <= _lower_cdf \
+                        else _lower_ppf if Y <= _upper_cdf \
                         else self.dist.ppf(Y) - self.upper_bound + self.lower_bound, x)
         r = np.array(list(r))
         if len(r.flatten()) == 1:
