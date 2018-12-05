@@ -276,6 +276,7 @@ class InsuranceSimulation():
         # adjust market premiums
         sum_capital = sum([agent.get_cash() for agent in self.insurancefirms])      #TODO: include reinsurancefirms
         self.adjust_market_premium(capital=sum_capital)
+        sum_capital = sum([agent.get_cash() for agent in self.reinsurancefirms])  # TODO: include reinsurancefirms
         self.adjust_reinsurance_market_premium(capital=sum_capital)
 
         # pay obligations
@@ -397,6 +398,7 @@ class InsuranceSimulation():
         current_log['market_premium'] = self.market_premium
         current_log['market_reinpremium'] = self.reinsurance_market_premium
         current_log['cumulative_bankruptcies'] = self.cumulative_bankruptcies
+        current_log['cumulative_market_exits'] = self.cumulative_market_exits
         current_log['cumulative_unrecovered_claims'] = self.cumulative_unrecovered_claims
         current_log['cumulative_claims'] = self.cumulative_claims    #Log the cumulative claims received so far.
         
@@ -526,15 +528,46 @@ class InsuranceSimulation():
         np.random.shuffle(self.risks)
 
     def adjust_market_premium(self, capital):
-        self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
+        """Adjust_market_premium Method.
+               Accepts arguments
+                   capital: Type float. The total capital (cash) available in the insurance market (insurance only).
+               No return value.
+           This method adjusts the premium charged by insurance firms for the risks covered. The premium reduces linearly
+           with the capital available in the insurance market and viceversa. The premium reduces until it reaches a minimum
+           below which no insurer is willing to reduce further the price. This method is only called in the self.iterate()
+           method of this class."""
+        self.market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - self.simulation_parameters["premium_sensitivity"] * capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
         if self.market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
             self.market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
     
     def adjust_reinsurance_market_premium(self, capital):
-         self.reinsurance_market_premium = self.market_premium
+        """Adjust_market_premium Method.
+               Accepts arguments
+                   capital: Type float. The total capital (cash) available in the reinsurance market (reinsurance only).
+               No return value.
+           This method adjusts the premium charged by reinsurance firms for the risks covered. The premium reduces linearly
+           with the capital available in the reinsurance market and viceversa. The premium reduces until it reaches a minimum
+           below which no reinsurer is willing to reduce further the price. This method is only called in the self.iterate()
+           method of this class."""
+        self.reinsurance_market_premium = self.norm_premium * (self.simulation_parameters["upper_price_limit"] - self.simulation_parameters["reinpremium_sensitivity"] * capital / (self.simulation_parameters["initial_agent_cash"] * self.damage_distribution.mean() * self.simulation_parameters["no_risks"]))
+        if self.reinsurance_market_premium < self.norm_premium * self.simulation_parameters["lower_price_limit"]:
+            self.reinsurance_market_premium = self.norm_premium * self.simulation_parameters["lower_price_limit"]
 
     def get_market_premium(self):
+        """Get_market_premium Method.
+               Accepts no arguments.
+               Returns:
+                   self.market_premium: Type float. The current insurance market premium.
+           This method returns the current insurance market premium."""
         return self.market_premium
+
+    def get_market_reinpremium(self):
+        """Get_market_reinpremium Method.
+               Accepts no arguments.
+               Returns:
+                   self.reinsurance_market_premium: Type float. The current reinsurance market premium.
+           This method returns the current reinsurance market premium."""
+        return self.reinsurance_market_premium
 
     def get_reinsurance_premium(self, np_reinsurance_deductible_fraction):
         # TODO: cut this out of the insurance market premium -> OBSOLETE??
@@ -682,7 +715,7 @@ class InsuranceSimulation():
 
     def record_bankruptcy(self):
         """Record_bankruptcy Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method is called when a firm files for bankruptcy. It is only called from the method dissolve() from the
            class metainsuranceorg.py after the dissolution of the firm."""
@@ -690,7 +723,7 @@ class InsuranceSimulation():
 
     def record_market_exit(self):
         """Record_market_exit Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method is used to record the firms that leave the market due to underperforming conditions. It is only called
            from the method dissolve() from the class metainsuranceorg.py after the dissolution of the firm."""
@@ -787,7 +820,7 @@ class InsuranceSimulation():
 
     def reset_pls(self):
         """Reset_pls Method.
-               Accepts no arguments:
+               Accepts no arguments.
                No return value.
            This method reset all the profits and losses of all insurance firms, reinsurance firms and catbonds."""
         for insurancefirm in self.insurancefirms:
