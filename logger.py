@@ -166,11 +166,9 @@ class Logger():
             to_log = self.single_log_prepare()
         
         """Write to disk"""
-        #TODO: use with file_handle as open structure 
         for filename, data, operation_character in to_log:
             with open(filename, operation_character) as wfile:
                 wfile.write(str(data) + "\n")
-                wfile.close()
     
     def replication_log_prepare(self):
         """Method to prepare writing tasks for ensemble run saving.
