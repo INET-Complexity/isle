@@ -1,45 +1,22 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-rfile = open("data/contracts.dat","r")
-contracts = [eval(k) for k in rfile]
-rfile.close()
+def get_data(name):
+    rfile = open(name, "r")
+    out = [eval(k) for k in rfile]
+    rfile.close()
+    return out
 
-rfile = open("data/operational.dat","r")
-op = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/cash.dat","r")
-cash = [eval(k) for k in rfile]
-rfile.close()
-
-#rfile = open("data/profitslosses.dat","r")
-#pl = [eval(k) for k in rfile]
-#rfile.close()
-
-rfile = open("data/reincontracts.dat","r")
-reincontracts = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/reinoperational.dat","r")
-reinop = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/reincash.dat","r")
-reincash = [eval(k) for k in rfile]
-rfile.close()
-
-#rfile = open("data/reinprofitslosses.dat","r")
-#reinpl = [eval(k) for k in rfile]
-#rfile.close()
-
-rfile = open("data/premium.dat","r")
-premium = [eval(k) for k in rfile]
-rfile.close()
-
-rfile = open("data/catbonds_number.dat","r")
-catbop = [eval(k) for k in rfile]
-rfile.close()
+contracts = get_data("data/contracts.dat")
+op = get_data("data/operational.dat")
+cash = get_data("data/cash.dat")
+# pl = get_data("data/profitslosses.dat")
+reincontracts = get_data("data/reincontracts.dat")
+reinop = get_data("data/reinoperational.dat")
+reincash = get_data("data/reincash.dat")
+# reinpl = get_data("data/reinprofitslosses.dat")
+premium = get_data("data/premium.dat")
+catbop = get_data("data/catbonds_number.dat")
 
 c_s = []
 
