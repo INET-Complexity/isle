@@ -25,15 +25,15 @@ class Logger():
         self.history_logs = {}
         
         """Variables pertaining to insurance sector"""
-        self.history_logs['total_cash'] = []
-        self.history_logs['total_excess_capital'] = []
-        self.history_logs['total_profitslosses'] = []
-        self.history_logs['total_contracts'] = []
-        self.history_logs['total_operational'] = []
-        self.history_logs['cumulative_bankruptcies'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
-        self.history_logs['cumulative_market_exits'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
-        self.history_logs['cumulative_claims'] = []          #Here are stored the total cumulative claims received by the whole insurance sector until a certain time.
-        self.history_logs['cumulative_unrecovered_claims'] = []
+        # TODO: should we not have `cumulative_bankruptcies` and
+        # `cumulative_market_exits` for both insurance firms and reinsurance firms?
+        # `cumulative_claims`: Here are stored the total cumulative claims received
+        # by the whole insurance sector until a certain time.
+        insurance_sector = ('total_cash total_excess_capital total_profitslosses '
+                            'total_contracts total_operational cumulative_bankruptcies '
+                            'cumulative_market_exits cumulative_claims cumulative_unrecovered_claims').split(' ')
+        for _v in insurance_sector:
+            self.history_logs[_v] = []
         
         """Variables pertaining to individual insurance firms"""
         self.history_logs['individual_contracts'] = []      # TODO: Should there not be a similar record for reinsurance
