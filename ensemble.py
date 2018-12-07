@@ -76,22 +76,23 @@ def rake(hostname):
             
             """These are the files created to collect the results"""
             wfiles = []
-            prefixes = (
+
+            prefixes = ["/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/",
+                        "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/record_",
+                        "/data/record_", "/data/", "/data/check_", "/data/check_", "/data/check_"]
+            sufixes = (
                 "_cash.dat _excess_capital.dat _profitslosses.dat _contracts.dat "
                 "_operational.dat _reincash.dat _reinexcess_capital.dat "
                 "_reinprofitslosses.dat _reincontracts.dat _reinoperational.dat "
                 "_total_catbondsoperational.dat _premium.dat _reinpremium.dat "
                 "_cumulative_bankruptcies.dat _cumulative_market_exits "
-                "_cumulative_unrecovered_claims.dat _cumulative_claims.dat"
+                "_cumulative_unrecovered_claims.dat _cumulative_claims.dat "
+                "_insurance_firms_cash.dat _reinsurance_firms_cash.dat _market_diffvar.dat "
+                "_rc_schedule.dat _rc_damage.dat _no_riskmodels.dat"
             ).split(' ')
-            for prefix in prefixes:
-                wfiles.append(open(os.getcwd() + "/data/" + str(nums[str(counter)]) + prefix, "w"))
 
-            wfiles.append(open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_insurance_firms_cash.dat", "w"))
-            wfiles.append(open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_reinsurance_firms_cash.dat", "w"))
-            wfiles.append(open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_market_diffvar.dat", "w"))
-            for prefix in ["_rc_schedule.dat", "_rc_damage.dat", "_no_riskmodels.dat"]:
-                wfiles.append(open(os.getcwd() + "/data/" + str(counter) + prefix, "w"))
+            for i in range(len(sufixes)):
+                wfiles.append(open(os.getcwd() + prefixes[i] + str(nums[str(counter)]) + sufixes[i], "w"))
 
 
             """Here the results of the simulations (typically run in the cloud) are collected"""
@@ -101,7 +102,6 @@ def rake(hostname):
                 directory = os.getcwd() + "/data"
 
                 try: #Here it is checked whether the directory to collect the results exists or not. If not it is created.
-
                     os.stat(directory)
                 except:
                     os.mkdir(directory)
