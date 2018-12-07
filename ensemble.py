@@ -110,7 +110,7 @@ def rake(hostname):
                 L.save_log(True)
 
                 for ii in range(23):
-                    wfiles[i].write(str(result[i][ii]) + "\n")
+                    wfiles[ii].write(str(result[i][ii]) + "\n")
 
 
             """Once the data is stored in disk the files are closed"""
