@@ -109,7 +109,7 @@ def rake(hostname):
                 L.restore_logger_object(result[i])
                 L.save_log(True)
 
-                for ii in range(23):
+                for ii in range(len(wfiles)):
                     wfiles[ii].write(str(result[i][ii]) + "\n")
 
 
