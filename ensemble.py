@@ -75,30 +75,23 @@ def rake(hostname):
 
             
             """These are the files created to collect the results"""
+            wfiles = []
+            prefixes = (
+                "_cash.dat _excess_capital.dat _profitslosses.dat _contracts.dat "
+                "_operational.dat _reincash.dat _reinexcess_capital.dat "
+                "_reinprofitslosses.dat _reincontracts.dat _reinoperational.dat "
+                "_total_catbondsoperational.dat _premium.dat _reinpremium.dat "
+                "_cumulative_bankruptcies.dat _cumulative_market_exits "
+                "_cumulative_unrecovered_claims.dat _cumulative_claims.dat"
+            ).split(' ')
+            for prefix in prefixes:
+                wfiles.append(open(os.getcwd() + "/data/" + str(nums[str(counter)]) + prefix, "w"))
 
-            wfile_0 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cash.dat", "w")
-            wfile_1 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_excess_capital.dat", "w")
-            wfile_2 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_profitslosses.dat", "w")
-            wfile_3 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_contracts.dat", "w")
-            wfile_4 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_operational.dat", "w")
-            wfile_5 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reincash.dat", "w")
-            wfile_6 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reinexcess_capital.dat", "w")
-            wfile_7 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reinprofitslosses.dat", "w")
-            wfile_8 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reincontracts.dat", "w")
-            wfile_9 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reinoperational.dat", "w")
-            wfile_10 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_total_catbondsoperational.dat", "w")
-            wfile_11 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_premium.dat", "w")
-            wfile_12 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_reinpremium.dat", "w")
-            wfile_13 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_bankruptcies.dat", "w")
-            wfile_14 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_market_exits", "w")
-            wfile_15 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_unrecovered_claims.dat", "w")
-            wfile_16 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_cumulative_claims.dat", "w")
-            wfile_17 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_insurance_firms_cash.dat", "w")
-            wfile_18 = open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_reinsurance_firms_cash.dat", "w")
-            wfile_19 = open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_market_diffvar.dat", "w")
-            wfile_20 = open(os.getcwd() + "/data/" + str(counter) + "_rc_schedule.dat", "w")
-            wfile_21 = open(os.getcwd() + "/data/" + str(counter) + "_rc_damage.dat", "w")
-            wfile_22 = open(os.getcwd() + "/data/" + str(counter) + "_no_riskmodels.dat", "w")
+            wfiles.append(open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_insurance_firms_cash.dat", "w"))
+            wfiles.append(open(os.getcwd() + "/data/record_" + str(nums[str(counter)]) + "_reinsurance_firms_cash.dat", "w"))
+            wfiles.append(open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_market_diffvar.dat", "w"))
+            for prefix in ["_rc_schedule.dat", "_rc_damage.dat", "_no_riskmodels.dat"]:
+                wfiles.append(open(os.getcwd() + "/data/" + str(counter) + prefix, "w"))
 
 
             """Here the results of the simulations (typically run in the cloud) are collected"""
@@ -116,60 +109,14 @@ def rake(hostname):
                 L.restore_logger_object(result[i])
                 L.save_log(True)
 
-                wfile_0.write(str(result[i][0]) + "\n")
-                wfile_1.write(str(result[i][1]) + "\n")
-                wfile_2.write(str(result[i][2]) + "\n")
-                wfile_3.write(str(result[i][3]) + "\n")
-                wfile_4.write(str(result[i][4]) + "\n")
-                wfile_5.write(str(result[i][5]) + "\n")
-                wfile_6.write(str(result[i][6]) + "\n")
-                wfile_7.write(str(result[i][7]) + "\n")
-                wfile_8.write(str(result[i][8]) + "\n")
-                wfile_9.write(str(result[i][9]) + "\n")
-                wfile_10.write(str(result[i][10]) + "\n")
-                wfile_11.write(str(result[i][11]) + "\n")
-                wfile_12.write(str(result[i][12]) + "\n")
-                wfile_13.write(str(result[i][13]) + "\n")
-                wfile_14.write(str(result[i][14]) + "\n")
-                wfile_15.write(str(result[i][15]) + "\n")
-                wfile_16.write(str(result[i][16]) + "\n")
-                wfile_17.write(str(result[i][17]) + "\n")
-                wfile_18.write(str(result[i][18]) + "\n")
-                wfile_19.write(str(result[i][19]) + "\n")
-                wfile_20.write(str(result[i][20]) + "\n")
-                wfile_21.write(str(result[i][21]) + "\n")
-                wfile_22.write(str(result[i][22]) + "\n")
-
-
-
+                for ii in range(23):
+                    wfiles[i].write(str(result[i][ii]) + "\n")
 
 
             """Once the data is stored in disk the files are closed"""
-
-            wfile_0.close()
-            wfile_1.close()
-            wfile_2.close()
-            wfile_3.close()
-            wfile_4.close()
-            wfile_5.close()
-            wfile_6.close()
-            wfile_7.close()
-            wfile_8.close()
-            wfile_9.close()
-            wfile_10.close()
-            wfile_11.close()
-            wfile_12.close()
-            wfile_13.close()
-            wfile_14.close()
-            wfile_15.close()
-            wfile_16.close()
-            wfile_17.close()
-            wfile_18.close()
-            wfile_19.close()
-            wfile_20.close()
-            wfile_21.close()
-            wfile_22.close()
-
+            for wfile in wfiles:
+                wfile.close()
+            del wfiles[:]
 
             counter =counter + 1
 
