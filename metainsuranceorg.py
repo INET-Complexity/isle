@@ -16,6 +16,14 @@ else:
     from genericagent import GenericAgent
     #print("abce not imported")
 
+def get_mean(x):
+    return sum(x) / len(x)
+
+def get_mean_std(x):
+    m = get_mean(x)
+    variance = sum((val - m) ** 2 for val in x)
+    return m, np.sqrt(variance / len(x))
+
 class MetaInsuranceOrg(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
@@ -381,12 +389,9 @@ class MetaInsuranceOrg(GenericAgent):
 
     def balanced_portfolio(self, risk, cash_left_by_categ, var_per_risk): #This method decides whether the portfolio is balanced enough to accept a new risk or not. If it is balanced enough return True otherwise False.
                                                                           #This method also returns the cash available per category independently the risk is accepted or not.
-        cash_reserved_by_categ = np.zeros(self.simulation_parameters["no_categories"])
+        cash_reserved_by_categ = self.cash - cash_left_by_categ     #Here it is computed the cash already reserved by category
 
-        for i in range(len(cash_left_by_categ)):
-            cash_reserved_by_categ[i] = self.cash - cash_left_by_categ[i]     #Here it is computed the cash already reserved by category
-
-        std_pre = cash_reserved_by_categ.std()                                #Here it is computed the standard deviation of the cash reserved by category
+        _, std_pre = get_mean_std(cash_reserved_by_categ)
 
         cash_reserved_by_categ_store = np.copy(cash_reserved_by_categ)
 
@@ -403,8 +408,7 @@ class MetaInsuranceOrg(GenericAgent):
         else:
             cash_reserved_by_categ_store[risk["category"]] += var_per_risk[risk["category"]] #Here it is computed how the cash reserved by category would change if the new insurance risk was accepted
 
-        mean = cash_reserved_by_categ_store.mean()     #Here it is computed the mean of the cash reserved by category after the new risk of reinrisk is accepted
-        std_post = cash_reserved_by_categ_store.std()  #Here it is computed the standard deviation of the cash reserved by category after the new risk of reinrisk is accepted
+        mean, std_post = get_mean_std(cash_reserved_by_categ_store)     #Here it is computed the mean, std of the cash reserved by category after the new risk of reinrisk is accepted
 
         total_cash_reserved_by_categ_post = sum(cash_reserved_by_categ_store)
 
@@ -515,7 +519,7 @@ class MetaInsuranceOrg(GenericAgent):
 
             cash_left_by_categ = np.asarray(self.cash_left_by_categ)
 
-            avg_cash_left = cash_left_by_categ.mean()
+            avg_cash_left = get_mean(cash_left_by_categ)
 
             if self.cash < self.simulation_parameters["cash_permanency_limit"]:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
                 self.market_exit(time)
