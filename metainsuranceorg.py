@@ -468,7 +468,7 @@ class MetaInsuranceOrg(GenericAgent):
 
     def process_newrisks_insurer(self, risks_per_categ, number_risks_categ, acceptable_by_category, var_per_risk_per_categ, cash_left_by_categ, time): #This method processes one by one the risks contained in risks_per_categ in order to decide whether they should be underwritten or not.
                                                                                              #It is done in this way to maintain the portfolio as balanced as possible. For that reason we process risk[C1], risk[C2], risk[C3], risk[C4], risk[C1], risk[C2], ... and so forth.
-
+        _cached_rvs = self.contract_runtime_dist.rvs()
         for iter in range(max(number_risks_categ)):
             for categ_id in range(len(acceptable_by_category)):    #Here we take only one risk per category at a time to achieve risk[C1], risk[C2], risk[C3], risk[C4], risk[C1], risk[C2], ... if possible.
                 if iter < number_risks_categ[categ_id] and acceptable_by_category[categ_id] > 0 and \
@@ -494,7 +494,7 @@ class MetaInsuranceOrg(GenericAgent):
                                                                                   var_per_risk_per_categ) #Here it is check whether the portfolio is balanced or not if the risk (risk_to_insure) is underwritten. Return True if it is balanced. False otherwise.
                         if condition:
                             contract = InsuranceContract(self, risk_to_insure, time, self.simulation.get_market_premium(), \
-                                                         self.contract_runtime_dist.rvs(), \
+                                                         _cached_rvs, \
                                                          self.default_contract_payment_period, \
                                                          expire_immediately=self.simulation_parameters[
                                                              "expire_immediately"], \
