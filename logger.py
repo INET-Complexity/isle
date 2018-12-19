@@ -3,6 +3,14 @@
 import numpy as np
 #import pdb
 
+LOG_ORDER = (
+    'total_cash total_excess_capital total_profitslosses total_contracts '
+    'total_operational total_reincash total_reinexcess_capital total_reinprofitslosses '
+    'total_reincontracts total_reinoperational total_catbondsoperational market_premium '
+    'market_reinpremium cumulative_bankruptcies cumulative_market_exits cumulative_unrecovered_claims '
+    'cumulative_claims insurance_firms_cash reinsurance_firms_cash market_diffvar'
+).split(' ')
+
 class Logger():
     def __init__(self, no_riskmodels=None, rc_event_schedule_initial=None, rc_event_damage_initial=None):
         """Constructor. Prepares history_logs atribute as dict for the logs. Records initial event schedule of
@@ -25,15 +33,15 @@ class Logger():
         self.history_logs = {}
         
         """Variables pertaining to insurance sector"""
-        self.history_logs['total_cash'] = []
-        self.history_logs['total_excess_capital'] = []
-        self.history_logs['total_profitslosses'] = []
-        self.history_logs['total_contracts'] = []
-        self.history_logs['total_operational'] = []
-        self.history_logs['cumulative_bankruptcies'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
-        self.history_logs['cumulative_market_exits'] = []    # TODO: should we not have that for both insurance firms and reinsurance firms?
-        self.history_logs['cumulative_claims'] = []          #Here are stored the total cumulative claims received by the whole insurance sector until a certain time.
-        self.history_logs['cumulative_unrecovered_claims'] = []
+        # TODO: should we not have `cumulative_bankruptcies` and
+        # `cumulative_market_exits` for both insurance firms and reinsurance firms?
+        # `cumulative_claims`: Here are stored the total cumulative claims received
+        # by the whole insurance sector until a certain time.
+        insurance_sector = ('total_cash total_excess_capital total_profitslosses '
+                            'total_contracts total_operational cumulative_bankruptcies '
+                            'cumulative_market_exits cumulative_claims cumulative_unrecovered_claims').split(' ')
+        for _v in insurance_sector:
+            self.history_logs[_v] = []
         
         """Variables pertaining to individual insurance firms"""
         self.history_logs['individual_contracts'] = []      # TODO: Should there not be a similar record for reinsurance
@@ -100,29 +108,8 @@ class Logger():
                 [21]: rc_event_damage_initial
                 [22]: number_riskmodels
         """
-        
-        log = []
+        log = [self.history_logs[name] for name in LOG_ORDER]
 
-        log.append(self.history_logs['total_cash'])
-        log.append(self.history_logs['total_excess_capital'])
-        log.append(self.history_logs['total_profitslosses'])
-        log.append(self.history_logs['total_contracts'])
-        log.append(self.history_logs['total_operational'])
-        log.append(self.history_logs['total_reincash'])
-        log.append(self.history_logs['total_reinexcess_capital'])
-        log.append(self.history_logs['total_reinprofitslosses'])
-        log.append(self.history_logs['total_reincontracts'])
-        log.append(self.history_logs['total_reinoperational'])
-        log.append(self.history_logs['total_catbondsoperational'])
-        log.append(self.history_logs['market_premium'])
-        log.append(self.history_logs['market_reinpremium'])
-        log.append(self.history_logs['cumulative_bankruptcies'])
-        log.append(self.history_logs['cumulative_market_exits'])
-        log.append(self.history_logs['cumulative_unrecovered_claims'])
-        log.append(self.history_logs['cumulative_claims'])
-        log.append(self.history_logs['insurance_firms_cash'])
-        log.append(self.history_logs['reinsurance_firms_cash'])
-        log.append(self.history_logs['market_diffvar'])
         log.append(self.rc_event_schedule_initial)
         log.append(self.rc_event_damage_initial)
         log.append(self.number_riskmodels)
@@ -158,26 +145,8 @@ class Logger():
                 [20]: rc_event_damage_initial                
                 [21]: number_riskmodels
             Returns None."""
-        self.history_logs['total_cash'] = log[0]
-        self.history_logs['total_excess_capital'] = log [1]
-        self.history_logs['total_profitslosses'] = log [2]
-        self.history_logs['total_contracts'] = log [3]
-        self.history_logs['total_operational'] = log [4]
-        self.history_logs['total_reincash'] = log [5]
-        self.history_logs['total_reinexcess_capital'] = log [6]
-        self.history_logs['total_reinprofitslosses'] = log [7]
-        self.history_logs['total_reincontracts'] = log [8]
-        self.history_logs['total_reinoperational'] = log [9]
-        self.history_logs['total_catbondsoperational'] = log [10]
-        self.history_logs['market_premium'] = log [11]
-        self.history_logs['market_reinpremium'] = log [12]
-        self.history_logs['cumulative_bankruptcies'] = log [13]
-        self.history_logs['cumulative_market_exits'] = log[14]
-        self.history_logs['cumulative_unrecovered_claims'] = log [15]
-        self.history_logs['cumulative_claims'] = log [16]
-        self.history_logs['insurance_firms_cash'] = log [17]
-        self.history_logs['reinsurance_firms_cash'] = log [18]
-        self.history_logs['market_diffvar'] = log [19]
+        for i in range(20):
+            self.history_logs[LOG_ORDER[i]] = log[i]
         self.rc_event_schedule_initial = log[20]
         self.rc_event_damage_initial = log[21]
         self.number_riskmodels = log[22]
@@ -197,11 +166,9 @@ class Logger():
             to_log = self.single_log_prepare()
         
         """Write to disk"""
-        #TODO: use with file_handle as open structure 
         for filename, data, operation_character in to_log:
             with open(filename, operation_character) as wfile:
                 wfile.write(str(data) + "\n")
-                wfile.close()
     
     def replication_log_prepare(self):
         """Method to prepare writing tasks for ensemble run saving.
