@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 
 from metainsurancecontract import MetaInsuranceContract 
 
@@ -14,7 +15,6 @@ class ReinsuranceContract(MetaInsuranceContract):
         super(ReinsuranceContract, self).__init__(insurer, properties, time, premium, runtime, payment_period, \
                         expire_immediately, initial_VaR, insurancetype, deductible_fraction, excess_fraction, reinsurance)
         #self.is_reinsurancecontract = True
-        
         if self.insurancetype == "excess-of-loss":
             self.property_holder.add_reinsurance(category=self.category, excess_fraction=self.excess_fraction, \
                                                     deductible_fraction=self.deductible_fraction, contract=self)
@@ -63,7 +63,19 @@ class ReinsuranceContract(MetaInsuranceContract):
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 
-        if np.random.uniform(0,1,1) < 0.95:
+        if np.random.uniform(0,1,1) < 1:
             reinrisk = self.property_holder.create_reinrisk(time,self.category)
-            if reinrisk is not None and hasattr(self.insurer, 'reinrisks_kept'):
-                self.insurer.reinrisks_kept.append(reinrisk)
+
+            if reinrisk is not None:
+                new_nonproportional_risks = [reinrisk]
+                [reinrisks_per_categ, number_reinrisks_categ] = self.insurer.risks_reinrisks_organizer(new_nonproportional_risks)  #Here the new reinrisks are organized by category.
+
+                for repetition in range(self.insurer.recursion_limit):     # TODO: find an efficient way to stop the recursion if there are no more risks to accept or if it is not accepting any more over several iterations.
+                    former_reinrisks_per_categ = copy.copy(reinrisks_per_categ)
+                    [reinrisks_per_categ, not_accepted_reinrisk] = self.insurer.process_newrisks_reinsurer(reinrisks_per_categ, number_reinrisks_categ, time)  #Here we process all the new reinrisks in order to keep the portfolio as balanced as possible.
+                    if former_reinrisks_per_categ == reinrisks_per_categ:   #Stop condition implemented. Might solve the previous TODO.
+                        break
+
+                if hasattr(self.insurer, 'reinrisks_kept') and len(not_accepted_reinrisk) is 1:
+                    self.insurer.reinrisks_kept.append(reinrisk)
+
