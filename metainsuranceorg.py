@@ -557,6 +557,18 @@ class MetaInsuranceOrg(GenericAgent):
            Reset the profits and losses variable of each firm at the beginning of every iteration. It has to be run in insurancesimulation.py at the beginning of the iterate method"""
         self.profits_losses = 0
 
+    def roll_over(self,time):
+
+        maturing_next = [contract for contract in self.underwritten_contracts if contract.expiration == time + 1]
+
+        if self.is_insurer is True:
+            for contract in maturing_next:
+                contract.roll_over_flag = 1
+                if np.random.uniform(0,1,1) > 0.85:
+                    self.simulation.return_risks([contract.risk_data])
+                else:
+                    self.risks_kept.append(contract.risk_data)
+
 
 
 
