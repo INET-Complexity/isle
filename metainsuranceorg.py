@@ -569,6 +569,14 @@ class MetaInsuranceOrg(GenericAgent):
                 else:
                     self.risks_kept.append(contract.risk_data)
 
+        if self.is_reinsurer is True:
+            for reincontract in maturing_next:
+                reincontract.roll_over_flag = 1
+                reinrisk = reincontract.property_holder.create_reinrisk(time, reincontract.category)
+                if np.random.uniform(0,1,1) < 1:
+                    if reinrisk is not None:
+                        self.reinrisks_kept.append(reinrisk)
+
 
 
 
