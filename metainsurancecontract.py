@@ -76,6 +76,7 @@ class MetaInsuranceContract():
             self.contract.reinsure(reinsurer=self.insurer, reinsurance_share=properties["reinsurance_share"], \
                                    reincontract=self)
 
+        # This flag is set to 1, when the contract is about to expire and there is an attempt to roll it over.
         self.roll_over_flag = 0
 
 

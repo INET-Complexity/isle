@@ -42,11 +42,11 @@ simulation_parameters={"no_categories": 4,
                        "capacity_target_decrement_factor": 24/25.,
                        "capacity_target_increment_factor": 25/24.,
                        # Retention parameters
-                       "insurance_retention": 0.85,
-                       "reinsurance_retention": 1,
+                       "insurance_retention": 0.85, # Ratio of insurance contracts retained every iteration.
+                       "reinsurance_retention": 1, # Ratio of reinsurance contracts retained every iteration.
                        #Premium sensitivity parameters
-                       "premium_sensitivity": 8,  #This parameter represents how sensitive is the variation of the insurance premium with respect of the capital of the market. Higher means more sensitive.
-                       "reinpremium_sensitivity": 8,  #This parameter represents how sensitive is the variation of the reinsurance premium with respect of the capital of the market. Higher means more sensitive.
+                       "premium_sensitivity": 8,  # This parameter represents how sensitive is the variation of the insurance premium with respect of the capital of the market. Higher means more sensitive.
+                       "reinpremium_sensitivity": 8,  # This parameter represents how sensitive is the variation of the reinsurance premium with respect of the capital of the market. Higher means more sensitive.
                        #Balanced portfolio parameters
                        "insurers_balance_ratio": 0.1,  # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
                        "reinsurers_balance_ratio": 20,  # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
