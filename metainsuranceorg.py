@@ -205,6 +205,8 @@ class MetaInsuranceOrg(GenericAgent):
             #pass
 
         self.market_permanency(time)
+        
+        self.roll_over(time)
             
         self.estimated_var()
 
