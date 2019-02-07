@@ -205,7 +205,7 @@ class MetaInsuranceOrg(GenericAgent):
             #pass
 
         self.market_permanency(time)
-        
+
         self.roll_over(time)
             
         self.estimated_var()
@@ -566,7 +566,7 @@ class MetaInsuranceOrg(GenericAgent):
         if self.is_insurer is True:
             for contract in maturing_next:
                 contract.roll_over_flag = 1
-                if np.random.uniform(0,1,1) > 0.85:
+                if np.random.uniform(0,1,1) > self.simulation_parameters["insurance_retention"]:
                     self.simulation.return_risks([contract.risk_data])
                 else:
                     self.risks_kept.append(contract.risk_data)
@@ -575,7 +575,7 @@ class MetaInsuranceOrg(GenericAgent):
             for reincontract in maturing_next:
                 reincontract.roll_over_flag = 1
                 reinrisk = reincontract.property_holder.create_reinrisk(time, reincontract.category)
-                if np.random.uniform(0,1,1) < 1:
+                if np.random.uniform(0,1,1) < self.simulation_parameters["reinsurance_retention"]:
                     if reinrisk is not None:
                         self.reinrisks_kept.append(reinrisk)
 
