@@ -576,11 +576,11 @@ class MetaInsuranceOrg(GenericAgent):
 
         if self.is_insurer is True:
             for contract in maturing_next:
-                    contract.roll_over_flag = 1
-                    if np.random.uniform(0,1,1) > self.simulation_parameters["insurance_retention"]:
-                        self.simulation.return_risks([contract.risk_data])   # TODO: This is not a retention, so the roll_over_flag might be confusing in this case
-                    else:
-                        self.risks_kept.append(contract.risk_data)
+                contract.roll_over_flag = 1
+                if np.random.uniform(0,1,1) > self.simulation_parameters["insurance_retention"]:
+                    self.simulation.return_risks([contract.risk_data])   # TODO: This is not a retention, so the roll_over_flag might be confusing in this case
+                else:
+                    self.risks_kept.append(contract.risk_data)
 
         if self.is_reinsurer is True:
             for reincontract in maturing_next:
