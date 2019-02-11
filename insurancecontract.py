@@ -52,9 +52,9 @@ class InsuranceContract(MetaInsuranceContract):
            Returns risk to simulation as contract terminates. Calls terminate_reinsurance to dissolve any reinsurance
            contracts."""
         #self.terminating = True
-        if np.random.uniform(0,1,1) > 0.85:
+
+        self.terminate_reinsurance(time)
+
+        if not self.roll_over_flag:
             self.property_holder.return_risks([self.risk_data])
-            self.terminate_reinsurance(time)
-        else:
-            self.insurer.risks_kept.append(self.risk_data)
-            self.terminate_reinsurance(time)
+

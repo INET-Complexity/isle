@@ -205,6 +205,8 @@ class MetaInsuranceOrg(GenericAgent):
             #pass
 
         self.market_permanency(time)
+
+        self.roll_over(time)
             
         self.estimated_var()
 
@@ -556,6 +558,38 @@ class MetaInsuranceOrg(GenericAgent):
                No return value.
            Reset the profits and losses variable of each firm at the beginning of every iteration. It has to be run in insurancesimulation.py at the beginning of the iterate method"""
         self.profits_losses = 0
+
+    def roll_over(self,time):
+        """Roll_over Method.
+               Accepts arguments
+                   time: Type integer. The current time.               No return value.
+               No return value.
+            This method tries to roll over the insurance and reinsurance contracts expiring in the next iteration. In
+            the case of insurance contracts it assumes that it can only retain a fraction of contracts inferior to the
+            retention rate. The contracts that cannot be retained are sent back to insurancesimulation.py. The rest are
+            kept and evaluated the next iteration. For reinsurancecontracts is exactly the same with the difference that
+            there is no need to return the contracts not rolled over to insurancesimulation.py, since reinsurance risks
+            are created and destroyed every iteration. The main reason to implemented this method is to avoid a lack of
+            coverage that appears, if contracts are allowed to mature and are evaluated again the next iteration."""
+
+        maturing_next = [contract for contract in self.underwritten_contracts if contract.expiration == time + 1]
+
+        if self.is_insurer is True:
+            for contract in maturing_next:
+                contract.roll_over_flag = 1
+                if np.random.uniform(0,1,1) > self.simulation_parameters["insurance_retention"]:
+                    self.simulation.return_risks([contract.risk_data])   # TODO: This is not a retention, so the roll_over_flag might be confusing in this case
+                else:
+                    self.risks_kept.append(contract.risk_data)
+
+        if self.is_reinsurer is True:
+            for reincontract in maturing_next:
+                if reincontract.property_holder.operational:
+                    reincontract.roll_over_flag = 1
+                    reinrisk = reincontract.property_holder.create_reinrisk(time, reincontract.category)
+                    if np.random.uniform(0,1,1) < self.simulation_parameters["reinsurance_retention"]:
+                        if reinrisk is not None:
+                            self.reinrisks_kept.append(reinrisk)
 
 
 
