@@ -198,7 +198,7 @@ if __name__ == "__main__":
         override_no_riskmodels = 1
     if args.riskmodels:
         override_no_riskmodels = args.riskmodels
-    if args.replicid is not None:
+    if args.replicid is not None:                   # TODO: this is broken, must be fixed or removed
         replic_ID = args.replicid
     if args.replicating:
         isleconfig.replicating = True
@@ -240,9 +240,10 @@ if __name__ == "__main__":
     log = main(simulation_parameters, general_rc_event_schedule[0], general_rc_event_damage[0], np_seeds[0], random_seeds[0], save_iter)
     
     """ Restore the log at the end of the single simulation run for saving and for potential further study """
+    is_background = (not isleconfig.force_foreground) and (isleconfig.replicating or (replic_ID in locals()))
     L = logger.Logger()
     L.restore_logger_object(log)
-    L.save_log(True)
+    L.save_log(is_background)
     
     """ Obtain calibration score """
     CS = calibrationscore.CalibrationScore(L)
