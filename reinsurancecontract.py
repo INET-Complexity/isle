@@ -63,7 +63,3 @@ class ReinsuranceContract(MetaInsuranceContract):
         else: #TODO: ? Instead: if self.insurancetype == "proportional":
             self.contract.unreinsure()
 
-        if np.random.uniform(0,1,1) < 0.95:
-            reinrisk = self.property_holder.create_reinrisk(time,self.category)
-            if reinrisk is not None and hasattr(self.insurer, 'reinrisks_kept'):
-                self.insurer.reinrisks_kept.append(reinrisk)

@@ -16,6 +16,14 @@ else:
     from genericagent import GenericAgent
     #print("abce not imported")
 
+def get_mean(x):
+    return sum(x) / len(x)
+
+def get_mean_std(x):
+    m = get_mean(x)
+    variance = sum((val - m) ** 2 for val in x)
+    return m, np.sqrt(variance / len(x))
+
 class MetaInsuranceOrg(GenericAgent):
     def init(self, simulation_parameters, agent_parameters):
         self.simulation = simulation_parameters['simulation']
@@ -197,6 +205,8 @@ class MetaInsuranceOrg(GenericAgent):
             #pass
 
         self.market_permanency(time)
+
+        self.roll_over(time)
             
         self.estimated_var()
 
@@ -260,6 +270,9 @@ class MetaInsuranceOrg(GenericAgent):
         if self.operational:
             method_to_call = getattr(self.simulation, record)
             method_to_call()
+        for category_reinsurance in self.category_reinsurance:
+            if category_reinsurance is not None:
+                category_reinsurance.dissolve(time)
         self.operational = False
 
     def receive_obligation(self, amount, recipient, due_time, purpose):
@@ -381,12 +394,9 @@ class MetaInsuranceOrg(GenericAgent):
 
     def balanced_portfolio(self, risk, cash_left_by_categ, var_per_risk): #This method decides whether the portfolio is balanced enough to accept a new risk or not. If it is balanced enough return True otherwise False.
                                                                           #This method also returns the cash available per category independently the risk is accepted or not.
-        cash_reserved_by_categ = np.zeros(self.simulation_parameters["no_categories"])
+        cash_reserved_by_categ = self.cash - cash_left_by_categ     #Here it is computed the cash already reserved by category
 
-        for i in range(len(cash_left_by_categ)):
-            cash_reserved_by_categ[i] = self.cash - cash_left_by_categ[i]     #Here it is computed the cash already reserved by category
-
-        std_pre = cash_reserved_by_categ.std()                                #Here it is computed the standard deviation of the cash reserved by category
+        _, std_pre = get_mean_std(cash_reserved_by_categ)
 
         cash_reserved_by_categ_store = np.copy(cash_reserved_by_categ)
 
@@ -403,8 +413,7 @@ class MetaInsuranceOrg(GenericAgent):
         else:
             cash_reserved_by_categ_store[risk["category"]] += var_per_risk[risk["category"]] #Here it is computed how the cash reserved by category would change if the new insurance risk was accepted
 
-        mean = cash_reserved_by_categ_store.mean()     #Here it is computed the mean of the cash reserved by category after the new risk of reinrisk is accepted
-        std_post = cash_reserved_by_categ_store.std()  #Here it is computed the standard deviation of the cash reserved by category after the new risk of reinrisk is accepted
+        mean, std_post = get_mean_std(cash_reserved_by_categ_store)     #Here it is computed the mean, std of the cash reserved by category after the new risk of reinrisk is accepted
 
         total_cash_reserved_by_categ_post = sum(cash_reserved_by_categ_store)
 
@@ -464,7 +473,7 @@ class MetaInsuranceOrg(GenericAgent):
 
     def process_newrisks_insurer(self, risks_per_categ, number_risks_categ, acceptable_by_category, var_per_risk_per_categ, cash_left_by_categ, time): #This method processes one by one the risks contained in risks_per_categ in order to decide whether they should be underwritten or not.
                                                                                              #It is done in this way to maintain the portfolio as balanced as possible. For that reason we process risk[C1], risk[C2], risk[C3], risk[C4], risk[C1], risk[C2], ... and so forth.
-
+        _cached_rvs = self.contract_runtime_dist.rvs()
         for iter in range(max(number_risks_categ)):
             for categ_id in range(len(acceptable_by_category)):    #Here we take only one risk per category at a time to achieve risk[C1], risk[C2], risk[C3], risk[C4], risk[C1], risk[C2], ... if possible.
                 if iter < number_risks_categ[categ_id] and acceptable_by_category[categ_id] > 0 and \
@@ -490,7 +499,7 @@ class MetaInsuranceOrg(GenericAgent):
                                                                                   var_per_risk_per_categ) #Here it is check whether the portfolio is balanced or not if the risk (risk_to_insure) is underwritten. Return True if it is balanced. False otherwise.
                         if condition:
                             contract = InsuranceContract(self, risk_to_insure, time, self.simulation.get_market_premium(), \
-                                                         self.contract_runtime_dist.rvs(), \
+                                                         _cached_rvs, \
                                                          self.default_contract_payment_period, \
                                                          expire_immediately=self.simulation_parameters[
                                                              "expire_immediately"], \
@@ -515,7 +524,7 @@ class MetaInsuranceOrg(GenericAgent):
 
             cash_left_by_categ = np.asarray(self.cash_left_by_categ)
 
-            avg_cash_left = cash_left_by_categ.mean()
+            avg_cash_left = get_mean(cash_left_by_categ)
 
             if self.cash < self.simulation_parameters["cash_permanency_limit"]:         #If their level of cash is so low that they cannot underwrite anything they also leave the market.
                 self.market_exit(time)
@@ -552,6 +561,38 @@ class MetaInsuranceOrg(GenericAgent):
                No return value.
            Reset the profits and losses variable of each firm at the beginning of every iteration. It has to be run in insurancesimulation.py at the beginning of the iterate method"""
         self.profits_losses = 0
+
+    def roll_over(self,time):
+        """Roll_over Method.
+               Accepts arguments
+                   time: Type integer. The current time.               No return value.
+               No return value.
+            This method tries to roll over the insurance and reinsurance contracts expiring in the next iteration. In
+            the case of insurance contracts it assumes that it can only retain a fraction of contracts inferior to the
+            retention rate. The contracts that cannot be retained are sent back to insurancesimulation.py. The rest are
+            kept and evaluated the next iteration. For reinsurancecontracts is exactly the same with the difference that
+            there is no need to return the contracts not rolled over to insurancesimulation.py, since reinsurance risks
+            are created and destroyed every iteration. The main reason to implemented this method is to avoid a lack of
+            coverage that appears, if contracts are allowed to mature and are evaluated again the next iteration."""
+
+        maturing_next = [contract for contract in self.underwritten_contracts if contract.expiration == time + 1]
+
+        if self.is_insurer is True:
+            for contract in maturing_next:
+                contract.roll_over_flag = 1
+                if np.random.uniform(0,1,1) > self.simulation_parameters["insurance_retention"]:
+                    self.simulation.return_risks([contract.risk_data])   # TODO: This is not a retention, so the roll_over_flag might be confusing in this case
+                else:
+                    self.risks_kept.append(contract.risk_data)
+
+        if self.is_reinsurer is True:
+            for reincontract in maturing_next:
+                if reincontract.property_holder.operational:
+                    reincontract.roll_over_flag = 1
+                    reinrisk = reincontract.property_holder.create_reinrisk(time, reincontract.category)
+                    if np.random.uniform(0,1,1) < self.simulation_parameters["reinsurance_retention"]:
+                        if reinrisk is not None:
+                            self.reinrisks_kept.append(reinrisk)
 
 
 
