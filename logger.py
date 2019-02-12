@@ -83,36 +83,6 @@ class Logger():
             No arguments.
             Returns list."""
         
-        """ TODO: change this to a dict. For now the sequence of the list is:
-                [0]: 'total_cash'
-                [1]: 'total_excess_capital'
-                [2]: 'total_profitslosses'
-                [3]: 'total_contracts'
-                [4]: 'total_operational'
-                [5]: 'total_reincash'
-                [6]: 'total_reinexcess_capital'
-                [7]: 'total_reinprofitslosses'
-                [8]: 'total_reincontracts'
-                [9]: 'total_reinoperational'
-                [10]: 'total_catbondsoperational'
-                [11]: 'market_premium'
-                [12]: 'market_reinpremium'
-                [13]: 'cumulative_bankruptcies'
-                [14]: 'cumulative_market_exits'
-                [15]: 'cumulative_unrecovered_claims'
-                [16]: 'cumulative_claims'
-                [17]: 'insurance_firms_cash'
-                [18]: 'reinsurance_firms_cash'
-                [19]: 'market_diffvar'
-                [20]: rc_event_schedule_initial
-                [21]: rc_event_damage_initial
-                [22]: number_riskmodels
-        """
-        #log = [self.history_logs[name] for name in LOG_ORDER]
-        #
-        #log.append(self.rc_event_schedule_initial)
-        #log.append(self.rc_event_damage_initial)
-        #log.append(self.number_riskmodels)
         if requested_logs == None:
             requested_logs = LOG_ORDER
         self.history_logs["number_riskmodels"] = self.number_riskmodels
@@ -126,35 +96,8 @@ class Logger():
            on a different machine. This is useful in the case of ensemble runs to move the log to
            the master node from the computation nodes.
             Arguments:
-                log - list - The log in the order as follows:
-                [0]: 'total_cash'
-                [1]: 'total_excess_capital'
-                [2]: 'total_profitslosses'
-                [3]: 'total_contracts'
-                [4]: 'total_operational'
-                [5]: 'total_reincash'
-                [6]: 'total_reinexcess_capital'
-                [7]: 'total_reinprofitslosses'
-                [8]: 'total_reincontracts'
-                [9]: 'total_reinoperational'
-                [10]: 'total_catbondsoperational'
-                [11]: 'market_premium'
-                [12]: 'market_reinpremium'
-                [13]: 'cumulative_bankruptcies'
-                [14]: 'cumulative_unrecovered_claims'
-                [15]: 'cumulative_claims'
-                [16]: 'insurance_firms_cash'
-                [17]: 'reinsurance_firms_cash'
-                [18]: 'market_diffvar'
-                [19]: rc_event_schedule_initial
-                [20]: rc_event_damage_initial                
-                [21]: number_riskmodels
+                log - dict - The log
             Returns None."""
-        #for i in range(20):
-        #    self.history_logs[LOG_ORDER[i]] = log[i]
-        #self.rc_event_schedule_initial = log[20]
-        #self.rc_event_damage_initial = log[21]
-        #self.number_riskmodels = log[22]
         self.rc_event_schedule_initial = log["rc_event_schedule_initial"]
         self.rc_event_damage_initial = log["rc_event_damage_initial"]
         self.number_riskmodels = log["number_riskmodels"]

@@ -115,20 +115,6 @@ def rake(hostname):
             """These are the files created to collect the results"""
             wfiles_dict = {}
 
-            #prefixes = ["/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/",
-            #            "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/", "/data/record_",
-            #            "/data/record_", "/data/", "/data/check_", "/data/check_", "/data/check_"]
-            #sufixes = (
-            #    "_cash.dat _excess_capital.dat _profitslosses.dat _contracts.dat "
-            #    "_operational.dat _reincash.dat _reinexcess_capital.dat "
-            #    "_reinprofitslosses.dat _reincontracts.dat _reinoperational.dat "
-            #    "_total_catbondsoperational.dat _premium.dat _reinpremium.dat "
-            #    "_cumulative_bankruptcies.dat _cumulative_market_exits "
-            #    "_cumulative_unrecovered_claims.dat _cumulative_claims.dat "
-            #    "_insurance_firms_cash.dat _reinsurance_firms_cash.dat _market_diffvar.dat "
-            #    "_rc_schedule.dat _rc_damage.dat _no_riskmodels.dat"
-            #).split(' ')
-            
             logfile_dict = {}
             
             for name in suffixes.keys():
@@ -139,8 +125,6 @@ def rake(hostname):
                 else:
                     logfile_dict[name] = os.getcwd() + dir_prefix + str(nums[str(counter)]) + suffixes[name]
 
-            #for i in range(len(sufixes)):
-            #    wfiles.append(open(os.getcwd() + prefixes[i] + str(nums[str(counter)]) + sufixes[i], "w"))
             for name in logfile_dict:
                 wfiles_dict[name] = open(logfile_dict[name], "w")
 
@@ -159,20 +143,14 @@ def rake(hostname):
                 L.restore_logger_object(dict(result[i]))
                 L.save_log(True)
                 
-                #for ii in range(len(wfiles)):
-                #    wfiles[ii].write(str(result[i][ii]) + "\n")
                 for name in logfile_dict:
-                    #wfile = open(logfile_dict[name], 'a')
                     wfiles_dict[name].write(str(result[i][name]) + "\n")
-                    #wfile.close()
-
+            
             """Once the data is stored in disk the files are closed"""
-            #for wfile in wfiles:
-            #    wfile.close()
-            #del wfiles[:]
             for name in logfile_dict:
                 wfiles_dict[name].close()
                 del wfiles_dict[name]
+            
             counter += 1
 
 
