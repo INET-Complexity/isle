@@ -38,9 +38,18 @@ def rake(hostname):
 
     parameters = isleconfig.simulation_parameters
 
-    """Setup of the simulations"""
+    nums = {'1': 'one',
+            '2': 'two',
+            '3': 'three',
+            '4': 'four',
+            '5': 'five',
+            '6': 'six',
+            '7': 'seven',
+            '8': 'eight',
+            '9': 'nine'}
 
-    suffixes = {'total_cash':                   '_cash.dat',
+    """Configure the return values and corresponding file suffixes where they should be saved"""
+    requested_logs = {'total_cash':                   '_cash.dat',
                'total_excess_capital':          '_excess_capital.dat',
                'total_profitslosses':           '_profitslosses.dat',
                'total_contracts':               '_contracts.dat',
@@ -64,29 +73,31 @@ def rake(hostname):
                'rc_event_damage_initial':       '_rc_event_damage.dat',
                'number_riskmodels':             '_number_riskmodels.dat'
                 } 
-    dir_prefix = "/data/"
     
     if isleconfig.slim_log:
         for name in ['insurance_firms_cash', 'reinsurance_firms_cash']:
-            del suffixes[name]
-
-    nums = {'1': 'one',
-            '2': 'two',
-            '3': 'three',
-            '4': 'four',
-            '5': 'five',
-            '6': 'six',
-            '7': 'seven',
-            '8': 'eight',
-            '9': 'nine'}
+            del requested_logs[name]
     
-    """Clear old *_history_logs.dat files"""
+    assert "number_riskmodels" in requested_logs
+
+    
+    """Configure log directory and ensure that the directory exists"""
+    dir_prefix = "/data/"
+    directory = os.getcwd() + dir_prefix
+    try: #Here it is checked whether the directory to collect the results exists or not. If not it is created.
+        os.stat(directory)
+    except:
+        os.mkdir(directory)
+
+    """Clear old dict saving files (*_history_logs.dat)"""
     for i in riskmodels:
         filename = os.getcwd() + dir_prefix + nums[str(i)] + "_history_logs.dat"
         if os.path.exists(filename):
             os.remove(filename)
         
-    
+
+    """Setup of the simulations"""
+
     setup = SetupSim()   #Here the setup for the simulation is done.
     [general_rc_event_schedule, general_rc_event_damage, np_seeds, random_seeds] = setup.obtain_ensemble(replications)  #Since this script is used to carry out simulations in the cloud will usually have more than 1 replication..
     save_iter = isleconfig.simulation_parameters["max_time"] + 2    # never save simulation state in ensemble runs (resuming is impossible anyway)
@@ -95,54 +106,49 @@ def rake(hostname):
 
         simulation_parameters = copy.copy(parameters)       #Here the parameters used for the simulation are loaded. Clone is needed otherwise all the runs will be carried out with the last number of thee loop.
         simulation_parameters["no_riskmodels"] = i      #Since we want to obtain ensembles for different number of risk models, we vary here the number of risks models.
-        job = [m(simulation_parameters, general_rc_event_schedule[x], general_rc_event_damage[x], np_seeds[x], random_seeds[x], save_iter, list(suffixes.keys())) for x in range(replications)]  #Here is assembled each job with the corresponding: simulation parameters, time events, damage events, seeds, simulation state save interval (never, i.e. longer than max_time), and list of requested logs.
+        job = [m(simulation_parameters, general_rc_event_schedule[x], general_rc_event_damage[x], np_seeds[x], random_seeds[x], save_iter, list(requested_logs.keys())) for x in range(replications)]  #Here is assembled each job with the corresponding: simulation parameters, time events, damage events, seeds, simulation state save interval (never, i.e. longer than max_time), and list of requested logs.
         jobs.append(job)    #All jobs are collected in the jobs list.
-
-    store = []
-
 
     """Here the jobs are submitted"""
 
     with Session(host=hostname, default_cb_to_stdout=True) as sess:
-        counter = 1
+
         for job in jobs:     #If there are 4 risk models jobs will be a list with 4 elements.
+            
+            """Run simulation and obtain result"""
             result = sess.submit(job)
             
-            """Recreate logger object and save as open(os.getcwd() + "/data/" + str(nums[str(counter)]) + "_history_logs.dat"""
-            L = logger.Logger()
-
             
             """These are the files created to collect the results"""
             wfiles_dict = {}
 
             logfile_dict = {}
             
-            for name in suffixes.keys():
+            for name in requested_logs.keys():
                 if "rc_event" in name or "number_riskmodels" in name:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + "check_" + str(nums[str(counter)]) + suffixes[name]
+                    logfile_dict[name] = os.getcwd() + dir_prefix + "check_" + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]
                 elif "firms_cash" in name:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + "record_" + str(nums[str(counter)]) + suffixes[name]            
+                    logfile_dict[name] = os.getcwd() + dir_prefix + "record_" + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]            
                 else:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + str(nums[str(counter)]) + suffixes[name]
+                    logfile_dict[name] = os.getcwd() + dir_prefix + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]
 
             for name in logfile_dict:
                 wfiles_dict[name] = open(logfile_dict[name], "w")
 
 
-            """Here the results of the simulations (typically run in the cloud) are collected"""
+            """Recreate logger object locally and save logs"""
+            
+            """Create local object"""
+            L = logger.Logger()
 
             for i in range(len(job)):
-
-                directory = os.getcwd() + "/data"
-
-                try: #Here it is checked whether the directory to collect the results exists or not. If not it is created.
-                    os.stat(directory)
-                except:
-                    os.mkdir(directory)
-                
+                """Populate logger object with logs obtained from remote simulation run"""
                 L.restore_logger_object(dict(result[i]))
+                
+                """Save logs as dict (to <num>_history_logs.dat)"""
                 L.save_log(True)
                 
+                """Save logs as indivitual files"""
                 for name in logfile_dict:
                     wfiles_dict[name].write(str(result[i][name]) + "\n")
             
@@ -150,8 +156,6 @@ def rake(hostname):
             for name in logfile_dict:
                 wfiles_dict[name].close()
                 del wfiles_dict[name]
-            
-            counter += 1
 
 
 if __name__ == '__main__':
