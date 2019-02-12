@@ -4,8 +4,8 @@ replicating = False
 force_foreground = False
 verbose = False
 showprogress = False
-show_network = False                   # should network be visualized. This should be False by default, to be overridden by commandline arguments
-slim_log = True
+show_network = False                   # Should network be visualized? This should be False by default, to be overridden by commandline arguments
+slim_log = True                        # Should logs be small in ensemble runs (only aggregated level data)?
                        
 simulation_parameters={"no_categories": 4,
                        "no_insurancefirms": 20,
