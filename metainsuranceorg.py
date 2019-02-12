@@ -270,9 +270,6 @@ class MetaInsuranceOrg(GenericAgent):
         if self.operational:
             method_to_call = getattr(self.simulation, record)
             method_to_call()
-        for category_reinsurance in self.category_reinsurance:
-            if category_reinsurance is not None:
-                category_reinsurance.dissolve(time)
         self.operational = False
 
     def receive_obligation(self, amount, recipient, due_time, purpose):
