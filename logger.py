@@ -83,16 +83,19 @@ class Logger():
         """Method to transfer entire log (self.history_log as well as risk event schedule). This is
            used to transfer the log to master core from work cores in ensemble runs in the cloud.
             No arguments.
-            Returns list."""
+            Returns list (listified dict)."""
         
-        if requested_logs == None:
-            requested_logs = LOG_DEFAULT
+        """Include environment variables (number of risk models and risk event schedule)"""
         self.history_logs["number_riskmodels"] = self.number_riskmodels
         self.history_logs["rc_event_damage_initial"] = self.rc_event_damage_initial
         self.history_logs["rc_event_schedule_initial"] = self.rc_event_schedule_initial
+        
+        """Parse logs to be returned"""
+        if requested_logs == None:
+            requested_logs = LOG_DEFAULT
         log = {name: self.history_logs[name] for name in requested_logs}
         
-        """convert to list and return"""
+        """Convert to list and return"""
         return listify.listify(log)
     
     def restore_logger_object(self, log):
@@ -100,18 +103,21 @@ class Logger():
            on a different machine. This is useful in the case of ensemble runs to move the log to
            the master node from the computation nodes.
             Arguments:
-                log - dict - The log
+                log - listified dict - The log. This must be a list of dict values plus the dict 
+                                        keys in the last element. It should have been created by 
+                                        listify.listify()
             Returns None."""
-        """restore dict"""
+
+        """Restore dict"""
         log = listify.delistify(log)
         
-        """extract environment variables (number of risk models and risk event schedule)"""
+        """Extract environment variables (number of risk models and risk event schedule)"""
         self.rc_event_schedule_initial = log["rc_event_schedule_initial"]
         self.rc_event_damage_initial = log["rc_event_damage_initial"]
         self.number_riskmodels = log["number_riskmodels"]
         del log["rc_event_schedule_initial"], log["rc_event_damage_initial"], log["number_riskmodels"]
         
-        """restore history log"""
+        """Restore history log"""
         self.history_logs = log
 
     def save_log(self, background_run):
