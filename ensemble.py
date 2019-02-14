@@ -29,7 +29,7 @@ def rake(hostname):
 
     """Configuration of the ensemble"""
 
-    replications = 7    #Number of replications to be carried out for each configuration. Usually one risk model, two risk models, three risk models, four risk models.
+    replications = 70    #Number of replications to be carried out for each configuration. Usually one risk model, two risk models, three risk models, four risk models.
 
     model = start.main
 
