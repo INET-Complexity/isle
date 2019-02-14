@@ -2,6 +2,7 @@
 
 import numpy as np
 import pdb
+import listify
 
 LOG_ORDER = (
     'total_cash total_excess_capital total_profitslosses total_contracts '
@@ -89,7 +90,9 @@ class Logger():
         self.history_logs["rc_event_damage_initial"] = self.rc_event_damage_initial
         self.history_logs["rc_event_schedule_initial"] = self.rc_event_schedule_initial
         log = {name: self.history_logs[name] for name in requested_logs}
-        return log
+        
+        """convert to list and return"""
+        return listify.listify(log)
     
     def restore_logger_object(self, log):
         """Method to restore logger object. A log can be restored later. It can also be restored 
@@ -98,12 +101,17 @@ class Logger():
             Arguments:
                 log - dict - The log
             Returns None."""
+        """restore dict"""
+        log = listify.delistify(log)
+        
+        """extract environment variables (number of risk models and risk event schedule)"""
         self.rc_event_schedule_initial = log["rc_event_schedule_initial"]
         self.rc_event_damage_initial = log["rc_event_damage_initial"]
         self.number_riskmodels = log["number_riskmodels"]
         del log["rc_event_schedule_initial"], log["rc_event_damage_initial"], log["number_riskmodels"]
-        self.history_logs = log
         
+        """restore history log"""
+        self.history_logs = log
 
     def save_log(self, background_run):
         """Method to save log to disk of local machine. Distinguishes single and ensemble runs.

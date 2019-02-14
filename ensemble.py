@@ -9,6 +9,7 @@ import copy
 import scipy.stats
 import start
 import logger
+import listify
 import isleconfig
 from distributiontruncated import TruncatedDistWrapper
 from setup import SetupSim
@@ -28,7 +29,7 @@ def rake(hostname):
 
     """Configuration of the ensemble"""
 
-    replications = 70    #Number of replications to be carried out for each configuration. Usually one risk model, two risk models, three risk models, four risk models.
+    replications = 7    #Number of replications to be carried out for each configuration. Usually one risk model, two risk models, three risk models, four risk models.
 
     model = start.main
 
@@ -106,7 +107,8 @@ def rake(hostname):
 
         simulation_parameters = copy.copy(parameters)       #Here the parameters used for the simulation are loaded. Clone is needed otherwise all the runs will be carried out with the last number of thee loop.
         simulation_parameters["no_riskmodels"] = i      #Since we want to obtain ensembles for different number of risk models, we vary here the number of risks models.
-        job = [m(simulation_parameters, general_rc_event_schedule[x], general_rc_event_damage[x], np_seeds[x], random_seeds[x], save_iter, list(requested_logs.keys())) for x in range(replications)]  #Here is assembled each job with the corresponding: simulation parameters, time events, damage events, seeds, simulation state save interval (never, i.e. longer than max_time), and list of requested logs.
+        #job = [m(simulation_parameters, general_rc_event_schedule[x], general_rc_event_damage[x], np_seeds[x], random_seeds[x], save_iter, list(requested_logs.keys())) for x in range(replications)]  #Here is assembled each job with the corresponding: simulation parameters, time events, damage events, seeds, simulation state save interval (never, i.e. longer than max_time), and list of requested logs.
+        job = [m(simulation_parameters, general_rc_event_schedule[x], general_rc_event_damage[x], np_seeds[x], random_seeds[x], save_iter) for x in range(replications)]  #Here is assembled each job with the corresponding: simulation parameters, time events, damage events, seeds, simulation state save interval (never, i.e. longer than max_time), and list of requested logs.
         jobs.append(job)    #All jobs are collected in the jobs list.
 
     """Here the jobs are submitted"""
@@ -119,6 +121,12 @@ def rake(hostname):
             result = sess.submit(job)
             
             
+            """find number of riskmodels from log"""
+            delistified_result = [listify.delistify(list(res)) for res in result]
+            #nrmidx = result[0][-1].index("number_riskmodels")
+            #nrm = result[0][nrmidx]
+            nrm = delistified_result[0]["number_riskmodels"]
+
             """These are the files created to collect the results"""
             wfiles_dict = {}
 
@@ -126,11 +134,11 @@ def rake(hostname):
             
             for name in requested_logs.keys():
                 if "rc_event" in name or "number_riskmodels" in name:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + "check_" + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]
+                    logfile_dict[name] = os.getcwd() + dir_prefix + "check_" + str(nums[str(nrm)]) + requested_logs[name]
                 elif "firms_cash" in name:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + "record_" + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]            
+                    logfile_dict[name] = os.getcwd() + dir_prefix + "record_" + str(nums[str(nrm)]) + requested_logs[name]            
                 else:
-                    logfile_dict[name] = os.getcwd() + dir_prefix + str(nums[str(result[0]["number_riskmodels"])]) + requested_logs[name]
+                    logfile_dict[name] = os.getcwd() + dir_prefix + str(nums[str(nrm)]) + requested_logs[name]
 
             for name in logfile_dict:
                 wfiles_dict[name] = open(logfile_dict[name], "w")
@@ -143,14 +151,14 @@ def rake(hostname):
 
             for i in range(len(job)):
                 """Populate logger object with logs obtained from remote simulation run"""
-                L.restore_logger_object(dict(result[i]))
+                L.restore_logger_object(list(result[i]))
                 
                 """Save logs as dict (to <num>_history_logs.dat)"""
                 L.save_log(True)
                 
                 """Save logs as indivitual files"""
                 for name in logfile_dict:
-                    wfiles_dict[name].write(str(result[i][name]) + "\n")
+                    wfiles_dict[name].write(str(delistified_result[i][name]) + "\n")
             
             """Once the data is stored in disk the files are closed"""
             for name in logfile_dict:
