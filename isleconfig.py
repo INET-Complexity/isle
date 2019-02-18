@@ -17,9 +17,9 @@ simulation_parameters={"no_categories": 4,
                        "norm_profit_markup": 0.15,
                        "rein_norm_profit_markup": 0.15,
                        "dividend_share_of_profits": 0.4,
-                       "mean_contract_runtime": 36,
-                       "contract_runtime_halfspread": 10,
-                       "default_contract_payment_period": 12,
+                       "mean_contract_runtime": 12,
+                       "contract_runtime_halfspread": 2,
+                       "default_contract_payment_period": 3,
                        "max_time": 1000,
                        "money_supply": 2000000000,
                        "event_time_mean_separation": 100 / 3.,
@@ -46,8 +46,8 @@ simulation_parameters={"no_categories": 4,
                        "insurance_retention": 0.85, # Ratio of insurance contracts retained every iteration.
                        "reinsurance_retention": 1, # Ratio of reinsurance contracts retained every iteration.
                        #Premium sensitivity parameters
-                       "premium_sensitivity": 8,  # This parameter represents how sensitive is the variation of the insurance premium with respect of the capital of the market. Higher means more sensitive.
-                       "reinpremium_sensitivity": 8,  # This parameter represents how sensitive is the variation of the reinsurance premium with respect of the capital of the market. Higher means more sensitive.
+                       "premium_sensitivity": 5,  # This parameter represents how sensitive is the variation of the insurance premium with respect of the capital of the market. Higher means more sensitive.
+                       "reinpremium_sensitivity": 6,  # This parameter represents how sensitive is the variation of the reinsurance premium with respect of the capital of the market. Higher means more sensitive.
                        #Balanced portfolio parameters
                        "insurers_balance_ratio": 0.1,  # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for insurers. Lower means more balanced.
                        "reinsurers_balance_ratio": 20,  # This ratio represents how low we want to keep the standard deviation of the cash reserved below the mean for reinsurers. Lower means more balanced. (Deactivated for the moment)
