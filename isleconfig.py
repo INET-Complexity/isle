@@ -13,6 +13,7 @@ simulation_parameters={"no_categories": 4,
                        "no_riskmodels": 2,
                        "riskmodel_inaccuracy_parameter": 2,  # values >=1; inaccuracy higher with higher values
                        "riskmodel_margin_of_safety": 2,  # values >=1; factor of additional liquidity beyond value at risk
+                       "margin_increase": 0, # This parameter modifies the margin of safety depending on the number of risks models available in the market. When is 0 all risk models have the same margin of safety.
                        "value_at_risk_tail_probability": 0.005,  # values <1, >0, usually close to 0; tail probability at which the value at risk is taken by the risk models
                        "norm_profit_markup": 0.15,
                        "rein_norm_profit_markup": 0.15,

@@ -55,6 +55,12 @@ class MetaInsuranceOrg(GenericAgent):
         self.cash_last_periods = list(np.zeros(4, dtype=int)*self.cash)
         
         rm_config = agent_parameters['riskmodel_config']
+
+        """Here we modify the margin of safety depending on the number of risks models available in the market. 
+           When is 0 all risk models have the same margin of safety. The reason for doing this is that with more risk
+           models the firms tend to be closer to the max capacity"""
+        margin_of_safety_correction = (rm_config["margin_of_safety"] + (simulation_parameters["no_riskmodels"] - 1) * simulation_parameters["margin_increase"])
+
         self.riskmodel = RiskModel(damage_distribution=rm_config["damage_distribution"], \
                                      expire_immediately=rm_config["expire_immediately"], \
                                      cat_separation_distribution=rm_config["cat_separation_distribution"], \
@@ -63,7 +69,7 @@ class MetaInsuranceOrg(GenericAgent):
                                      init_average_exposure=rm_config["risk_value_mean"], \
                                      init_average_risk_factor=rm_config["risk_factor_mean"], \
                                      init_profit_estimate=rm_config["norm_profit_markup"], \
-                                     margin_of_safety=rm_config["margin_of_safety"], \
+                                     margin_of_safety=margin_of_safety_correction, \
                                      var_tail_prob=rm_config["var_tail_prob"], \
                                      inaccuracy=rm_config["inaccuracy_by_categ"])
         
