@@ -242,7 +242,7 @@ if __name__ == "__main__":
     """ Restore the log at the end of the single simulation run for saving and for potential further study """
     is_background = (not isleconfig.force_foreground) and (isleconfig.replicating or (replic_ID in locals()))
     L = logger.Logger()
-    L.restore_logger_object(dict(log))
+    L.restore_logger_object(list(log))
     L.save_log(is_background)
     
     """ Obtain calibration score """
